@@ -1,0 +1,35 @@
+{
+    "name": "ecma-proposal-realms",
+    "private": true,
+    "version": "0.0.0",
+    "description": "ECMAScript spec proposal for Realms API",
+    "scripts": {
+        "build": "ecmarkup spec/index.emu index.html",
+        "watch": "ecmarkup --watch spec/index.emu index.html"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/caridy/proposal-realms.git"
+    },
+    "keywords": [
+        "realms",
+        "ES8",
+        "ES2017",
+        "ECMAScript",
+        "ESNext",
+        "spec",
+        "proposal"
+    ],
+    "author": {
+        "name": "Dave Herman"
+    },
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/caridy/proposal-realms/issues"
+    },
+    "homepage": "https://github.com/caridy/proposal-realms#readme",
+    "dependencies": {},
+    "devDependencies": {
+        "ecmarkup": "latest"
+    }
+}

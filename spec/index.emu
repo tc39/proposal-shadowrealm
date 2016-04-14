@@ -1,0 +1,152 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+<script src="https://bterlson.github.io/ecmarkup/ecmarkup.js"></script>
+<link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
+<pre class=metadata>
+    title: ECMAScript Realms Spec Proposal
+    stage: 0
+    contributors: Dave Herman, Caridy Patiño
+    status: draft
+    copyright: false
+    location: https://rawgit.com/caridy/proposal-realms/master/index.html
+</pre>
+
+<emu-table id="table-1" caption="Well-known Intrinsic Objects">
+    <table>
+        <tbody>
+            <tr>
+                <th>Intrinsic Name</th>
+                <th>Global Name</th>
+                <th>ECMAScript Language Association</th>
+            </tr>
+            <tr>
+                <td>%RealmPrototype%</td>
+                <td><code>Realm.prototype</code></td>
+                <td>…</td>
+            </tr>
+        </tbody>
+    </table>
+</emu-table>
+
+<emu-clause id="sec-realm-objects">
+    <h1>Realm Objects</h1>
+
+    <emu-clause id="sec-realm-abstract-operations">
+        <h1>Realm Abstract Operations</h1>
+    </emu-clause>
+
+    <emu-clause id="sec-the-realm-constructor">
+        <h1>The Realm Constructor</h1>
+
+        <p>
+            The Ream constructor is the %Realm% intrinsic object and the initial value of the *Realm* property of the global object. When called as a constructor it creates and initializes a new Realm object. Realm is not intended to be called as a function and will throw an exception when called in that manner.
+        </p>
+
+        <p>
+            The Realm constructor is designed to be subclassable. It may be used as the value in an extends clause of a class definition. Subclass constructors that intend to inherit the specified Realm behaviour must include a super call to the Realm constructor to create and initialize the subclass instance with the internal state necessary to support the Realm.prototype built-in methods.
+        </p>
+
+        <emu-clause id="sec-realm">
+            <h1>Realm([ target, handler ])</h1>
+
+            When Realm is called with arguments _target_ and _handler_ performs the following steps:
+
+            <emu-alg>
+                1. If NewTarget is *undefined*, throw a *TypeError* exception.
+                1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Global]] »).
+                1. If _handler_ is provided, then:
+                    1. If Type(_target_) is not Object, throw a *TypeError* exception.
+                    1. If Type(_handler_) is not Object, throw a *TypeError* exception.
+                    1. Let _globalEnv_ be ? ProxyCreate(_target_, _handler_).
+                1. Else,
+                    1. Let _globalEnv_ be ObjectCreate(%ObjectPrototype%).
+                1. Let _realmRec_ be CreateRealm().
+                1. Let _newContext_ be a new execution context.
+                1. Set the Function of _newContext_ to *null*.
+                1. Set the Realm of _newContext_ to _realmRec_.
+                1. Set the ScriptOrModule of _newContext_ to *null*.
+                1. Perform SetRealmGlobalObject(_realmRec_, _globalEnv_, *undefined*).
+                1. Set _O_'s [[Realm]] internal slot to _realmRec_.
+                1. Return _O_.
+            </emu-alg>
+
+        </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="sec-properties-of-the-realm-constructor">
+        <h1>Properties of the Realm Constructor</h1>
+
+        The value of the [[Prototype]] internal slot of the *Realm* constructor is the intrinsic object %FunctionPrototype%.
+
+    </emu-clause>
+
+    <emu-clause id="sec-properties-of-the-realm-prototype-object">
+        <h1>Properties of the Realm Prototype Object</h1>
+
+        <emu-clause id="sec-realm.prototype.eval">
+            <h1>Realm.prototype.eval(src)</h1>
+
+            Synchronously execute a top-level script. The _src_ is interpreted as a Script and evaluated with this bound to the realm's global object.
+
+            <emu-alg>
+            1. Let _O_ be *this* value.
+            1. If Type(_O_) is not Object, throw a *TypeError* exception.
+            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+            1. If Type(_src_) is not String, throw a *TypeError* exception.
+            1. Let _realmRec_ be _O_.[[Realm]].
+            1. Return ? PerformEval(_src_, _realmRec_, *false*, *false*)
+            </emu-alg>
+
+            <emu-note>
+                Extensible web: This is the dynamic equivalent of a &lt;script&gt; in HTML.
+            </emu-note>
+        </emu-clause>
+
+        <emu-clause id="sec-realm.prototype.global">
+            <h1>get Realm.prototype.global</h1>
+
+            Realm.prototype.global is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
+
+            <emu-alg>
+            1. Let _O_ be *this* value.
+            1. If Type(_O_) is not Object, throw a *TypeError* exception.
+            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+            1. Return _O_.[[Realm]].[[GlobalEnv]].
+            </emu-alg>
+        </emu-clause>
+
+        <emu-clause id="sec-realm.prototype-@@tostringtag">
+            <h1>Realm.prototype [ @@toStringTag ]</h1>
+
+            The initial value of the @@toStringTag property is the String value "Realm".
+
+            This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.
+        </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="sec-properties-of-realm-instances">
+        <h1>Properties of Realm Instances</h1>
+
+        Realm instances are ordinary objects that inherit properties from the Realm prototype object (the intrinsic, %RealmPrototype%). Realm instances are initially created with the internal slots described in Table 2.
+
+        <emu-table id="table-2" caption="Internal Slots of Realm Instances">
+            <table>
+                <tbody>
+                    <tr>
+                        <th>Internal Slot</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>[[Realm]]</td>
+                        <td>Realm Record</td>
+                        <td>The Realm Record for the initial execution context.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </emu-table>
+
+    </emu-clause>
+
+</emu-clause>
