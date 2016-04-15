@@ -4,12 +4,12 @@
 <script src="https://bterlson.github.io/ecmarkup/ecmarkup.js"></script>
 <link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
 <pre class=metadata>
-    title: ECMAScript Realms Spec Proposal
-    stage: 0
-    contributors: Dave Herman, Caridy Patiño
-    status: draft
-    copyright: false
-    location: https://rawgit.com/caridy/proposal-realms/master/index.html
+title: ECMAScript Realms Spec Proposal
+stage: 0
+contributors: Dave Herman, Caridy Patiño
+status: draft
+copyright: false
+location: https://rawgit.com/caridy/proposal-realms/master/index.html
 </pre>
 
 <emu-table id="table-1" caption="Well-known Intrinsic Objects">
@@ -47,28 +47,28 @@
             The Realm constructor is designed to be subclassable. It may be used as the value in an extends clause of a class definition. Subclass constructors that intend to inherit the specified Realm behaviour must include a super call to the Realm constructor to create and initialize the subclass instance with the internal state necessary to support the Realm.prototype built-in methods.
         </p>
 
-        <emu-clause id="sec-realm">
+        <emu-clause id="sec-realm" aoid="Realm">
             <h1>Realm([ target, handler ])</h1>
 
             When Realm is called with arguments _target_ and _handler_ performs the following steps:
 
             <emu-alg>
-                1. If NewTarget is *undefined*, throw a *TypeError* exception.
-                1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Global]] »).
-                1. If _handler_ is provided, then:
-                    1. If Type(_target_) is not Object, throw a *TypeError* exception.
-                    1. If Type(_handler_) is not Object, throw a *TypeError* exception.
-                    1. Let _globalEnv_ be ? ProxyCreate(_target_, _handler_).
-                1. Else,
-                    1. Let _globalEnv_ be ObjectCreate(%ObjectPrototype%).
-                1. Let _realmRec_ be CreateRealm().
-                1. Let _newContext_ be a new execution context.
-                1. Set the Function of _newContext_ to *null*.
-                1. Set the Realm of _newContext_ to _realmRec_.
-                1. Set the ScriptOrModule of _newContext_ to *null*.
-                1. Perform SetRealmGlobalObject(_realmRec_, _globalEnv_, *undefined*).
-                1. Set _O_'s [[Realm]] internal slot to _realmRec_.
-                1. Return _O_.
+            1. If NewTarget is *undefined*, throw a *TypeError* exception.
+            1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]] »).
+            1. If _handler_ is provided, then:
+              1. If Type(_target_) is not Object, throw a *TypeError* exception.
+              1. If Type(_handler_) is not Object, throw a *TypeError* exception.
+              1. Let _globalEnv_ be ? ProxyCreate(_target_, _handler_).
+            1. Else,
+              1. Let _globalEnv_ be ObjectCreate(%ObjectPrototype%).
+            1. Let _realmRec_ be CreateRealm().
+            1. Let _newContext_ be a new execution context.
+            1. Set the Function of _newContext_ to *null*.
+            1. Set the Realm of _newContext_ to _realmRec_.
+            1. Set the ScriptOrModule of _newContext_ to *null*.
+            1. Perform SetRealmGlobalObject(_realmRec_, _globalEnv_, *undefined*).
+            1. Set _O_'s [[Realm]] internal slot to _realmRec_.
+            1. Return _O_.
             </emu-alg>
 
         </emu-clause>

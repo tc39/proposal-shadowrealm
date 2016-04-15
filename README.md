@@ -23,7 +23,7 @@ You can view the spec rendered as [HTML](https://rawgit.com/caridy/proposal-real
 
 ### Updating the spec text for this proposal
 
-The source for the spec text is located in [spec/index.emu](caridy/proposal-realms/spec/index.emu) and it is written in
+The source for the spec text is located in [spec/index.emu](spec/index.emu) and it is written in
 [ecmarkup](https://github.com/bterlson/ecmarkup) language.
 
 When modifying the spec text, you should be able to build the HTML version in
