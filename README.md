@@ -15,9 +15,9 @@
 
 You can view the spec rendered as [HTML](https://rawgit.com/caridy/proposal-realms/master/index.html).
 
-## Backpointers
+## Background
 
- * https://gist.github.com/dherman/7568885
+ * [What are Realms?](https://gist.github.com/dherman/9146568)
 
 ## Contributing
 
