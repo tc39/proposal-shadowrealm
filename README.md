@@ -15,10 +15,10 @@
 
 You can view the spec rendered as [HTML](https://rawgit.com/caridy/proposal-realms/master/index.html).
 
-## Backpointers
+## Background
 
- * https://gist.github.com/dherman/7568885
- * https://gist.github.com/dherman/9146568
+ * [What are Realms?](https://gist.github.com/dherman/7568885)
+ * [JS dialects with ES6 Realms](https://gist.github.com/dherman/9146568)
 
 ## Contributing
 
