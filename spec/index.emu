@@ -29,11 +29,59 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
     </table>
 </emu-table>
 
+<emu-table id="table-2" caption="Well-known Symbols">
+    <table>
+        <tbody>
+            <tr>
+                <th>Specification Name</th>
+                <th>[[Description]]</th>
+                <th>Value and Purpose</th>
+            </tr>
+            <tr>
+                <td>@@indirectEval</td>
+                <td><code>Realm.indirectEval</code></td>
+                <td>A function valued property that is the indirectEval hook function of Realm’s instances.</td>
+            </tr>
+            <tr>
+                <td>@@directEval</td>
+                <td><code>Realm.directEval</code></td>
+                <td>A function valued property that is the directEval hook function of Realm’s instances.</td>
+            </tr>
+            <tr>
+                <td>@@nonEval</td>
+                <td><code>Realm.nonEval</code></td>
+                <td>A function valued property that is the nonEval hook function of Realm’s instances.</td>
+            </tr>
+        </tbody>
+    </table>
+</emu-table>
+
 <emu-clause id="sec-realm-objects">
     <h1>Realm Objects</h1>
 
     <emu-clause id="sec-realm-abstract-operations">
         <h1>Realm Abstract Operations</h1>
+
+        <emu-clause id="sec-extract-realm-methods" aoid="ExtractRealmMethods">
+            <h1>ExtractRealmMethods(_realmObj_)</h1>
+
+            When ExtractRealmMethods is called with argument _realmObj_ performs the following steps:
+
+            <emu-alg>
+            1. Assert: Type(_realmObj_) is not Object, throw a *TypeError* exception.
+            1. If _realmObj_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+            1. Let _indirectEval_ be ? GetMethod(_realmObj_, @@indirectEval).
+            1. If IsCallable(_indirectEval_) is not *true*, throw a *TypeError* exception.
+            1. Let _directEval_ be ? GetMethod(_realmObj_, @@directEval).
+            1. If IsCallable(_directEval_) is not *true*, throw a *TypeError* exception.
+            1. Let _nonEval_ be ? GetMethod(_realmObj_, @@nonEval).
+            1. If IsCallable(_nonEval_) is not *true*, throw a *TypeError* exception.
+            1. Set _realmObj_'s [[IndirectEval]] internal slot to _indirectEval_.
+            1. Set _realmObj_'s [[DirectEval]] internal slot to _directEval_.
+            1. Set _realmObj_'s [[NonEval]] internal slot to _nonEval_.
+            </emu-alg>
+
+        </emu-clause>
     </emu-clause>
 
     <emu-clause id="sec-the-realm-constructor">
@@ -54,20 +102,21 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
 
             <emu-alg>
             1. If NewTarget is *undefined*, throw a *TypeError* exception.
-            1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]] »).
+            1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]], [[IndirectEval]], [[DirectEval]], [[NonEval]] »).
             1. If _handler_ is provided, then:
               1. If Type(_target_) is not Object, throw a *TypeError* exception.
               1. If Type(_handler_) is not Object, throw a *TypeError* exception.
               1. Let _globalEnv_ be ? ProxyCreate(_target_, _handler_).
             1. Else,
-              1. Let _globalEnv_ be ObjectCreate(%ObjectPrototype%).
+              1. Let _globalEnv_ be *undefined*.
             1. Let _realmRec_ be CreateRealm().
             1. Let _newContext_ be a new execution context.
             1. Set the Function of _newContext_ to *null*.
             1. Set the Realm of _newContext_ to _realmRec_.
             1. Set the ScriptOrModule of _newContext_ to *null*.
-            1. Perform SetRealmGlobalObject(_realmRec_, _globalEnv_, *undefined*).
             1. Set _O_'s [[Realm]] internal slot to _realmRec_.
+            1. Perform ? SetRealmGlobalObject(_realmRec_, _globalEnv_, *undefined*).
+            1. Perform ? ExtractRealmMethods(_O_).
             1. Return _O_.
             </emu-alg>
 
@@ -85,22 +134,57 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
         <h1>Properties of the Realm Prototype Object</h1>
 
         <emu-clause id="sec-realm.prototype.eval">
-            <h1>Realm.prototype.eval(src)</h1>
+            <h1>Realm.prototype.eval(_code_)</h1>
 
-            Synchronously execute a top-level script. The _src_ is interpreted as a Script and evaluated with this bound to the realm's global object.
+            Synchronously execute a top-level script. The _code_ is interpreted as a Script and evaluated with this bound to the realm's global object.
 
             <emu-alg>
             1. Let _O_ be *this* value.
             1. If Type(_O_) is not Object, throw a *TypeError* exception.
             1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. If Type(_src_) is not String, throw a *TypeError* exception.
             1. Let _realmRec_ be _O_.[[Realm]].
-            1. Return ? PerformEval(_src_, _realmRec_, *false*, *false*)
+            1. Let _indirectEval_ be ? GetMethod(_O_, *"indirectEval"*).
+            1. Let _stringCode_ be ? Call(_indirectEval_, _O_, « _code_ »).
+            1. Return ? PerformEval(_stringCode_, _realmRec_, *false*, *false*).
             </emu-alg>
 
             <emu-note>
                 Extensible web: This is the dynamic equivalent of a &lt;script&gt; in HTML.
             </emu-note>
+        </emu-clause>
+
+        <emu-clause id="sec-realm.prototype-@@directEval">
+            <h1>Realm.prototype[ @@directEval ](self, code)</h1>
+
+            <emu-alg>
+            1. Let _O_ be *this* value.
+            1. If Type(_O_) is not Object, throw a *TypeError* exception.
+            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+            1. Return ? ToString(_code_).
+            </emu-alg>
+        </emu-clause>
+
+        <emu-clause id="sec-realm.prototype-@@indirectEval">
+            <h1>Realm.prototype[ @@indirectEval ](code)</h1>
+
+            <emu-alg>
+            1. Let _O_ be *this* value.
+            1. If Type(_O_) is not Object, throw a *TypeError* exception.
+            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+            1. Return ? ToString(_code_).
+            </emu-alg>
+        </emu-clause>
+
+        <emu-clause id="sec-realm.prototype-@@nonEval">
+            <h1>Realm.prototype[ @@nonEval ](self, callee, argArray)</h1>
+
+            <emu-alg>
+            1. Let _O_ be *this* value.
+            1. If Type(_O_) is not Object, throw a *TypeError* exception.
+            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+            1. Let _argList_ be ? CreateListFromArrayLike(_argArray_).
+            1. Return ? Call(_callee_, _self_, _argList_).
+            </emu-alg>
         </emu-clause>
 
         <emu-clause id="sec-realm.prototype.global">
@@ -112,7 +196,49 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
             1. Let _O_ be *this* value.
             1. If Type(_O_) is not Object, throw a *TypeError* exception.
             1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Return _O_.[[Realm]].[[GlobalEnv]].
+            1. Return _O_.[[Realm]].[[GlobalObject]].
+            </emu-alg>
+        </emu-clause>
+
+        <emu-clause id="sec-realm.prototype.stdlib">
+            <h1>get Realm.prototype.stdlib</h1>
+
+            Realm.prototype.stdlib is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
+
+            <emu-alg>
+            1. Let _O_ be *this* value.
+            1. If Type(_O_) is not Object, throw a *TypeError* exception.
+            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+            1. Let _realmRec_ be _O_.[[Realm]].
+            1. Let global be realmRec.[[GlobalObject]].
+            1. Let _stdlib_ be ObjectCreate(%ObjectPrototype%).
+            1. For each property of the Global Object specified in clause <emu-xref href="#sec-global-object"></emu-xref> that correspond to an intrinsic object, do:
+              1. Let _name_ be the String value of the property name.
+              1. Let _value_ be the corresponding value of the intrinsic object from record _realmRec_.[[Intrinsics]].
+              1. Let _descObj_ be ObjectCreate(%ObjectPrototype%).
+              1. Perform ? DefinePropertyOrThrow(_descObj_, *"value"*, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
+              1. Perform ? DefinePropertyOrThrow(_stdlib_, _name_, PropertyDescriptor{[[Value]]: _descObj_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
+            1. Return _stdlib_.
+            </emu-alg>
+        </emu-clause>
+
+        <emu-clause id="sec-realm.prototype.intrinsics">
+            <h1>get Realm.prototype.intrinsics</h1>
+
+            Realm.prototype.intrinsics is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
+
+            <emu-alg>
+            1. Let _O_ be *this* value.
+            1. If Type(_O_) is not Object, throw a *TypeError* exception.
+            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+            1. Let _realmRec_ be _O_.[[Realm]].
+            1. Let _intrinsics_ be ObjectCreate(%ObjectPrototype%).
+            1. For each intrinsic name listed in <emu-xref href="#table-7"></emu-xref>, do:
+              1. Let _intrinsicName_ be the String value in column one of the table.
+              1. Let _name_ be the String value of _intrinsicName_ without the *%* symbols.
+              1. Let _value_ be the value of the field name _intrisicName_ from record _realmRec_.[[Intrinsics]].
+              1. Perform ? DefinePropertyOrThrow(_intrinsics_, _name_, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
+            1. Return _intrinsics_.
             </emu-alg>
         </emu-clause>
 
@@ -128,9 +254,9 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
     <emu-clause id="sec-properties-of-realm-instances">
         <h1>Properties of Realm Instances</h1>
 
-        Realm instances are ordinary objects that inherit properties from the Realm prototype object (the intrinsic, %RealmPrototype%). Realm instances are initially created with the internal slots described in Table 2.
+        Realm instances are ordinary objects that inherit properties from the Realm prototype object (the intrinsic, %RealmPrototype%). Realm instances are initially created with the internal slots described in <emu-xref href="#table-3"></emu-xref>.
 
-        <emu-table id="table-2" caption="Internal Slots of Realm Instances">
+        <emu-table id="table-3" caption="Internal Slots of Realm Instances">
             <table>
                 <tbody>
                     <tr>
@@ -142,6 +268,21 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
                         <td>[[Realm]]</td>
                         <td>Realm Record</td>
                         <td>The Realm Record for the initial execution context.</td>
+                    </tr>
+                    <tr>
+                        <td>[[IndirectEval]]</td>
+                        <td>Callable Object</td>
+                        <td>The indirect evaluation hook function extracted during construction.</td>
+                    </tr>
+                    <tr>
+                        <td>[[DirectEval]]</td>
+                        <td>Callable Object</td>
+                        <td>The direct evaluation hook function extracted during construction.</td>
+                    </tr>
+                    <tr>
+                        <td>[[NonEval]]</td>
+                        <td>Callable Object</td>
+                        <td>The non evaluation hook function extracted during construction.</td>
                     </tr>
                 </tbody>
             </table>
