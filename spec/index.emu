@@ -115,8 +115,11 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
             1. Set the Realm of _newContext_ to _realmRec_.
             1. Set the ScriptOrModule of _newContext_ to *null*.
             1. Set _O_'s [[Realm]] internal slot to _realmRec_.
-            1. Perform ? SetRealmGlobalObject(_realmRec_, _globalEnv_, *undefined*).
             1. Perform ? ExtractRealmMethods(_O_).
+            1. Perform ? SetRealmGlobalObject(_realmRec_, _globalEnv_, *undefined*).
+            1. Let _init_ be ? GetMethod(_O_, *"init"*).
+            1. If IsCallable(_init_) is not *true*, throw a *TypeError* exception.
+            1. Perform ? Call(_init_, _O_).
             1. Return _O_.
             </emu-alg>
 
@@ -132,6 +135,21 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
 
     <emu-clause id="sec-properties-of-the-realm-prototype-object">
         <h1>Properties of the Realm Prototype Object</h1>
+
+        <emu-clause id="sec-realm.prototype.init">
+            <h1>Realm.prototype.init()</h1>
+
+            <emu-alg>
+            1. Let _O_ be *this* value.
+            1. If Type(_O_) is not Object, throw a *TypeError* exception.
+            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+            1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
+            </emu-alg>
+
+            <emu-note>
+                Extensible web: This is the dynamic way to define globals in a new realm.
+            </emu-note>
+        </emu-clause>
 
         <emu-clause id="sec-realm.prototype.eval">
             <h1>Realm.prototype.eval(_code_)</h1>
