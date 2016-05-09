@@ -21,6 +21,11 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
                 <th>ECMAScript Language Association</th>
             </tr>
             <tr>
+                <td>%Realm%</td>
+                <td><code>Realm</code></td>
+                <td>…</td>
+            </tr>
+            <tr>
                 <td>%RealmPrototype%</td>
                 <td><code>Realm.prototype</code></td>
                 <td>…</td>
@@ -47,14 +52,82 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
                 <td><code>Realm.directEval</code></td>
                 <td>A function valued property that is the directEval hook function of Realm’s instances.</td>
             </tr>
+        </tbody>
+    </table>
+</emu-table>
+
+<emu-table id="table-2" caption="Realm Record Fields">
+    <table>
+        <tbody>
             <tr>
-                <td>@@nonEval</td>
-                <td><code>Realm.nonEval</code></td>
-                <td>A function valued property that is the nonEval hook function of Realm’s instances.</td>
+                <th>Field Name</th>
+                <th>Value</th>
+                <th>Meaning</th>
+            </tr>
+            <tr>
+                <td>[[HostDefined]]</td>
+                <td>...</td>
+                <td>...</td>
+            </tr>
+            <tr>
+                <td>[[IndirectEval]]</td>
+                <td>Object | Undefined</td>
+                <td>If the value is an Object it must be a function object. The function is call prior to perform any indirect evaluation in the realm.</td>
+            </tr>
+            <tr>
+                <td>[[DirectEval]]</td>
+                <td>Object | Undefined</td>
+                <td>If the value is an Object it must be a function object. The function is call prior to perform any direct evaluation in the realm.</td>
             </tr>
         </tbody>
     </table>
 </emu-table>
+
+<!-- es6num="18.2.1.1" -->
+<emu-clause id="sec-performeval" aoid="PerformEval">
+  <h1>Runtime Semantics: PerformEval( _x_, _evalRealm_, _strictCaller_, _direct_ )</h1>
+  <p>The abstract operation PerformEval with arguments _x_, _evalRealm_, _strictCaller_, and _direct_ performs the following steps:</p>
+  <emu-alg>
+    1. Assert: If _direct_ is *false*, then _strictCaller_ is also *false*.
+    1. <ins>If _direct_ is *true*, then</ins>
+      1. <ins>Let _xValue_ be ? PrepareForDirectEval(_x_, _evalRealm_).</ins>
+    1. <ins>Else,</ins>
+      1. <ins>Let _xValue_ be ? PrepareForIndirectEval(_x_, _evalRealm_).</ins>
+    1. If Type(_xValue_) is not String, return _xValue_.
+    1. Let _script_ be the ECMAScript code that is the result of parsing _xValue_, interpreted as UTF-16 encoded Unicode text as described in <emu-xref href="#sec-ecmascript-language-types-string-type"></emu-xref>, for the goal symbol |Script|. If the parse fails, throw a *SyntaxError* exception. If any early errors are detected, throw a *SyntaxError* or a *ReferenceError* exception, depending on the type of the error (but see also clause <emu-xref href="#sec-error-handling-and-language-extensions"></emu-xref>). Parsing and early error detection may be interweaved in an implementation dependent manner.
+    1. If _script_ Contains |ScriptBody| is *false*, return *undefined*.
+    1. Let _body_ be the |ScriptBody| of _script_.
+    1. If _strictCaller_ is *true*, let _strictEval_ be *true*.
+    1. Else, let _strictEval_ be IsStrict of _script_.
+    1. Let _ctx_ be the running execution context. If _direct_ is *true*, _ctx_ will be the execution context that performed the direct eval. If _direct_ is *false*, _ctx_ will be the execution context for the invocation of the `eval` function.
+    1. If _direct_ is *true*, then
+      1. Let _lexEnv_ be NewDeclarativeEnvironment(_ctx_'s LexicalEnvironment).
+      1. Let _varEnv_ be _ctx_'s VariableEnvironment.
+    1. Else,
+      1. Let _lexEnv_ be NewDeclarativeEnvironment(_evalRealm_.[[GlobalEnv]]).
+      1. Let _varEnv_ be _evalRealm_.[[GlobalEnv]].
+    1. If _strictEval_ is *true*, let _varEnv_ be _lexEnv_.
+    1. If _ctx_ is not already suspended, suspend _ctx_.
+    1. Let _evalCxt_ be a new ECMAScript code execution context.
+    1. Set the _evalCxt_'s Function to *null*.
+    1. Set the _evalCxt_'s Realm to _evalRealm_.
+    1. Set the _evalCxt_'s ScriptOrModule to _ctx_'s ScriptOrModule.
+    1. Set the _evalCxt_'s VariableEnvironment to _varEnv_.
+    1. Set the _evalCxt_'s LexicalEnvironment to _lexEnv_.
+    1. Push _evalCxt_ on to the execution context stack; _evalCxt_ is now the running execution context.
+    1. Let _result_ be EvalDeclarationInstantiation(_body_, _varEnv_, _lexEnv_, _strictEval_).
+    1. If _result_.[[Type]] is ~normal~, then
+      1. Let _result_ be the result of evaluating _body_.
+    1. If _result_.[[Type]] is ~normal~ and _result_.[[Value]] is ~empty~, then
+      1. Let _result_ be NormalCompletion(*undefined*).
+    1. Suspend _evalCxt_ and remove it from the execution context stack.
+    1. Resume the context that is now on the top of the execution context stack as the running execution context.
+    1. Return Completion(_result_).
+  </emu-alg>
+  <emu-note>
+    <p>The eval code cannot instantiate variable or function bindings in the variable environment of the calling context that invoked the eval if the calling context is evaluating formal parameter initializers or if either the code of the calling context or the eval code is strict mode code. Instead such bindings are instantiated in a new VariableEnvironment that is only accessible to the eval code. Bindings introduced by `let`, `const`, or `class` declarations are always instantiated in a new LexicalEnvironment.</p>
+  </emu-note>
+</emu-clause>
 
 <emu-clause id="sec-realm-objects">
     <h1>Realm Objects</h1>
@@ -62,23 +135,58 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
     <emu-clause id="sec-realm-abstract-operations">
         <h1>Realm Abstract Operations</h1>
 
+        <emu-clause id="sec-preparefordirecteval" aoid="PrepareForDirectEval">
+            <h1>PrepareForDirectEval ( _x_, _realmRec_ )</h1>
+
+            <p>The abstract operation PrepareForDirectEval with arguments _x_ and _realmRec_ performs the following steps:</p>
+
+            <emu-alg>
+            1. Assert: realm is a Realm Record.
+            1. Let _fn_ be _realmRec_.[[DirectEval]].
+            1. If _fn_ is *undefined*, return _x_.
+            1. Assert: IsCallable(_fn_) is *true*.
+            1. Let ctx be the execution context that performed the direct eval.
+            1. Let _varEnv_ be ctx's VariableEnvironment.
+            1. Let _varEnvRec_ be _varEnv_'s EnvironmentRecord.
+            1. Let _refEnv_ be GetBase(_varEnvRec_).
+            1. Let _self_ be _refEnv_.WithBaseObject().
+            1. Return ? Call(_fn_, *undefined*, « _self_, _x_ »).
+            </emu-alg>
+        </emu-clause>
+
+        <emu-clause id="sec-prepareforindirecteval" aoid="PrepareForIndirectEval">
+            <h1>PrepareForIndirectEval ( _x_, _realmRec_ )</h1>
+
+            <p>The abstract operation PrepareForIndirectEval with arguments _x_ and _realmRec_ performs the following steps:</p>
+
+            <emu-alg>
+            1. Assert: realm is a Realm Record.
+            1. Let _fn_ be _realmRec_.[[IndirectEval]].
+            1. If _fn_ is *undefined*, return _x_.
+            1. Assert: IsCallable(_fn_) is *true*.
+            1. Return ? Call(_fn_, *undefined*, « _x_ »).
+            </emu-alg>
+        </emu-clause>
+
         <emu-clause id="sec-extract-realm-methods" aoid="ExtractRealmMethods">
-            <h1>ExtractRealmMethods(_realmObj_)</h1>
+            <h1>ExtractRealmMethods ( _realmObj_ )</h1>
 
             When ExtractRealmMethods is called with argument _realmObj_ performs the following steps:
 
             <emu-alg>
             1. Assert: Type(_realmObj_) is not Object, throw a *TypeError* exception.
-            1. If _realmObj_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Let _indirectEval_ be ? GetMethod(_realmObj_, @@indirectEval).
-            1. If IsCallable(_indirectEval_) is not *true*, throw a *TypeError* exception.
-            1. Let _directEval_ be ? GetMethod(_realmObj_, @@directEval).
-            1. If IsCallable(_directEval_) is not *true*, throw a *TypeError* exception.
-            1. Let _nonEval_ be ? GetMethod(_realmObj_, @@nonEval).
-            1. If IsCallable(_nonEval_) is not *true*, throw a *TypeError* exception.
-            1. Set _realmObj_'s [[IndirectEval]] internal slot to _indirectEval_.
-            1. Set _realmObj_'s [[DirectEval]] internal slot to _directEval_.
-            1. Set _realmObj_'s [[NonEval]] internal slot to _nonEval_.
+            1. Assert: _realmObj_ does have an [[Realm]] internal slot, throw a *TypeError* exception.
+            1. Let _realmRec_ be _realmObj_.[[Realm]].
+            1. Let _directEvalFn_ be ? GetMethod(_realmObj_, @@directEval).
+            1. If IsCallable(_directEvalFn_) is not *true*, throw a *TypeError* exception.
+            1. Let _boundDirectEvalFn_ be BoundFunctionCreate(_directEvalFn_, _realmObj_, « »).
+            1. Perform ! DefinePropertyOrThrow(_boundDirectEvalFn_, "length", PropertyDescriptor {[[Value]]: 2, [[Writable]]: *false*, [[Enumerable]]: *false*, [[Configurable]]: *true*}).
+            1. Set _realmRec_'s [[DirectEval]] internal slot to _boundDirectEvalFn_.
+            1. Let _indirectEvalFn_ be ? GetMethod(_realmObj_, @@indirectEval).
+            1. If IsCallable(_indirectEvalFn_) is not *true*, throw a *TypeError* exception.
+            1. Let _boundIndirectEvalFn_ be BoundFunctionCreate(_indirectEvalFn_, _realmObj_, « »).
+            1. Perform ! DefinePropertyOrThrow(_boundIndirectEvalFn_, "length", PropertyDescriptor {[[Value]]: 1, [[Writable]]: *false*, [[Enumerable]]: *false*, [[Configurable]]: *true*}).
+            1. Set _realmRec_'s [[IndirectEval]] internal slot to _boundIndirectEvalFn_.
             </emu-alg>
 
         </emu-clause>
@@ -96,7 +204,7 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
         </p>
 
         <emu-clause id="sec-realm" aoid="Realm">
-            <h1>Realm([ target, handler ])</h1>
+            <h1>Realm ([ _target_, _handler_ ])</h1>
 
             When Realm is called with arguments _target_ and _handler_ performs the following steps:
 
@@ -137,7 +245,7 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
         <h1>Properties of the Realm Prototype Object</h1>
 
         <emu-clause id="sec-realm.prototype.init">
-            <h1>Realm.prototype.init()</h1>
+            <h1>Realm.prototype.init ()</h1>
 
             <emu-alg>
             1. Let _O_ be *this* value.
@@ -152,18 +260,17 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
         </emu-clause>
 
         <emu-clause id="sec-realm.prototype.eval">
-            <h1>Realm.prototype.eval(_code_)</h1>
+            <h1>Realm.prototype.eval ( _x_ )</h1>
 
-            Synchronously execute a top-level script. The _code_ is interpreted as a Script and evaluated with this bound to the realm's global object.
+            Synchronously execute a top-level script. The _x_ is interpreted as a Script and evaluated with this bound to the realm's global object.
 
             <emu-alg>
             1. Let _O_ be *this* value.
             1. If Type(_O_) is not Object, throw a *TypeError* exception.
             1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Let _realmRec_ be _O_.[[Realm]].
-            1. Let _indirectEval_ be ? GetMethod(_O_, *"indirectEval"*).
-            1. Let _stringCode_ be ? Call(_indirectEval_, _O_, « _code_ »).
-            1. Return ? PerformEval(_stringCode_, _realmRec_, *false*, *false*).
+            1. Let _evalRealm_ be _O_.[[Realm]].
+            1. Perform ? HostEnsureCanCompileStrings(the current Realm Record, _evalRealm_).
+            1. Return ? PerformEval(_x_, _evalRealm_, *false*, *false*).
             </emu-alg>
 
             <emu-note>
@@ -172,37 +279,33 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
         </emu-clause>
 
         <emu-clause id="sec-realm.prototype-@@directEval">
-            <h1>Realm.prototype[ @@directEval ](self, code)</h1>
+            <h1>Realm.prototype [ @@directEval ] ( _self_, _x_ )</h1>
 
             <emu-alg>
             1. Let _O_ be *this* value.
             1. If Type(_O_) is not Object, throw a *TypeError* exception.
             1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Return ? ToString(_code_).
+            1. Return _x_.
             </emu-alg>
+
+            <emu-note>
+                Extensible web: This is the hook to pre-process _x_ as the code to be evaluated by calling <code>eval()</code>.
+            </emu-note>
         </emu-clause>
 
         <emu-clause id="sec-realm.prototype-@@indirectEval">
-            <h1>Realm.prototype[ @@indirectEval ](code)</h1>
+            <h1>Realm.prototype [ @@indirectEval ] ( _x_ )</h1>
 
             <emu-alg>
             1. Let _O_ be *this* value.
             1. If Type(_O_) is not Object, throw a *TypeError* exception.
             1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Return ? ToString(_code_).
+            1. Return _x_.
             </emu-alg>
-        </emu-clause>
 
-        <emu-clause id="sec-realm.prototype-@@nonEval">
-            <h1>Realm.prototype[ @@nonEval ](self, callee, argArray)</h1>
-
-            <emu-alg>
-            1. Let _O_ be *this* value.
-            1. If Type(_O_) is not Object, throw a *TypeError* exception.
-            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Let _argList_ be ? CreateListFromArrayLike(_argArray_).
-            1. Return ? Call(_callee_, _self_, _argList_).
-            </emu-alg>
+            <emu-note>
+                Extensible web: This is the hook to pre-process _x_ as the code to be evaluated by calling a reference to the <code>eval</code> function.
+            </emu-note>
         </emu-clause>
 
         <emu-clause id="sec-realm.prototype.global">
@@ -286,21 +389,6 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
                         <td>[[Realm]]</td>
                         <td>Realm Record</td>
                         <td>The Realm Record for the initial execution context.</td>
-                    </tr>
-                    <tr>
-                        <td>[[IndirectEval]]</td>
-                        <td>Callable Object</td>
-                        <td>The indirect evaluation hook function extracted during construction.</td>
-                    </tr>
-                    <tr>
-                        <td>[[DirectEval]]</td>
-                        <td>Callable Object</td>
-                        <td>The direct evaluation hook function extracted during construction.</td>
-                    </tr>
-                    <tr>
-                        <td>[[NonEval]]</td>
-                        <td>Callable Object</td>
-                        <td>The non evaluation hook function extracted during construction.</td>
                     </tr>
                 </tbody>
             </table>
