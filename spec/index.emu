@@ -205,7 +205,7 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
 
             <emu-alg>
             1. If NewTarget is *undefined*, throw a *TypeError* exception.
-            1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]], [[IndirectEval]], [[DirectEval]], [[NonEval]] »).
+            1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]] »).
             1. If _handler_ is provided, then:
               1. If Type(_target_) is not Object, throw a *TypeError* exception.
               1. If Type(_handler_) is not Object, throw a *TypeError* exception.
@@ -213,10 +213,6 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
             1. Else,
               1. Let _globalEnv_ be *undefined*.
             1. Let _realmRec_ be CreateRealm().
-            1. Let _newContext_ be a new execution context.
-            1. Set the Function of _newContext_ to *null*.
-            1. Set the Realm of _newContext_ to _realmRec_.
-            1. Set the ScriptOrModule of _newContext_ to *null*.
             1. Set _O_'s [[Realm]] internal slot to _realmRec_.
             1. Perform ? ExtractRealmMethods(_O_).
             1. Perform ? SetRealmGlobalObject(_realmRec_, _globalEnv_, *undefined*).
