@@ -145,12 +145,7 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
             1. Let _fn_ be _realmRec_.[[DirectEval]].
             1. If _fn_ is *undefined*, return _x_.
             1. Assert: IsCallable(_fn_) is *true*.
-            1. Let ctx be the execution context that performed the direct eval.
-            1. Let _varEnv_ be ctx's VariableEnvironment.
-            1. Let _varEnvRec_ be _varEnv_'s EnvironmentRecord.
-            1. Let _refEnv_ be GetBase(_varEnvRec_).
-            1. Let _self_ be _refEnv_.WithBaseObject().
-            1. Return ? Call(_fn_, *undefined*, « _self_, _x_ »).
+            1. Return ? Call(_fn_, *undefined*, « _x_ »).
             </emu-alg>
         </emu-clause>
 
@@ -279,7 +274,7 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
         </emu-clause>
 
         <emu-clause id="sec-realm.prototype-@@directEval">
-            <h1>Realm.prototype [ @@directEval ] ( _self_, _x_ )</h1>
+            <h1>Realm.prototype [ @@directEval ] ( _x_ )</h1>
 
             <emu-alg>
             1. Let _O_ be *this* value.
