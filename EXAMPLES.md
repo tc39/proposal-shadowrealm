@@ -15,7 +15,7 @@ will become:
 
 ```js
 const globalOne = window;
-const globalTwo = new Realm();
+const globalTwo = new Realm().global;
 ```
 
 ### Indirect evaluation
@@ -96,7 +96,7 @@ will become:
 
 ```js
 const globalOne = global;
-const globalTwo = new Realm();
+const globalTwo = new Realm().global;
 ```
 
 _Note: these two are equivalent in functionality._
