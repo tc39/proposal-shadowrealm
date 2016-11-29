@@ -1,0 +1,38 @@
+<html>
+    <header>
+        <script src="../dist/realm-shim.js"></script>
+    </header>
+    <body>
+        Input:<br />
+        <textarea id="sourceText" rows="20" style="width: 50%;">
+
+        </textarea><br />
+        <button id="run">Evaluate</button><br />
+            Input:<br />
+        <textarea id="output" rows="20" style="width: 50%;">
+
+        </textarea>
+
+        <script>
+        var r = new RealmShim();
+        // basic sanity check: they all should output true
+        // for now extra () are needed as a signal that it should return something :/
+        console.log(r.eval('( JSON )'));
+        console.log(r.eval('( JSON )') !== JSON);
+        console.log(r.eval('( JSON )') === r.eval('( JSON )'));
+        console.log(r.eval('( JSON )') === r.eval('( eval("JSON") )'));
+
+        document.getElementById('run').addEventListener('click', function () {
+            var sourceText = document.getElementById('sourceText').value;
+            var result;
+            try {
+                result = r.eval(sourceText);
+                console.log(result);
+            } catch (e) {
+                result = 'Error: ' + e;
+            }
+            document.getElementById('output').value = JSON.stringify(result);
+        });
+        </script>
+    </body>
+</html>

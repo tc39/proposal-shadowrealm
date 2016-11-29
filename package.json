@@ -5,7 +5,10 @@
     "description": "ECMAScript spec proposal for Realms API",
     "scripts": {
         "build": "ecmarkup spec/index.emu index.html",
-        "watch": "ecmarkup --watch spec/index.emu index.html"
+        "watch": "ecmarkup --watch spec/index.emu index.html",
+        "build-shim-dev": "node shim/rollup.config.js",
+        "build-shim-prod": "node shim/rollup.config.js --production",
+        "lint": "eslint src/"
     },
     "repository": {
         "type": "git",
@@ -30,6 +33,23 @@
     "homepage": "https://github.com/caridy/proposal-realms#readme",
     "dependencies": {},
     "devDependencies": {
-        "ecmarkup": "latest"
+        "ecmarkup": "latest",
+        "babel-eslint": "^6.1.2",
+        "babel-polyfill": "^6.13.0",
+        "babel-preset-es2015": "^6.9.0",
+        "babel-preset-es2015-rollup": "^1.1.1",
+        "eslint": "^3.0.1",
+        "forever": "^0.15.2",
+        "rollup": "^0.34.3",
+        "rollup-plugin-babel": "^2.6.1",
+        "rollup-plugin-commonjs": "^3.3.1",
+        "rollup-plugin-inject": "^1.4.1",
+        "rollup-plugin-replace": "^1.1.1",
+        "rollup-plugin-strip": "^1.1.1",
+        "rollup-plugin-uglify": "^1.0.1",
+        "rollup-watch": "^2.5.0",
+        "serve-static": "^1.11.1",
+        "watch": "1.0.0",
+        "yargs": "^6.0.0"
     }
 }
