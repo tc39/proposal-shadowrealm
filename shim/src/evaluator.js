@@ -1,18 +1,14 @@
 
 const HookFnName = '$RealmEvaluatorIIFE$';
 
-// TODO: we really need to find a way to do the right thing here.
-// wrapping the source with `with` statements create a new lexical scope,
+// Wrapping the source with `with` statement creates a new lexical scope,
 // that can prevent access to the globals in the sandbox by shadowing them
-// with the properties of the windshield.
-// additionally, strict mode is enforced to prevent leaking
-// global variables into the sandbox.
+// via globalProxy.
 function addLexicalScopesToSource(sourceText) {
     /**
-     * We use two `with` statements, the outer one uses `argments[1]`, which is the
-     * `sandbox.windshield`, while the inner `with` statement uses `argument[0]`,
-     * which is the realm's global object. Aside from that, the `this` value in
-     * sourceText will correspond to `argument[0]` as well.
+     * We use a `with` statement who uses `argments[1]`, which is the
+     * `sandbox.globalProxy` that implements the shadowing mechanism.
+     * Aside from that, the `this` value in sourceText will correspond to `sandbox.globalObject`.
      */
     return `
         function ${HookFnName}() {
