@@ -14,99 +14,69 @@ function createIframe() {
     return el;
 }
 
-function getWindshield(iframe) {
-    if (windshieldCache) {
-        return windshieldCache;
-    }
-    var confinedWindow = iframe.contentWindow;
-
-    var windshieldCache = confinedWindow.Object.create(null);
-    /**
-     * This is a one time operation to create this giant object with a bunch of properties
-     * set to `undefined` to shadow every global binding in iframes' `window`.
-     * This object will be used as the base lexical scope when evaluating source text
-     * inside any realm. It can be reused because it has no authority, and it should always
-     * be the same since the window object of a brand new iframe is always the same as well.
-     */
-    Object.getOwnPropertyNames(confinedWindow).forEach(function (name) {
-        // TODO: recursive to cover WindowPrototype properties as well
-        Object.defineProperty(windshieldCache, name, {
-            value: undefined,
-            enumerable: false,
-            configurable: false,
-            writable: false
-        });
-    });
-    Object.freeze(windshieldCache);
-    return windshieldCache;
-}
-
 function createSandbox() {
     var iframe = createIframe();
     var iframeDocument = iframe.contentDocument,
         confinedWindow = iframe.contentWindow;
 
-    var windshield = getWindshield(iframe);
+    var globalObject = confinedWindow.Object.create(null);
     return {
-        windshield: windshield,
         iframe: iframe,
         iframeDocument: iframeDocument,
-        confinedWindow: confinedWindow
+        confinedWindow: confinedWindow,
+        globalObject: globalObject,
+        globalProxy: undefined
     };
 }
 
 // locking down the environment
 function sanitize(sandbox) {
-    var _sandbox$confinedWind = sandbox.confinedWindow,
-        Object = _sandbox$confinedWind.Object,
-        parentObject = _sandbox$confinedWind.parent.Object;
+    var o = sandbox.confinedWindow.Object;
 
     try {
         // Fixing properties of Object to comply with strict mode
         // and ES2016 semantics, we do this by redefining them while in 'use strict'
         // https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
-        [Object, parentObject].forEach(function (o) {
-            if (o === undefined) {
-                return;
+        if (o === undefined) {
+            return;
+        }
+        o.defineProperty(o.prototype, '__defineGetter__', {
+            value: function value(key, fn) {
+                return o.defineProperty(this, key, {
+                    get: fn
+                });
             }
-            o.defineProperty(o.prototype, '__defineGetter__', {
-                value: function value(key, fn) {
-                    return o.defineProperty(this, key, {
-                        get: fn
-                    });
-                }
-            });
-            o.defineProperty(o.prototype, '__defineSetter__', {
-                value: function value(key, fn) {
-                    return o.defineProperty(this, key, {
-                        set: fn
-                    });
-                }
-            });
-            o.defineProperty(o.prototype, '__lookupGetter__', {
-                value: function value(key) {
-                    var d,
-                        p = this;
-                    while (p && (d = o.getOwnPropertyDescriptor(p, key)) === undefined) {
-                        p = o.getPrototypeOf(this);
-                    }
-                    return d ? d.get : undefined;
-                }
-            });
-            o.defineProperty(o.prototype, '__lookupSetter__', {
-                value: function value(key) {
-                    var d,
-                        p = this;
-                    while (p && (d = o.getOwnPropertyDescriptor(p, key)) === undefined) {
-                        p = o.getPrototypeOf(this);
-                    }
-                    return d ? d.set : undefined;
-                }
-            });
-            // Immutable Prototype Exotic Objects
-            // https://github.com/tc39/ecma262/issues/272
-            o.seal(o.prototype);
         });
+        o.defineProperty(o.prototype, '__defineSetter__', {
+            value: function value(key, fn) {
+                return o.defineProperty(this, key, {
+                    set: fn
+                });
+            }
+        });
+        o.defineProperty(o.prototype, '__lookupGetter__', {
+            value: function value(key) {
+                var d,
+                    p = this;
+                while (p && (d = o.getOwnPropertyDescriptor(p, key)) === undefined) {
+                    p = o.getPrototypeOf(this);
+                }
+                return d ? d.get : undefined;
+            }
+        });
+        o.defineProperty(o.prototype, '__lookupSetter__', {
+            value: function value(key) {
+                var d,
+                    p = this;
+                while (p && (d = o.getOwnPropertyDescriptor(p, key)) === undefined) {
+                    p = o.getPrototypeOf(this);
+                }
+                return d ? d.set : undefined;
+            }
+        });
+        // Immutable Prototype Exotic Objects
+        // https://github.com/tc39/ecma262/issues/272
+        o.seal(o.prototype);
     } catch (ignore) {
         // Ignored
     }
@@ -127,7 +97,7 @@ function addLexicalScopesToSource(sourceText) {
      * which is the realm's global object. Aside from that, the `this` value in
      * sourceText will correspond to `argument[0]` as well.
      */
-    return '\n        function ' + HookFnName + '() {\n            with (arguments[1]) {\n                with(arguments[0]) {\n                    return (function(){\n                        "use strict";\n                        return eval(`' + sourceText + '`);\n                    }).call(arguments[0]);\n                }\n            }\n        }\n    ';
+    return '\n        function ' + HookFnName + '() {\n            with(arguments[0]) {\n                return (function(){\n                    "use strict";\n                    return eval(`' + sourceText + '`);\n                }).call(this);\n            }\n        }\n    ';
 }
 
 function evalAndReturn(sourceText, sandbox) {
@@ -146,13 +116,13 @@ function evalAndReturn(sourceText, sandbox) {
     return result;
 }
 
-function evaluate(sourceText, realm, sandbox) {
+function evaluate(sourceText, sandbox) {
     if (!sourceText) {
         return undefined;
     }
     sourceText = addLexicalScopesToSource(sourceText);
     var fn = evalAndReturn(sourceText, sandbox);
-    return fn.apply(undefined, [realm.global, sandbox.windshield]);
+    return fn.apply(sandbox.globalObject, [sandbox.globalProxy]);
 }
 
 function getStdLib(sandbox) {
@@ -398,6 +368,47 @@ function getIntrinsics(sandbox) {
     };
 }
 
+var proxyHandler = {
+    get: function get(sandbox, propName) {
+        return sandbox.globalObject[propName];
+    },
+    set: function set(sandbox, propName, newValue) {
+        sandbox.globalObject[propName] = newValue;
+        return true;
+    },
+    defineProperty: function defineProperty(sandbox, propName, descriptor) {
+        Object.defineProperty(sandbox.globalObject, propName, descriptor);
+        return true;
+    },
+    deleteProperty: function deleteProperty(sandbox, propName) {
+        return Reflect.deleteProperty(sandbox.globalObject, propName);
+    },
+    has: function has(sandbox, propName) {
+        if (propName in sandbox.globalObject) {
+            return true;
+        } else if (propName in sandbox.confinedWindow) {
+            throw new ReferenceError(propName + " is not defined. Change your program to use this." + propName + " instead");
+        }
+        return false;
+    },
+    ownKeys: function ownKeys(sandbox) {
+        return Object.getOwnPropertyNames(sandbox.globalObject);
+    },
+    getOwnPropertyDescriptor: function getOwnPropertyDescriptor(sandbox, propName) {
+        return Object.getOwnPropertyDescriptor(sandbox.globalObject, propName);
+    },
+    isExtensible: function isExtensible(sandbox) {
+        // TODO: can it becomes non-extensible?
+        return true;
+    },
+    getPrototypeOf: function getPrototypeOf(sandbox) {
+        return null;
+    },
+    setPrototypeOf: function setPrototypeOf(sandbox, prototype) {
+        return prototype === null ? true : false;
+    }
+};
+
 var asyncGenerator = function () {
   function AwaitValue(value) {
     this.value = value;
@@ -553,9 +564,8 @@ var Realm = function () {
         sanitize(sandbox);
         // TODO: assert that RealmToSandbox does not have `this` entry
         RealmToSandbox.set(this, sandbox);
-        var confinedWindow = sandbox.confinedWindow;
-
-        this.global = confinedWindow.Object.create(null);
+        sandbox.globalProxy = new Proxy(sandbox, proxyHandler);
+        this.global = sandbox.globalObject;
         this.init();
     }
 
@@ -568,7 +578,7 @@ var Realm = function () {
         key: "eval",
         value: function _eval(sourceText) {
             var sandbox = getSandbox(this);
-            return evaluate(sourceText, this, sandbox);
+            return evaluate(sourceText, sandbox);
         }
     }, {
         key: "stdlib",
