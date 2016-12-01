@@ -16,13 +16,11 @@ function addLexicalScopesToSource(sourceText) {
      */
     return `
         function ${HookFnName}() {
-            with (arguments[1]) {
-                with(arguments[0]) {
-                    return (function(){
-                        "use strict";
-                        return eval(\`${sourceText}\`);
-                    }).call(arguments[0]);
-                }
+            with(arguments[0]) {
+                return (function(){
+                    "use strict";
+                    return eval(\`${sourceText}\`);
+                }).call(this);
             }
         }
     `;
@@ -42,11 +40,11 @@ function evalAndReturn(sourceText, sandbox) {
     return result;
 }
 
-export function evaluate(sourceText, realm, sandbox) {
+export function evaluate(sourceText, sandbox) {
     if (!sourceText) {
         return undefined;
     }
     sourceText = addLexicalScopesToSource(sourceText);
     const fn = evalAndReturn(sourceText, sandbox);
-    return fn.apply(undefined, [realm.global, sandbox.windshield]);
+    return fn.apply(sandbox.globalObject, [sandbox.globalProxy]);
 }
