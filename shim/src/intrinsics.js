@@ -1,5 +1,19 @@
+import Realm from "./realm.js";
+
+const getProto = Object.getPrototypeOf;
+const iteratorSymbol = (typeof Symbol && Symbol.iterator) || "@@iterator";
+
 export function getIntrinsics(sandbox) {
-    const { confinedWindow: _ } = sandbox;
+    const { confinedWindow: _, globalObject } = sandbox;
+    const anonymousArrayIteratorPrototype = getProto([][iteratorSymbol]());
+    const anonymousStringIteratorPrototype = getProto(''[iteratorSymbol]());
+    const anonymousIteratorPrototype = getProto(anonymousArrayIteratorPrototype);
+
+    const strictArgumentsGenerator = _.eval('(function*(){"use strict";yield arguments;})');
+    const anonymousGenerator = getProto(strictArgumentsGenerator);
+    const anonymousGeneratorPrototype = getProto(anonymousGenerator);
+    const anonymousGeneratorFunction = anonymousGeneratorPrototype.constructor;
+
     return {
         // %Array%
         "Array": _.Array,
@@ -8,7 +22,7 @@ export function getIntrinsics(sandbox) {
         // %ArrayBufferPrototype%
         "ArrayBufferPrototype": _.ArrayBuffer.prototype,
         // %ArrayIteratorPrototype%
-        "ArrayIteratorPrototype": undefined,
+        "ArrayIteratorPrototype": anonymousArrayIteratorPrototype,
         // %ArrayPrototype%
         "ArrayPrototype": _.Array.prototype,
         // %ArrayProto_values%
@@ -56,11 +70,11 @@ export function getIntrinsics(sandbox) {
         // %FunctionPrototype%
         "FunctionPrototype": _.Function.prototype,
         // %Generator%
-        "Generator": undefined,
+        "Generator": anonymousGenerator,
         // %GeneratorFunction%
-        "GeneratorFunction": undefined,
+        "GeneratorFunction": anonymousGeneratorFunction,
         // %GeneratorPrototype%
-        "GeneratorPrototype": undefined,
+        "GeneratorPrototype": anonymousGeneratorPrototype,
         // %Int8Array%
         "Int8Array": _.Int8Array,
         // %Int8ArrayPrototype%
@@ -78,7 +92,7 @@ export function getIntrinsics(sandbox) {
         // %isNaN%
         "isNaN": _.isNaN,
         // %IteratorPrototype%
-        "IteratorPrototype": undefined,
+        "IteratorPrototype": anonymousIteratorPrototype,
         // %JSON%
         "JSON": _.JSON,
         // %Map%
@@ -134,7 +148,7 @@ export function getIntrinsics(sandbox) {
         // %String%
         "String": _.String,
         // %StringIteratorPrototype%
-        "StringIteratorPrototype": undefined,
+        "StringIteratorPrototype": anonymousStringIteratorPrototype,
         // %StringPrototype%
         "StringPrototype": _.String.prototype,
         // %Symbol%
@@ -186,5 +200,9 @@ export function getIntrinsics(sandbox) {
         
         // TODO: Annex B
         // TODO: other special cases
+
+        // ESNext
+        global: globalObject,
+        Realm,
     };
 }

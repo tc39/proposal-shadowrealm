@@ -20,6 +20,10 @@ You can view the spec rendered as [HTML](https://rawgit.com/caridy/proposal-real
  * [What are Realms?](https://gist.github.com/dherman/7568885)
  * [JS dialects with ES6 Realms](https://gist.github.com/dherman/9146568)
 
+## Shim
+
+A shim implementation of the Realm API can be found [here](shim/README.md):
+
 ## Contributing
 
 ### Updating the spec text for this proposal

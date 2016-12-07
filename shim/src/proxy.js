@@ -17,7 +17,7 @@ export const proxyHandler = {
         if (propName in sandbox.globalObject) {
             return true;
         } else if (propName in sandbox.confinedWindow) {
-            throw new ReferenceError(`${propName} is not defined. Change your program to use this.${propName} instead`);
+            throw new ReferenceError(`${propName} is not defined. If you are using typeof ${propName}, you can change your program to use typeof global.${propName} instead`);
         }
         return false;
     },

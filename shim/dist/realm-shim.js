@@ -84,18 +84,14 @@ function sanitize(sandbox) {
 
 var HookFnName = '$RealmEvaluatorIIFE$';
 
-// TODO: we really need to find a way to do the right thing here.
-// wrapping the source with `with` statements create a new lexical scope,
+// Wrapping the source with `with` statement creates a new lexical scope,
 // that can prevent access to the globals in the sandbox by shadowing them
-// with the properties of the windshield.
-// additionally, strict mode is enforced to prevent leaking
-// global variables into the sandbox.
+// via globalProxy.
 function addLexicalScopesToSource(sourceText) {
     /**
-     * We use two `with` statements, the outer one uses `argments[1]`, which is the
-     * `sandbox.windshield`, while the inner `with` statement uses `argument[0]`,
-     * which is the realm's global object. Aside from that, the `this` value in
-     * sourceText will correspond to `argument[0]` as well.
+     * We use a `with` statement who uses `argments[1]`, which is the
+     * `sandbox.globalProxy` that implements the shadowing mechanism.
+     * Aside from that, the `this` value in sourceText will correspond to `sandbox.globalObject`.
      */
     return '\n        function ' + HookFnName + '() {\n            with(arguments[0]) {\n                return (function(){\n                    "use strict";\n                    return eval(`' + sourceText + '`);\n                }).call(this);\n            }\n        }\n    ';
 }
@@ -125,288 +121,10 @@ function evaluate(sourceText, sandbox) {
     return fn.apply(sandbox.globalObject, [sandbox.globalProxy]);
 }
 
-function getStdLib(sandbox) {
-    var _ = sandbox.confinedWindow;
-
-    return {
-        Array: { value: _.Array },
-        ArrayBuffer: { value: _.ArrayBuffer },
-        Boolean: { value: _.Boolean },
-        DataView: { value: _.DataView },
-        Date: { value: _.Date },
-        decodeURI: { value: _.decodeURI },
-        decodeURIComponent: { value: _.decodeURIComponent },
-        encodeURI: { value: _.encodeURI },
-        encodeURIComponent: { value: _.encodeURIComponent },
-        Error: { value: _.Error },
-        eval: { value: _.eval },
-        EvalError: { value: _.EvalError },
-        Float32Array: { value: _.Float32Array },
-        Float64Array: { value: _.Float64Array },
-        Function: { value: _.Function },
-        Int8Array: { value: _.Int8Array },
-        Int16Array: { value: _.Int16Array },
-        Int32Array: { value: _.Int32Array },
-        isFinite: { value: _.isFinite },
-        isNaN: { value: _.isNaN },
-        JSON: { value: _.JSON },
-        Map: { value: _.Map },
-        Math: { value: _.Math },
-        Number: { value: _.Number },
-        Object: { value: _.Object },
-        parseFloat: { value: _.parseFloat },
-        parseInt: { value: _.parseInt },
-        Promise: { value: _.Promise },
-        Proxy: { value: _.Proxy },
-        RangeError: { value: _.RangeError },
-        ReferenceError: { value: _.ReferenceError },
-        Reflect: { value: _.Reflect },
-        RegExp: { value: _.RegExp },
-        Set: { value: _.Set },
-        String: { value: _.String },
-        Symbol: { value: _.Symbol },
-        SyntaxError: { value: _.SyntaxError },
-        TypeError: { value: _.TypeError },
-        Uint8Array: { value: _.Uint8Array },
-        Uint8ClampedArray: { value: _.Uint8ClampedArray },
-        Uint16Array: { value: _.Uint16Array },
-        Uint32Array: { value: _.Uint32Array },
-        URIError: { value: _.URIError },
-        WeakMap: { value: _.WeakMap },
-        WeakSet: { value: _.WeakSet }
-
-    };
-}
-
-function getIntrinsics(sandbox) {
-    var _ = sandbox.confinedWindow;
-
-    return {
-        // %Array%
-        "Array": _.Array,
-        // %ArrayBuffer%
-        "ArrayBuffer": _.ArrayBuffer,
-        // %ArrayBufferPrototype%
-        "ArrayBufferPrototype": _.ArrayBuffer.prototype,
-        // %ArrayIteratorPrototype%
-        "ArrayIteratorPrototype": undefined,
-        // %ArrayPrototype%
-        "ArrayPrototype": _.Array.prototype,
-        // %ArrayProto_values%
-        "ArrayProto_values": _.Array.prototype.values,
-        // %Boolean%
-        "Boolean": _.Boolean,
-        // %BooleanPrototype%
-        "BooleanPrototype": _.Boolean.prototype,
-        // %DataView%
-        "DataView": _.DataView,
-        // %DataViewPrototype%
-        "DataViewPrototype": _.DataView.prototype,
-        // %Date%
-        "Date": _.Date,
-        // %DatePrototype%
-        "DatePrototype": _.Date.prototype,
-        // %decodeURI%
-        "decodeURI": _.decodeURI,
-        // %decodeURIComponent%
-        "decodeURIComponent": _.decodeURIComponent,
-        // %encodeURI%
-        "encodeURI": _.encodeURI,
-        // %encodeURIComponent%
-        "encodeURIComponent": _.encodeURIComponent,
-        // %Error%
-        "Error": _.Error,
-        // %ErrorPrototype%
-        "ErrorPrototype": _.Error.prototype,
-        // %eval%
-        "eval": _.eval,
-        // %EvalError%
-        "EvalError": _.EvalError,
-        // %EvalErrorPrototype% 
-        "EvalErrorPrototype": _.EvalError.prototype,
-        // %Float32Array%
-        "Float32Array": _.Float32Array,
-        // %Float32ArrayPrototype%
-        "Float32ArrayPrototype": _.Float32Array.prototype,
-        // %Float64Array%
-        "Float64Array": _.Float64Array,
-        // %Float64ArrayPrototype%
-        "Float64ArrayPrototype": _.Float64Array.prototype,
-        // %Function%
-        "Function": _.Function,
-        // %FunctionPrototype%
-        "FunctionPrototype": _.Function.prototype,
-        // %Generator%
-        "Generator": undefined,
-        // %GeneratorFunction%
-        "GeneratorFunction": undefined,
-        // %GeneratorPrototype%
-        "GeneratorPrototype": undefined,
-        // %Int8Array%
-        "Int8Array": _.Int8Array,
-        // %Int8ArrayPrototype%
-        "Int8ArrayPrototype": _.Int8Array.prototype,
-        // %Int16Array%
-        "Int16Array": _.Int16Array,
-        // %Int16ArrayPrototype%,
-        "Int16ArrayPrototype": _.Int16Array.prototype,
-        // %Int32Array%
-        "Int32Array": _.Int32Array,
-        // %Int32ArrayPrototype%
-        "Int32ArrayPrototype": _.Int32Array.prototype,
-        // %isFinite%
-        "isFinite": _.isFinite,
-        // %isNaN%
-        "isNaN": _.isNaN,
-        // %IteratorPrototype%
-        "IteratorPrototype": undefined,
-        // %JSON%
-        "JSON": _.JSON,
-        // %Map%
-        "Map": _.Map,
-        // %MapIteratorPrototype%
-        "MapIteratorPrototype": undefined,
-        // %MapPrototype%
-        "MapPrototype": _.Map.prototype,
-        // %Math%
-        "Math": _.Math,
-        // %Number%
-        "Number": _.Number,
-        // %NumberPrototype%
-        "NumberPrototype": _.Number.prototype,
-        // %Object%
-        "Object": _.Object,
-        // %ObjectPrototype%
-        "ObjectPrototype": _.Object.prototype,
-        // %ObjProto_toString%
-        "ObjProto_toString": _.Object.prototype.toString,
-        // %ObjProto_valueOf%
-        "ObjProto_valueOf": _.Object.prototype.valueOf,
-        // %parseFloat%
-        "parseFloat": _.parseFloat,
-        // %parseInt%
-        "parseInt": _.parseInt,
-        // %Promise%
-        "Promise": _.Promise,
-        // %PromisePrototype%
-        "PromisePrototype": _.Promise.prototype,
-        // %Proxy%
-        "Proxy": _.Proxy,
-        // %RangeError%
-        "RangeError": _.RangeError,
-        // %RangeErrorPrototype%
-        "RangeErrorPrototype": _.RangeError.prototype,
-        // %ReferenceError%
-        "ReferenceError": _.ReferenceError,
-        // %ReferenceErrorPrototype%
-        "ReferenceErrorPrototype": _.ReferenceError.prototype,
-        // %Reflect%
-        "Reflect": _.Reflect,
-        // %RegExp%
-        "RegExp": _.RegExp,
-        // %RegExpPrototype%
-        "RegExpPrototype": _.RegExp.prototype,
-        // %Set%
-        "Set": _.Set,
-        // %SetIteratorPrototype%
-        "SetIteratorPrototype": undefined,
-        // %SetPrototype%
-        "SetPrototype": _.Set.prototype,
-        // %String%
-        "String": _.String,
-        // %StringIteratorPrototype%
-        "StringIteratorPrototype": undefined,
-        // %StringPrototype%
-        "StringPrototype": _.String.prototype,
-        // %Symbol%
-        "Symbol": _.Symbol,
-        // %SymbolPrototype%
-        "SymbolPrototype": _.Symbol.prototype,
-        // %SyntaxError%
-        "SyntaxError": _.SyntaxError,
-        // %SyntaxErrorPrototype%
-        "SyntaxErrorPrototype": _.SyntaxError.prototype,
-        // %ThrowTypeError%
-        "ThrowTypeError": undefined,
-        // %TypedArray%
-        "TypedArray": undefined,
-        // %TypedArrayPrototype%
-        "TypedArrayPrototype": undefined,
-        // %TypeError%
-        "TypeError": _.TypeError,
-        // %TypeErrorPrototype%
-        "TypeErrorPrototype": _.TypeError.prototype,
-        // %Uint8Array%
-        "Uint8Array": _.Uint8Array,
-        // %Uint8ArrayPrototype%
-        "Uint8ArrayPrototype": _.Uint8Array.prototype,
-        // %Uint8ClampedArray%
-        "Uint8ClampedArray": _.Uint8ClampedArray,
-        // %Uint8ClampedArrayPrototype%
-        "Uint8ClampedArrayPrototype": _.Uint8ClampedArray.prototype,
-        // %Uint16Array%
-        "Uint16Array": _.Uint16Array,
-        // %Uint16ArrayPrototype%
-        "Uint16ArrayPrototype": Uint16Array.prototype,
-        // %Uint32Array%
-        "Uint32Array": _.Uint32Array,
-        // %Uint32ArrayPrototype%
-        "Uint32ArrayPrototype": _.Uint32Array.prototype,
-        // %URIError%
-        "URIError": _.URIError,
-        // %URIErrorPrototype%
-        "URIErrorPrototype": _.URIError.prototype,
-        // %WeakMap%
-        "WeakMap": _.WeakMap,
-        // %WeakMapPrototype%
-        "WeakMapPrototype": _.WeakMap.prototype,
-        // %WeakSet%
-        "WeakSet": _.WeakSet,
-        // %WeakSetPrototype%
-        "WeakSetPrototype": _.WeakSet.prototype
-
-    };
-}
-
-var proxyHandler = {
-    get: function get(sandbox, propName) {
-        return sandbox.globalObject[propName];
-    },
-    set: function set(sandbox, propName, newValue) {
-        sandbox.globalObject[propName] = newValue;
-        return true;
-    },
-    defineProperty: function defineProperty(sandbox, propName, descriptor) {
-        Object.defineProperty(sandbox.globalObject, propName, descriptor);
-        return true;
-    },
-    deleteProperty: function deleteProperty(sandbox, propName) {
-        return Reflect.deleteProperty(sandbox.globalObject, propName);
-    },
-    has: function has(sandbox, propName) {
-        if (propName in sandbox.globalObject) {
-            return true;
-        } else if (propName in sandbox.confinedWindow) {
-            throw new ReferenceError(propName + " is not defined. Change your program to use this." + propName + " instead");
-        }
-        return false;
-    },
-    ownKeys: function ownKeys(sandbox) {
-        return Object.getOwnPropertyNames(sandbox.globalObject);
-    },
-    getOwnPropertyDescriptor: function getOwnPropertyDescriptor(sandbox, propName) {
-        return Object.getOwnPropertyDescriptor(sandbox.globalObject, propName);
-    },
-    isExtensible: function isExtensible(sandbox) {
-        // TODO: can it becomes non-extensible?
-        return true;
-    },
-    getPrototypeOf: function getPrototypeOf(sandbox) {
-        return null;
-    },
-    setPrototypeOf: function setPrototypeOf(sandbox, prototype) {
-        return prototype === null ? true : false;
-    }
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
+} : function (obj) {
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
 };
 
 var asyncGenerator = function () {
@@ -546,6 +264,314 @@ var createClass = function () {
   };
 }();
 
+var getProto = Object.getPrototypeOf;
+var iteratorSymbol = (typeof Symbol === "undefined" ? "undefined" : _typeof(Symbol)) && Symbol.iterator || "@@iterator";
+
+function getIntrinsics(sandbox) {
+    var _ = sandbox.confinedWindow,
+        globalObject = sandbox.globalObject;
+
+    var anonymousArrayIteratorPrototype = getProto([][iteratorSymbol]());
+    var anonymousStringIteratorPrototype = getProto(''[iteratorSymbol]());
+    var anonymousIteratorPrototype = getProto(anonymousArrayIteratorPrototype);
+
+    var strictArgumentsGenerator = _.eval('(function*(){"use strict";yield arguments;})');
+    var anonymousGenerator = getProto(strictArgumentsGenerator);
+    var anonymousGeneratorPrototype = getProto(anonymousGenerator);
+    var anonymousGeneratorFunction = anonymousGeneratorPrototype.constructor;
+
+    return {
+        // %Array%
+        "Array": _.Array,
+        // %ArrayBuffer%
+        "ArrayBuffer": _.ArrayBuffer,
+        // %ArrayBufferPrototype%
+        "ArrayBufferPrototype": _.ArrayBuffer.prototype,
+        // %ArrayIteratorPrototype%
+        "ArrayIteratorPrototype": anonymousArrayIteratorPrototype,
+        // %ArrayPrototype%
+        "ArrayPrototype": _.Array.prototype,
+        // %ArrayProto_values%
+        "ArrayProto_values": _.Array.prototype.values,
+        // %Boolean%
+        "Boolean": _.Boolean,
+        // %BooleanPrototype%
+        "BooleanPrototype": _.Boolean.prototype,
+        // %DataView%
+        "DataView": _.DataView,
+        // %DataViewPrototype%
+        "DataViewPrototype": _.DataView.prototype,
+        // %Date%
+        "Date": _.Date,
+        // %DatePrototype%
+        "DatePrototype": _.Date.prototype,
+        // %decodeURI%
+        "decodeURI": _.decodeURI,
+        // %decodeURIComponent%
+        "decodeURIComponent": _.decodeURIComponent,
+        // %encodeURI%
+        "encodeURI": _.encodeURI,
+        // %encodeURIComponent%
+        "encodeURIComponent": _.encodeURIComponent,
+        // %Error%
+        "Error": _.Error,
+        // %ErrorPrototype%
+        "ErrorPrototype": _.Error.prototype,
+        // %eval%
+        "eval": _.eval,
+        // %EvalError%
+        "EvalError": _.EvalError,
+        // %EvalErrorPrototype% 
+        "EvalErrorPrototype": _.EvalError.prototype,
+        // %Float32Array%
+        "Float32Array": _.Float32Array,
+        // %Float32ArrayPrototype%
+        "Float32ArrayPrototype": _.Float32Array.prototype,
+        // %Float64Array%
+        "Float64Array": _.Float64Array,
+        // %Float64ArrayPrototype%
+        "Float64ArrayPrototype": _.Float64Array.prototype,
+        // %Function%
+        "Function": _.Function,
+        // %FunctionPrototype%
+        "FunctionPrototype": _.Function.prototype,
+        // %Generator%
+        "Generator": anonymousGenerator,
+        // %GeneratorFunction%
+        "GeneratorFunction": anonymousGeneratorFunction,
+        // %GeneratorPrototype%
+        "GeneratorPrototype": anonymousGeneratorPrototype,
+        // %Int8Array%
+        "Int8Array": _.Int8Array,
+        // %Int8ArrayPrototype%
+        "Int8ArrayPrototype": _.Int8Array.prototype,
+        // %Int16Array%
+        "Int16Array": _.Int16Array,
+        // %Int16ArrayPrototype%,
+        "Int16ArrayPrototype": _.Int16Array.prototype,
+        // %Int32Array%
+        "Int32Array": _.Int32Array,
+        // %Int32ArrayPrototype%
+        "Int32ArrayPrototype": _.Int32Array.prototype,
+        // %isFinite%
+        "isFinite": _.isFinite,
+        // %isNaN%
+        "isNaN": _.isNaN,
+        // %IteratorPrototype%
+        "IteratorPrototype": anonymousIteratorPrototype,
+        // %JSON%
+        "JSON": _.JSON,
+        // %Map%
+        "Map": _.Map,
+        // %MapIteratorPrototype%
+        "MapIteratorPrototype": undefined,
+        // %MapPrototype%
+        "MapPrototype": _.Map.prototype,
+        // %Math%
+        "Math": _.Math,
+        // %Number%
+        "Number": _.Number,
+        // %NumberPrototype%
+        "NumberPrototype": _.Number.prototype,
+        // %Object%
+        "Object": _.Object,
+        // %ObjectPrototype%
+        "ObjectPrototype": _.Object.prototype,
+        // %ObjProto_toString%
+        "ObjProto_toString": _.Object.prototype.toString,
+        // %ObjProto_valueOf%
+        "ObjProto_valueOf": _.Object.prototype.valueOf,
+        // %parseFloat%
+        "parseFloat": _.parseFloat,
+        // %parseInt%
+        "parseInt": _.parseInt,
+        // %Promise%
+        "Promise": _.Promise,
+        // %PromisePrototype%
+        "PromisePrototype": _.Promise.prototype,
+        // %Proxy%
+        "Proxy": _.Proxy,
+        // %RangeError%
+        "RangeError": _.RangeError,
+        // %RangeErrorPrototype%
+        "RangeErrorPrototype": _.RangeError.prototype,
+        // %ReferenceError%
+        "ReferenceError": _.ReferenceError,
+        // %ReferenceErrorPrototype%
+        "ReferenceErrorPrototype": _.ReferenceError.prototype,
+        // %Reflect%
+        "Reflect": _.Reflect,
+        // %RegExp%
+        "RegExp": _.RegExp,
+        // %RegExpPrototype%
+        "RegExpPrototype": _.RegExp.prototype,
+        // %Set%
+        "Set": _.Set,
+        // %SetIteratorPrototype%
+        "SetIteratorPrototype": undefined,
+        // %SetPrototype%
+        "SetPrototype": _.Set.prototype,
+        // %String%
+        "String": _.String,
+        // %StringIteratorPrototype%
+        "StringIteratorPrototype": anonymousStringIteratorPrototype,
+        // %StringPrototype%
+        "StringPrototype": _.String.prototype,
+        // %Symbol%
+        "Symbol": _.Symbol,
+        // %SymbolPrototype%
+        "SymbolPrototype": _.Symbol.prototype,
+        // %SyntaxError%
+        "SyntaxError": _.SyntaxError,
+        // %SyntaxErrorPrototype%
+        "SyntaxErrorPrototype": _.SyntaxError.prototype,
+        // %ThrowTypeError%
+        "ThrowTypeError": undefined,
+        // %TypedArray%
+        "TypedArray": undefined,
+        // %TypedArrayPrototype%
+        "TypedArrayPrototype": undefined,
+        // %TypeError%
+        "TypeError": _.TypeError,
+        // %TypeErrorPrototype%
+        "TypeErrorPrototype": _.TypeError.prototype,
+        // %Uint8Array%
+        "Uint8Array": _.Uint8Array,
+        // %Uint8ArrayPrototype%
+        "Uint8ArrayPrototype": _.Uint8Array.prototype,
+        // %Uint8ClampedArray%
+        "Uint8ClampedArray": _.Uint8ClampedArray,
+        // %Uint8ClampedArrayPrototype%
+        "Uint8ClampedArrayPrototype": _.Uint8ClampedArray.prototype,
+        // %Uint16Array%
+        "Uint16Array": _.Uint16Array,
+        // %Uint16ArrayPrototype%
+        "Uint16ArrayPrototype": Uint16Array.prototype,
+        // %Uint32Array%
+        "Uint32Array": _.Uint32Array,
+        // %Uint32ArrayPrototype%
+        "Uint32ArrayPrototype": _.Uint32Array.prototype,
+        // %URIError%
+        "URIError": _.URIError,
+        // %URIErrorPrototype%
+        "URIErrorPrototype": _.URIError.prototype,
+        // %WeakMap%
+        "WeakMap": _.WeakMap,
+        // %WeakMapPrototype%
+        "WeakMapPrototype": _.WeakMap.prototype,
+        // %WeakSet%
+        "WeakSet": _.WeakSet,
+        // %WeakSetPrototype%
+        "WeakSetPrototype": _.WeakSet.prototype,
+
+        // TODO: Annex B
+        // TODO: other special cases
+
+        // ESNext
+        global: globalObject,
+        Realm: Realm
+    };
+}
+
+function getStdLib(sandbox) {
+    var intrinsics = getIntrinsics(sandbox);
+    return {
+        Array: { value: intrinsics.Array },
+        ArrayBuffer: { value: intrinsics.ArrayBuffer },
+        Boolean: { value: intrinsics.Boolean },
+        DataView: { value: intrinsics.DataView },
+        Date: { value: intrinsics.Date },
+        decodeURI: { value: intrinsics.decodeURI },
+        decodeURIComponent: { value: intrinsics.decodeURIComponent },
+        encodeURI: { value: intrinsics.encodeURI },
+        encodeURIComponent: { value: intrinsics.encodeURIComponent },
+        Error: { value: intrinsics.Error },
+        eval: { value: intrinsics.eval },
+        EvalError: { value: intrinsics.EvalError },
+        Float32Array: { value: intrinsics.Float32Array },
+        Float64Array: { value: intrinsics.Float64Array },
+        Function: { value: intrinsics.Function },
+        Int8Array: { value: intrinsics.Int8Array },
+        Int16Array: { value: intrinsics.Int16Array },
+        Int32Array: { value: intrinsics.Int32Array },
+        isFinite: { value: intrinsics.isFinite },
+        isNaN: { value: intrinsics.isNaN },
+        JSON: { value: intrinsics.JSON },
+        Map: { value: intrinsics.Map },
+        Math: { value: intrinsics.Math },
+        Number: { value: intrinsics.Number },
+        Object: { value: intrinsics.Object },
+        parseFloat: { value: intrinsics.parseFloat },
+        parseInt: { value: intrinsics.parseInt },
+        Promise: { value: intrinsics.Promise },
+        Proxy: { value: intrinsics.Proxy },
+        RangeError: { value: intrinsics.RangeError },
+        ReferenceError: { value: intrinsics.ReferenceError },
+        Reflect: { value: intrinsics.Reflect },
+        RegExp: { value: intrinsics.RegExp },
+        Set: { value: intrinsics.Set },
+        String: { value: intrinsics.String },
+        Symbol: { value: intrinsics.Symbol },
+        SyntaxError: { value: intrinsics.SyntaxError },
+        TypeError: { value: intrinsics.TypeError },
+        Uint8Array: { value: intrinsics.Uint8Array },
+        Uint8ClampedArray: { value: intrinsics.Uint8ClampedArray },
+        Uint16Array: { value: intrinsics.Uint16Array },
+        Uint32Array: { value: intrinsics.Uint32Array },
+        URIError: { value: intrinsics.URIError },
+        WeakMap: { value: intrinsics.WeakMap },
+        WeakSet: { value: intrinsics.WeakSet },
+
+        // TODO: Annex B
+        // TODO: other special cases
+
+        // ESNext
+        global: { value: intrinsics.global },
+        Realm: { value: intrinsics.Realm }
+    };
+}
+
+var proxyHandler = {
+    get: function get(sandbox, propName) {
+        return sandbox.globalObject[propName];
+    },
+    set: function set(sandbox, propName, newValue) {
+        sandbox.globalObject[propName] = newValue;
+        return true;
+    },
+    defineProperty: function defineProperty(sandbox, propName, descriptor) {
+        Object.defineProperty(sandbox.globalObject, propName, descriptor);
+        return true;
+    },
+    deleteProperty: function deleteProperty(sandbox, propName) {
+        return Reflect.deleteProperty(sandbox.globalObject, propName);
+    },
+    has: function has(sandbox, propName) {
+        if (propName in sandbox.globalObject) {
+            return true;
+        } else if (propName in sandbox.confinedWindow) {
+            throw new ReferenceError(propName + " is not defined. If you are using typeof " + propName + ", you can change your program to use typeof global." + propName + " instead");
+        }
+        return false;
+    },
+    ownKeys: function ownKeys(sandbox) {
+        return Object.getOwnPropertyNames(sandbox.globalObject);
+    },
+    getOwnPropertyDescriptor: function getOwnPropertyDescriptor(sandbox, propName) {
+        return Object.getOwnPropertyDescriptor(sandbox.globalObject, propName);
+    },
+    isExtensible: function isExtensible(sandbox) {
+        // TODO: can it becomes non-extensible?
+        return true;
+    },
+    getPrototypeOf: function getPrototypeOf(sandbox) {
+        return null;
+    },
+    setPrototypeOf: function setPrototypeOf(sandbox, prototype) {
+        return prototype === null ? true : false;
+    }
+};
+
 var RealmToSandbox = new WeakMap();
 
 function getSandbox(realm) {
@@ -595,6 +621,10 @@ var Realm = function () {
     }]);
     return Realm;
 }();
+
+Realm.toString = function () {
+    return 'function Realm() { [shim code] }';
+};
 
 return Realm;
 

@@ -47,3 +47,5 @@ export default class Realm {
     }
 
 }
+
+Realm.toString = () => 'function Realm() { [shim code] }';
