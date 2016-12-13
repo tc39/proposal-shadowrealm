@@ -22,7 +22,9 @@ You can view the spec rendered as [HTML](https://rawgit.com/caridy/proposal-real
 
 ## Shim
 
-A shim implementation of the Realm API can be found [here](shim/README.md):
+A shim implementation of the Realm API can be found [here](shim/README.md).
+
+And you can play around with the Shim [here](https://rawgit.com/caridy/proposal-realms/master/shim/examples/simple.html).
 
 ## Contributing
 
