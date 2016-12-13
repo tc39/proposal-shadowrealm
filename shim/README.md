@@ -4,10 +4,11 @@ This folder contains a shim implementation of the Realm API specified in this re
 
 ## Limitations
 
-The current implementation has two main limitations:
+The current implementation has 3 main limitations:
 
 * All code evaluated inside a Realm runs in strict mode.
 * Direct eval is not supported.
+* `let`, global function declarations and any other feature that relies on new bindings in global contour are not preserved between difference invocations of eval, instead we create a new contour everytime.
 
 ## Building the Shim
 
