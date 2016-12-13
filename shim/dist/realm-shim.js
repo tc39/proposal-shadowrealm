@@ -82,6 +82,64 @@ function sanitize(sandbox) {
     }
 }
 
+var isInternalEvaluation = false;
+
+function setInternalEvaluation() {
+    isInternalEvaluation = true;
+}
+
+function resetInternalEvaluation() {
+    isInternalEvaluation = false;
+}
+
+var proxyHandler = {
+    get: function get(sandbox, propName) {
+        if (propName === 'eval' && isInternalEvaluation) {
+            resetInternalEvaluation();
+            return sandbox.confinedWindow.eval;
+        }
+        return sandbox.globalObject[propName];
+    },
+    set: function set(sandbox, propName, newValue) {
+        sandbox.globalObject[propName] = newValue;
+        return true;
+    },
+    defineProperty: function defineProperty(sandbox, propName, descriptor) {
+        Object.defineProperty(sandbox.globalObject, propName, descriptor);
+        return true;
+    },
+    deleteProperty: function deleteProperty(sandbox, propName) {
+        return Reflect.deleteProperty(sandbox.globalObject, propName);
+    },
+    has: function has(sandbox, propName) {
+        if (propName === 'eval' && isInternalEvaluation) {
+            return true;
+        }
+        if (propName in sandbox.globalObject) {
+            return true;
+        } else if (propName in sandbox.confinedWindow) {
+            throw new ReferenceError(propName + ' is not defined. If you are using typeof ' + propName + ', you can change your program to use typeof global.' + propName + ' instead');
+        }
+        return false;
+    },
+    ownKeys: function ownKeys(sandbox) {
+        return Object.getOwnPropertyNames(sandbox.globalObject);
+    },
+    getOwnPropertyDescriptor: function getOwnPropertyDescriptor(sandbox, propName) {
+        return Object.getOwnPropertyDescriptor(sandbox.globalObject, propName);
+    },
+    isExtensible: function isExtensible(sandbox) {
+        // TODO: can it becomes non-extensible?
+        return true;
+    },
+    getPrototypeOf: function getPrototypeOf(sandbox) {
+        return null;
+    },
+    setPrototypeOf: function setPrototypeOf(sandbox, prototype) {
+        return prototype === null ? true : false;
+    }
+};
+
 var HookFnName = '$RealmEvaluatorIIFE$';
 
 // Wrapping the source with `with` statement creates a new lexical scope,
@@ -93,6 +151,8 @@ function addLexicalScopesToSource(sourceText) {
      * `sandbox.globalProxy` that implements the shadowing mechanism.
      * Aside from that, the `this` value in sourceText will correspond to `sandbox.globalObject`.
      */
+    // escaping backsticks to prevent leaking the original eval as well as syntax errors
+    sourceText = sourceText.replace(/\`/g, '\\`');
     return '\n        function ' + HookFnName + '() {\n            with(arguments[0]) {\n                return (function(){\n                    "use strict";\n                    return eval(`' + sourceText + '`);\n                }).call(this);\n            }\n        }\n    ';
 }
 
@@ -117,8 +177,54 @@ function evaluate(sourceText, sandbox) {
         return undefined;
     }
     sourceText = addLexicalScopesToSource(sourceText);
+    setInternalEvaluation();
     var fn = evalAndReturn(sourceText, sandbox);
-    return fn.apply(sandbox.globalObject, [sandbox.globalProxy]);
+    var result = fn.apply(sandbox.globalObject, [sandbox.globalProxy]);
+    resetInternalEvaluation();
+    return result;
+}
+
+function getEvalEvaluator(sandbox) {
+    var o = {
+        // trick to set the name of the function to "eval"
+        eval: function _eval(sourceText) {
+            console.log('Shim-Evaluation: "' + sourceText + '"');
+            return evaluate(sourceText, sandbox);
+        }
+    };
+    Object.setPrototypeOf(o.eval, sandbox.Function);
+    o.eval.toString = function () {
+        return 'function eval() { [shim code] }';
+    };
+    return o.eval;
+}
+
+function getFunctionEvaluator(sandbox) {
+    var confinedWindow = sandbox.confinedWindow;
+
+    var f = function Function() {
+        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+            args[_key] = arguments[_key];
+        }
+
+        console.log('Shim-Evaluation: Function("' + args.join('", "') + '")');
+        var sourceText = args.pop();
+        var fnArgs = args.join(', ');
+        return evaluate('(function anonymous(' + fnArgs + '){\n' + sourceText + '\n}).bind(this)', sandbox);
+    };
+    Object.setPrototypeOf(f, confinedWindow.Function);
+    f.constructor = f;
+    f.toString = function () {
+        return 'function Function() { [shim code] }';
+    };
+    confinedWindow.Function.constructor = f;
+    // Object.setPrototypeOf(confinedWindow.Function, f);
+    return f;
+}
+
+function getEvaluators(sandbox) {
+    sandbox.Function = getFunctionEvaluator(sandbox);
+    sandbox.eval = getEvalEvaluator(sandbox);
 }
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
@@ -271,8 +377,8 @@ function getIntrinsics(sandbox) {
     var _ = sandbox.confinedWindow,
         globalObject = sandbox.globalObject;
 
-    var anonymousArrayIteratorPrototype = getProto([][iteratorSymbol]());
-    var anonymousStringIteratorPrototype = getProto(''[iteratorSymbol]());
+    var anonymousArrayIteratorPrototype = getProto(_.Array(0)[iteratorSymbol]());
+    var anonymousStringIteratorPrototype = getProto(_.String()[iteratorSymbol]());
     var anonymousIteratorPrototype = getProto(anonymousArrayIteratorPrototype);
 
     var strictArgumentsGenerator = _.eval('(function*(){"use strict";yield arguments;})');
@@ -318,7 +424,7 @@ function getIntrinsics(sandbox) {
         // %ErrorPrototype%
         "ErrorPrototype": _.Error.prototype,
         // %eval%
-        "eval": _.eval,
+        "eval": sandbox.eval,
         // %EvalError%
         "EvalError": _.EvalError,
         // %EvalErrorPrototype% 
@@ -332,7 +438,7 @@ function getIntrinsics(sandbox) {
         // %Float64ArrayPrototype%
         "Float64ArrayPrototype": _.Float64Array.prototype,
         // %Function%
-        "Function": _.Function,
+        "Function": sandbox.Function,
         // %FunctionPrototype%
         "FunctionPrototype": _.Function.prototype,
         // %Generator%
@@ -531,47 +637,6 @@ function getStdLib(sandbox) {
     };
 }
 
-var proxyHandler = {
-    get: function get(sandbox, propName) {
-        return sandbox.globalObject[propName];
-    },
-    set: function set(sandbox, propName, newValue) {
-        sandbox.globalObject[propName] = newValue;
-        return true;
-    },
-    defineProperty: function defineProperty(sandbox, propName, descriptor) {
-        Object.defineProperty(sandbox.globalObject, propName, descriptor);
-        return true;
-    },
-    deleteProperty: function deleteProperty(sandbox, propName) {
-        return Reflect.deleteProperty(sandbox.globalObject, propName);
-    },
-    has: function has(sandbox, propName) {
-        if (propName in sandbox.globalObject) {
-            return true;
-        } else if (propName in sandbox.confinedWindow) {
-            throw new ReferenceError(propName + " is not defined. If you are using typeof " + propName + ", you can change your program to use typeof global." + propName + " instead");
-        }
-        return false;
-    },
-    ownKeys: function ownKeys(sandbox) {
-        return Object.getOwnPropertyNames(sandbox.globalObject);
-    },
-    getOwnPropertyDescriptor: function getOwnPropertyDescriptor(sandbox, propName) {
-        return Object.getOwnPropertyDescriptor(sandbox.globalObject, propName);
-    },
-    isExtensible: function isExtensible(sandbox) {
-        // TODO: can it becomes non-extensible?
-        return true;
-    },
-    getPrototypeOf: function getPrototypeOf(sandbox) {
-        return null;
-    },
-    setPrototypeOf: function setPrototypeOf(sandbox, prototype) {
-        return prototype === null ? true : false;
-    }
-};
-
 var RealmToSandbox = new WeakMap();
 
 function getSandbox(realm) {
@@ -588,6 +653,7 @@ var Realm = function () {
 
         var sandbox = createSandbox();
         sanitize(sandbox);
+        Object.assign(sandbox, getEvaluators(sandbox));
         // TODO: assert that RealmToSandbox does not have `this` entry
         RealmToSandbox.set(this, sandbox);
         sandbox.globalProxy = new Proxy(sandbox, proxyHandler);
