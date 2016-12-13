@@ -5,8 +5,8 @@ const iteratorSymbol = (typeof Symbol && Symbol.iterator) || "@@iterator";
 
 export function getIntrinsics(sandbox) {
     const { confinedWindow: _, globalObject } = sandbox;
-    const anonymousArrayIteratorPrototype = getProto([][iteratorSymbol]());
-    const anonymousStringIteratorPrototype = getProto(''[iteratorSymbol]());
+    const anonymousArrayIteratorPrototype = getProto(_.Array(0)[iteratorSymbol]());
+    const anonymousStringIteratorPrototype = getProto(_.String()[iteratorSymbol]());
     const anonymousIteratorPrototype = getProto(anonymousArrayIteratorPrototype);
 
     const strictArgumentsGenerator = _.eval('(function*(){"use strict";yield arguments;})');
@@ -52,7 +52,7 @@ export function getIntrinsics(sandbox) {
         // %ErrorPrototype%
         "ErrorPrototype": _.Error.prototype,
         // %eval%
-        "eval": _.eval,
+        "eval": sandbox.eval,
         // %EvalError%
         "EvalError": _.EvalError,
         // %EvalErrorPrototype% 
@@ -66,7 +66,7 @@ export function getIntrinsics(sandbox) {
         // %Float64ArrayPrototype%
         "Float64ArrayPrototype": _.Float64Array.prototype,
         // %Function%
-        "Function": _.Function,
+        "Function": sandbox.Function,
         // %FunctionPrototype%
         "FunctionPrototype": _.Function.prototype,
         // %Generator%

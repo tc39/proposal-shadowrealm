@@ -1,5 +1,19 @@
+let isInternalEvaluation = false;
+
+export function setInternalEvaluation() {
+    isInternalEvaluation = true;
+}
+
+export function resetInternalEvaluation() {
+    isInternalEvaluation = false;
+}
+
 export const proxyHandler = {
     get(sandbox, propName) {
+        if (propName === 'eval' && isInternalEvaluation) {
+            resetInternalEvaluation();
+            return sandbox.confinedWindow.eval;
+        }
         return sandbox.globalObject[propName];
     },
     set(sandbox, propName, newValue) {
@@ -14,6 +28,9 @@ export const proxyHandler = {
         return Reflect.deleteProperty(sandbox.globalObject, propName);
     },
     has(sandbox, propName) {
+        if (propName === 'eval' && isInternalEvaluation) {
+            return true;
+        }
         if (propName in sandbox.globalObject) {
             return true;
         } else if (propName in sandbox.confinedWindow) {

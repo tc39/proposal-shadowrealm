@@ -1,6 +1,7 @@
 import { createSandbox } from "./sandbox.js";
 import { sanitize } from "./sanitize.js";
-import { evaluate } from "./evaluator.js";
+import { evaluate } from "./evaluate.js";
+import { getEvaluators } from "./evaluators.js";
 import { getStdLib } from "./stdlib.js";
 import { getIntrinsics } from "./intrinsics.js";
 import { proxyHandler } from "./proxy.js";
@@ -20,6 +21,7 @@ export default class Realm {
     constructor() {
         const sandbox = createSandbox();
         sanitize(sandbox);
+        Object.assign(sandbox, getEvaluators(sandbox));
         // TODO: assert that RealmToSandbox does not have `this` entry
         RealmToSandbox.set(this, sandbox);
         sandbox.globalProxy = new Proxy(sandbox, proxyHandler);

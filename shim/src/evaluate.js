@@ -1,3 +1,7 @@
+import {
+    setInternalEvaluation,
+    resetInternalEvaluation,
+} from "./proxy.js";
 
 const HookFnName = '$RealmEvaluatorIIFE$';
 
@@ -10,6 +14,8 @@ function addLexicalScopesToSource(sourceText) {
      * `sandbox.globalProxy` that implements the shadowing mechanism.
      * Aside from that, the `this` value in sourceText will correspond to `sandbox.globalObject`.
      */
+    // escaping backsticks to prevent leaking the original eval as well as syntax errors
+    sourceText = sourceText.replace(/\`/g, '\\`');
     return `
         function ${HookFnName}() {
             with(arguments[0]) {
@@ -41,6 +47,9 @@ export function evaluate(sourceText, sandbox) {
         return undefined;
     }
     sourceText = addLexicalScopesToSource(sourceText);
+    setInternalEvaluation();
     const fn = evalAndReturn(sourceText, sandbox);
-    return fn.apply(sandbox.globalObject, [sandbox.globalProxy]);
+    const result = fn.apply(sandbox.globalObject, [sandbox.globalProxy]);
+    resetInternalEvaluation();
+    return result;
 }
