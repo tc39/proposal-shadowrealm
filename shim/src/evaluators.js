@@ -21,11 +21,10 @@ function getFunctionEvaluator(sandbox) {
         const fnArgs = args.join(', ');
         return evaluate(`(function anonymous(${fnArgs}){\n${sourceText}\n}).bind(this)`, sandbox);
     }
-    Object.setPrototypeOf(f, confinedWindow.Function);
-    f.constructor = f;
+    f.prototype = confinedWindow.Function.prototype;
+    Object.setPrototypeOf(f, f.prototype);
+    f.prototype.constructor = f;
     f.toString = () => 'function Function() { [shim code] }';
-    confinedWindow.Function.constructor = f;
-    // Object.setPrototypeOf(confinedWindow.Function, f);
     return f;
 }
 
