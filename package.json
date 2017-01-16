@@ -4,8 +4,8 @@
     "version": "0.0.0",
     "description": "ECMAScript spec proposal for Realms API",
     "scripts": {
-        "build": "ecmarkup spec/index.emu index.html",
-        "watch": "ecmarkup --watch spec/index.emu index.html",
+        "build": "ecmarkup spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
+        "watch": "ecmarkup --watch spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
         "build-shim-dev": "node shim/rollup.config.js",
         "build-shim-prod": "node shim/rollup.config.js --production",
         "lint": "eslint src/"

@@ -1,8 +1,8 @@
 <!doctype html>
 <meta charset="utf8">
+<link href="ecmarkup.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
-<script src="https://bterlson.github.io/ecmarkup/ecmarkup.js"></script>
-<link rel="stylesheet" href="https://bterlson.github.io/ecmarkup/elements.css">
+<script src="ecmarkup.js"></script>
 <pre class=metadata>
 title: ECMAScript Realms Spec Proposal
 stage: 0
