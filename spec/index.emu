@@ -185,6 +185,66 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
             </emu-alg>
 
         </emu-clause>
+
+        <emu-clause id="sec-setspawnglobalbindings" aoid="SetSpawnGlobalBindings">
+          <h1>SetSpawnGlobalBindings ( _realmRec_, _globalNames_ )</h1>
+
+          <p>The abstract operation SetSpawnGlobalBindings with arguments _realmRec_, and _globalNames_ performs the following steps:</p>
+
+          <emu-alg>
+            1. Assert: _realmRec_ is a Realm Record.
+            1. Assert: _globalNames_ is a List.
+            1. Let _global_ be _realmRec_.[[GlobalObject]].
+            1. For each element _name_ of _globalNames_ in List order,
+              1. Assert: _name_ is specified as a Global Object in clause <emu-xref href="#sec-global-object"></emu-xref>.
+              1. Let _desc_ be the fully populated data property descriptor for the property containing the specified attributes for the Global Object denoted by _name_. For those listed in <emu-xref href="#sec-function-properties-of-the-global-object"></emu-xref>, <emu-xref href="#sec-constructor-properties-of-the-global-object"></emu-xref>, or <emu-xref href="#sec-other-properties-of-the-global-object"></emu-xref> the value of the [[Value]] attribute is the corresponding intrinsic object from _realmRec_.
+              1. Perform ? DefinePropertyOrThrow(_global_, _name_, _desc_).
+            1. Return _global_.
+          </emu-alg>
+        </emu-clause>
+
+        <emu-clause id="sec-createspawnintrinsics" aoid="CreateSpawnIntrinsics">
+          <h1>CreateSpawnIntrinsics ( _realmRec_, _parentIntrinsics_, _freshIntrinsicNames_ )</h1>
+
+          <p>The abstract operation CreateSpawnIntrinsics with arguments _realmRec_, _parentIntrinsics_, and _intrinsicNames_ performs the following steps:</p>
+
+          <emu-alg>
+            1. Assert: _realmRec_ is a Realm Record.
+            1. Assert: _parentIntrinsics_ is a Record.
+            1. Assert: _freshIntrinsicNames_ is a List.
+            1. Let _intrinsics_ be a new Record.
+            1. Set _realmRec_.[[Intrinsics]] to _intrinsics_.
+            1. For each _name_ listed in column one of <emu-xref href="#table-7"></emu-xref>,
+              1. If _freshIntrinsicNames_ contains the value of _name_, then
+                1. Let _O_ be a new object value fully and recursively populated with property values as defined by the specification of each object in clauses 18-26. All object property values are newly created object values. All values that are built-in function objects are created by performing CreateBuiltinFunction(_realmRec_, &lt;steps&gt;, &lt;prototype&gt;, &lt;slots&gt;) where &lt;steps&gt; is the definition of that function provided by this specification, &lt;prototype&gt; is the specified value of the function's [[Prototype]] internal slot and &lt;slots&gt; is a list of the names, if any, of the function's specified internal slots.
+              1. Else,
+                1. Let _O_ be the value corresponding to the field name denoted by _name_ from _parentIntrinsics_ record.
+              1. Set field of _intrinsics_ whose field name is _name_ and value is _O_.
+            1. Return _intrinsics_.
+          </emu-alg>
+
+          <emu-note>
+              <p>The creation of the intrinsics and their properties must be ordered to avoid any dependencies upon objects that have not yet been created.</p>
+          </emu-note>
+        </emu-clause>
+
+        <emu-clause id="sec-createspawnrealm" aoid="CreateSpawnRealm">
+            <h1>CreateSpawnRealm ( _parentRealmRec_ )</h1>
+
+            The abstract operation *CreateSpawnRealm* with argument _parentRealmRec_ performs the following steps:
+
+            <emu-alg>
+            1. Assert: _parentRealmRec_ is a Realm Record.
+            1. Let _realmRec_ be a new Realm Record.
+            1. Let _intrinsics_ be ! CreateSpawnIntrinsics(_realmRec_, _parentRealmRec_.[[Intrinsics]], « *"%eval%"*, *"%Function%"* »).
+            1. Set _realmRec_.[[Intrinsics]] to _intrinsics_.
+            1. Set realmRec.[[TemplateMap]] to a new empty List.
+            1. Let _freshObject_ to ObjectCreate(_parentRealmRec_.[[GlobalObject]]).
+            1. Perform ? SetRealmGlobalObject(_realmRec_, _freshObject_, *undefined*).
+            1. Perform ? SetSpawnGlobalBindings(_realmRec_, « *"eval"*, *"Function"* »).
+            1. Return _realmRec_.
+            </emu-alg>
+        </emu-clause>
     </emu-clause>
 
     <emu-clause id="sec-the-realm-constructor">
@@ -267,6 +327,32 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
             <emu-note>
                 Extensible web: This is the dynamic equivalent of a &lt;script&gt; in HTML.
             </emu-note>
+        </emu-clause>
+
+        <emu-clause id="sec-realm-prototype-spawn">
+              <h1>Realm.prototype.spawn ([ _endowments_ ])</h1>
+
+              When the *Realm.prototype.spawn* function is called with optional argument _endowments_, the following steps are taken:
+
+              <emu-alg>
+              1. Let _parent_ be *this* value.
+              1. If Type(_parent_) is not Object, throw a *TypeError* exception.
+              1. If _parent_ is not a concrete instance of Realm, throw a *TypeError* exception.
+              1. Let _O_ be ? ObjectCreate(_parent_, « [[Realm]] »).
+              1. Let _realmRec_ be ? CreateSpawnRealm(_parent_.[[Realm]]).
+              1. Set _O_'s [[Realm]] internal slot to _realmRec_.
+              1. If _endowments_ is provided, then
+                1. If Type(_endowments_) is not an Object, throw a *TypeError* exception.
+                1. Let _globalObject_ be _realmRec_.[[GlobalObject]].
+                1. Let _props_ be ? ToObject(_endowments_).
+                1. Let _keys_ be ? _props_.[[OwnPropertyKeys]]().
+                1. Repeat for each element _propName_ of keys in List order,
+                  1. Let _propDesc_ be ? _props_.[[GetOwnProperty]](_propName_).
+                  1. If _propDesc_ is not *undefined* and _propDesc_.[[Enumerable]] is *true*, then
+                    1. Let _propValue_ be ? Get(_props_, _propName_).
+                    1. Perform ? CreateDataPropertyOrThrow(_globalObject_, _propName_, _propValue_).
+              1. Return _O_.
+              </emu-alg>
         </emu-clause>
 
         <emu-clause id="sec-realm.prototype-@@directEval">
