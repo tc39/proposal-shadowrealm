@@ -55,7 +55,7 @@ let f = realm.evalScript("(function() { return 17 })");
 
 f() === 17 // true
 
-Reflect.getPrototypeOf(f) === outerFlobal.Function.prototype // false
+Reflect.getPrototypeOf(f) === outerGlobal.Function.prototype // false
 Reflect.getPrototypeOf(f) === innerGlobal.Function.prototype // true
 ```
 
