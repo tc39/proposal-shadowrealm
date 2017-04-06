@@ -83,6 +83,94 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
     </table>
 </emu-table>
 
+<!-- es6num="15.2.1.16.1" -->
+<emu-clause id="sec-parsemodule" aoid="ParseModule">
+    <h1>ParseModule ( _sourceText_, _realm_, _hostDefined_ )</h1>
+    <emu-alg>
+    1. ...
+    1. Let _exportEntries_ be ExportEntries of _body_.
+    1. <ins>Let _resolvedModules_ be a new empty List</ins>.
+    1. For each ExportEntry Record _ee_ in _exportEntries_, do
+        1. ...
+    1. Return Source Text Module Record {[[Realm]]: _realm_, [[Environment]]: *undefined*, [[HostDefined]]: _hostDefined_, [[Namespace]]: *undefined*, [[Evaluated]]: *false*, [[ECMAScriptCode]]: _body_, [[RequestedModules]]: _requestedModules_, [[ImportEntries]]: _importEntries_, [[LocalExportEntries]]: _localExportEntries_, [[StarExportEntries]]: _starExportEntries_, [[IndirectExportEntries]]: _indirectExportEntries_<ins>, [[ResolvedModules]]: _resolvedModules_</ins>}.
+    </emu-alg>
+</emu-clause>
+
+<emu-clause id="sec-resolvemodule" aoid="ResolveModule">
+    <h1>ResolveModule ( _referencingModule_, _specifier_ )</h1>
+    <p>The abstract operation ResolveModule with arguments _referencingModule_ and _specifier_ resolves the concrete Module Record subclass instance that corresponds to the ModuleSpecifier String, _specifier_, occurring within the context of the module represented by the Source Text Module Record _referencingModule_. ResolveModule performs the following steps:</p>
+    <emu-alg>
+    1. Assert: _referencingModule_ is a Source Text Module Record.
+    1. Assert: Type(_specifier_) is String.
+    1. Let _resolvedModules_ be _referencingModule_.[[ResolvedModules]].
+    1. Repeat for each Record {[[Key]], [[Value]]} _p_ that is an element of _requiredModule_,
+      1. If _p_.[[Key]] is is equal _specifier_, then
+        1. Return _p_.[[Value]].
+    1. Let _requiredModule_ be ? HostResolveImportedModule(_referencingModule_, _specifier_).
+    1. Append _requiredModule_ as the last element of _resolvedModules_.
+    1. Return _requiredModule_.
+</emu-clause>
+
+<!-- es6num="15.2.1.16.5" -->
+<emu-clause id="sec-moduleevaluation">
+    <h1>ModuleEvaluation( ) Concrete Method</h1>
+    <emu-alg>
+    1. ...
+    6. For each String _required_ that is an element of _module_.[[RequestedModules]], do
+        1. Let _requiredModule_ be ! <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _required_).
+        1. ...
+    1. ...
+    </emu-alg>
+</emu-clause>
+
+
+<!-- es6num="15.2.1.16.2" -->
+<emu-clause id="sec-getexportednames">
+    <h1>GetExportedNames( _exportStarSet_ ) Concrete Method</h1>
+    <emu-alg>
+        1. ...
+        14. Let _requestedModule_ be ? <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _e_.[[ModuleRequest]]).
+        1. ...
+    </emu-alg>
+</emu-clause>
+
+
+<!-- es6num="15.2.1.16.3" -->
+<emu-clause id="sec-resolveexport">
+    <h1>ResolveExport( _exportName_, _resolveSet_ ) Concrete Method</h1>
+    <emu-alg>
+    1. ...
+    4. For each ExportEntry Record _e_ in _module_.[[IndirectExportEntries]], do
+        1. If SameValue(_exportName_, _e_.[[ExportName]]) is *true*, then
+        1. Assert: _module_ imports a specific binding for this export.
+        1. Let _importedModule_ be ? <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _e_.[[ModuleRequest]]).
+        1. ...
+    1. ...
+    7. For each ExportEntry Record _e_ in _module_.[[StarExportEntries]], do
+        1. Let _importedModule_ be ? <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _e_.[[ModuleRequest]]).
+        ...
+    1. ...
+    </emu-alg>
+</emu-clause>
+
+<!-- es6num="15.2.1.16.4" -->
+<emu-clause id="sec-moduledeclarationinstantiation">
+    <h1>ModuleDeclarationInstantiation( ) Concrete Method</h1>
+    <emu-alg>
+    1. ...
+    8. For each String _required_ that is an element of _module_.[[RequestedModules]], do
+        1. NOTE: Before instantiating a module, all of the modules it requested must be available. An implementation may perform this test at any time prior to this point.
+        1. Let _requiredModule_ be ? <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _required_).
+        1. ...
+    1. ...
+    12. For each ImportEntry Record _in_ in _module_.[[ImportEntries]], do
+        1. Let _importedModule_ be ! <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _in_.[[ModuleRequest]]).
+        1. NOTE: The above call cannot fail because imported module requests are a subset of _module_.[[RequestedModules]], and these have been resolved earlier in this algorithm.
+        1. ...
+    1. ...
+    </emu-alg>
+</emu-clause>
+
 <!-- es6num="18.2.1.1" -->
 <emu-clause id="sec-performeval" aoid="PerformEval">
   <h1>Runtime Semantics: PerformEval( _x_, _evalRealm_, _strictCaller_, _direct_ )</h1>
