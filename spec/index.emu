@@ -268,7 +268,7 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
               1. If _evalHook_ is not *undefined* and IsCallable(_evalHook_) is *false*, throw a TypeError exception.
               1. Let _thisValue_ be ? Get(_opts_, "thisValue").
               1. If _thisValue_ is not *undefined* and Type(_thisValue_) is not Object, throw a TypeError exception.
-              1. Let _globalObj_ be ? Get(_opts_, "globalObj").
+              1. Let _globalObj_ be ? Get(_opts_, "global").
               1. If _globalObj_ is not *undefined* and Type(_globalObj_) is not Object, throw a TypeError exception.
             1. Let _realmRec_ be CreateRealm().
             1. Set _O_.[[Realm]] to _realmRec_.
