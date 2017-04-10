@@ -1,7 +1,7 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-  typeof define === 'function' && define.amd ? define(factory) :
-  (global.RealmShim = factory());
+	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+	typeof define === 'function' && define.amd ? define(factory) :
+	(global.RealmShim = factory());
 }(this, (function () { 'use strict';
 
 function createIframe() {
@@ -14,16 +14,18 @@ function createIframe() {
     return el;
 }
 
-function createSandbox() {
+function createSandbox(customGlobalObj, customThisValue) {
     var iframe = createIframe();
     var iframeDocument = iframe.contentDocument,
         confinedWindow = iframe.contentWindow;
 
-    var globalObject = confinedWindow.Object.create(null);
+    var globalObject = customGlobalObj || confinedWindow.Object.create(null);
+    var thisValue = customThisValue || globalObject;
     return {
         iframe: iframe,
         iframeDocument: iframeDocument,
         confinedWindow: confinedWindow,
+        thisValue: thisValue,
         globalObject: globalObject,
         globalProxy: undefined
     };
@@ -82,6 +84,8 @@ function sanitize(sandbox) {
     }
 }
 
+// this flag allow us to determine if the eval() call is a controlled eval done by the realm's code
+// or if it is user-land invocation, so we can react differently.
 var isInternalEvaluation = false;
 
 function setInternalEvaluation() {
@@ -147,9 +151,11 @@ var HookFnName = '$RealmEvaluatorIIFE$';
 // via globalProxy.
 function addLexicalScopesToSource(sourceText) {
     /**
-     * We use a `with` statement who uses `argments[1]`, which is the
-     * `sandbox.globalProxy` that implements the shadowing mechanism.
-     * Aside from that, the `this` value in sourceText will correspond to `sandbox.globalObject`.
+     * We use a `with` statement who uses `argments[0]`, which is the
+     * `sandbox.globalProxy` that implements the shadowing mechanism as well as access to
+     * any global variable.
+     * Aside from that, the `this` value in sourceText will correspond to `sandbox.thisValue`.
+     * We have to use `arguments` instead of naming them to avoid name collision.
      */
     // escaping backsticks to prevent leaking the original eval as well as syntax errors
     sourceText = sourceText.replace(/\`/g, '\\`');
@@ -176,10 +182,10 @@ function evaluate(sourceText, sandbox) {
     if (!sourceText) {
         return undefined;
     }
-    sourceText = addLexicalScopesToSource(sourceText);
+    sourceText = addLexicalScopesToSource(sourceText + '');
     setInternalEvaluation();
     var fn = evalAndReturn(sourceText, sandbox);
-    var result = fn.apply(sandbox.globalObject, [sandbox.globalProxy]);
+    var result = fn.apply(sandbox.thisValue, [sandbox.globalProxy]);
     resetInternalEvaluation();
     return result;
 }
@@ -226,148 +232,7 @@ function getEvaluators(sandbox) {
     sandbox.eval = getEvalEvaluator(sandbox);
 }
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
-  return typeof obj;
-} : function (obj) {
-  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-};
-
-var asyncGenerator = function () {
-  function AwaitValue(value) {
-    this.value = value;
-  }
-
-  function AsyncGenerator(gen) {
-    var front, back;
-
-    function send(key, arg) {
-      return new Promise(function (resolve, reject) {
-        var request = {
-          key: key,
-          arg: arg,
-          resolve: resolve,
-          reject: reject,
-          next: null
-        };
-
-        if (back) {
-          back = back.next = request;
-        } else {
-          front = back = request;
-          resume(key, arg);
-        }
-      });
-    }
-
-    function resume(key, arg) {
-      try {
-        var result = gen[key](arg);
-        var value = result.value;
-
-        if (value instanceof AwaitValue) {
-          Promise.resolve(value.value).then(function (arg) {
-            resume("next", arg);
-          }, function (arg) {
-            resume("throw", arg);
-          });
-        } else {
-          settle(result.done ? "return" : "normal", result.value);
-        }
-      } catch (err) {
-        settle("throw", err);
-      }
-    }
-
-    function settle(type, value) {
-      switch (type) {
-        case "return":
-          front.resolve({
-            value: value,
-            done: true
-          });
-          break;
-
-        case "throw":
-          front.reject(value);
-          break;
-
-        default:
-          front.resolve({
-            value: value,
-            done: false
-          });
-          break;
-      }
-
-      front = front.next;
-
-      if (front) {
-        resume(front.key, front.arg);
-      } else {
-        back = null;
-      }
-    }
-
-    this._invoke = send;
-
-    if (typeof gen.return !== "function") {
-      this.return = undefined;
-    }
-  }
-
-  if (typeof Symbol === "function" && Symbol.asyncIterator) {
-    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
-      return this;
-    };
-  }
-
-  AsyncGenerator.prototype.next = function (arg) {
-    return this._invoke("next", arg);
-  };
-
-  AsyncGenerator.prototype.throw = function (arg) {
-    return this._invoke("throw", arg);
-  };
-
-  AsyncGenerator.prototype.return = function (arg) {
-    return this._invoke("return", arg);
-  };
-
-  return {
-    wrap: function (fn) {
-      return function () {
-        return new AsyncGenerator(fn.apply(this, arguments));
-      };
-    },
-    await: function (value) {
-      return new AwaitValue(value);
-    }
-  };
-}();
-
-var classCallCheck = function (instance, Constructor) {
-  if (!(instance instanceof Constructor)) {
-    throw new TypeError("Cannot call a class as a function");
-  }
-};
-
-var createClass = function () {
-  function defineProperties(target, props) {
-    for (var i = 0; i < props.length; i++) {
-      var descriptor = props[i];
-      descriptor.enumerable = descriptor.enumerable || false;
-      descriptor.configurable = true;
-      if ("value" in descriptor) descriptor.writable = true;
-      Object.defineProperty(target, descriptor.key, descriptor);
-    }
-  }
-
-  return function (Constructor, protoProps, staticProps) {
-    if (protoProps) defineProperties(Constructor.prototype, protoProps);
-    if (staticProps) defineProperties(Constructor, staticProps);
-    return Constructor;
-  };
-}();
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var getProto = Object.getPrototypeOf;
 var iteratorSymbol = (typeof Symbol === "undefined" ? "undefined" : _typeof(Symbol)) && Symbol.iterator || "@@iterator";
@@ -636,6 +501,10 @@ function getStdLib(sandbox) {
     };
 }
 
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
 var RealmToSandbox = new WeakMap();
 
 function getSandbox(realm) {
@@ -648,19 +517,23 @@ function getSandbox(realm) {
 
 var Realm = function () {
     function Realm() {
-        classCallCheck(this, Realm);
+        var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
-        var sandbox = createSandbox();
+        _classCallCheck(this, Realm);
+
+        var thisValue = options.thisValue,
+            globalObj = options.globalObj;
+
+        var sandbox = createSandbox(globalObj, thisValue);
         sanitize(sandbox);
         Object.assign(sandbox, getEvaluators(sandbox));
         // TODO: assert that RealmToSandbox does not have `this` entry
         RealmToSandbox.set(this, sandbox);
         sandbox.globalProxy = new Proxy(sandbox, proxyHandler);
-        this.global = sandbox.globalObject;
         this.init();
     }
 
-    createClass(Realm, [{
+    _createClass(Realm, [{
         key: "init",
         value: function init() {
             Object.defineProperties(this.global, this.stdlib);
@@ -683,7 +556,20 @@ var Realm = function () {
             var sandbox = getSandbox(this);
             return getIntrinsics(sandbox);
         }
+    }, {
+        key: "global",
+        get: function get() {
+            var sandbox = getSandbox(this);
+            return sandbox.globalObject;
+        }
+    }, {
+        key: "thisValue",
+        get: function get() {
+            var sandbox = getSandbox(this);
+            return sandbox.thisValue;
+        }
     }]);
+
     return Realm;
 }();
 
