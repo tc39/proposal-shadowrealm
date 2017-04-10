@@ -1,20 +1,18 @@
-let internalFlag = false;
+// this flag allow us to determine if the eval() call is a controlled eval done by the realm's code
+// or if it is user-land invocation, so we can react differently.
+let isInternalEvaluation = false;
 
 export function setInternalEvaluation() {
-    internalFlag = true;
+    isInternalEvaluation = true;
 }
 
 export function resetInternalEvaluation() {
-    internalFlag = false;
-}
-
-export function isInternalEvaluation() {
-    return internalFlag === true;
+    isInternalEvaluation = false;
 }
 
 export const proxyHandler = {
     get(sandbox, propName) {
-        if (propName === 'eval' && internalFlag) {
+        if (propName === 'eval' && isInternalEvaluation) {
             resetInternalEvaluation();
             return sandbox.confinedWindow.eval;
         }
@@ -32,7 +30,7 @@ export const proxyHandler = {
         return Reflect.deleteProperty(sandbox.globalObject, propName);
     },
     has(sandbox, propName) {
-        if (propName === 'eval' && internalFlag) {
+        if (propName === 'eval' && isInternalEvaluation) {
             return true;
         }
         if (propName in sandbox.globalObject) {

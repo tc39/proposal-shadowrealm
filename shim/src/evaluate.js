@@ -10,10 +10,9 @@ const HookFnName = '$RealmEvaluatorIIFE$';
 // via globalProxy.
 function addLexicalScopesToSource(sourceText) {
     /**
-     * We use a `with` statement who uses `argments[1]`, which is the
-     * `sandbox.globalProxy` that implements the shadowing mechanism,
-     * // and `arguments[0]`, which is the global object reprenseting
-     * // the contour corresponding to `sandbox.globalObject`.
+     * We use a `with` statement who uses `argments[0]`, which is the
+     * `sandbox.globalProxy` that implements the shadowing mechanism as well as access to
+     * any global variable.
      * Aside from that, the `this` value in sourceText will correspond to `sandbox.thisValue`.
      * We have to use `arguments` instead of naming them to avoid name collision.
      */
@@ -21,13 +20,11 @@ function addLexicalScopesToSource(sourceText) {
     sourceText = sourceText.replace(/\`/g, '\\`');
     return `
         function ${HookFnName}() {
-            with(arguments[1]) {
-                // with(arguments[0]) {
-                    return (function(){
-                        "use strict";
-                        return eval(\`${sourceText}\`);
-                    }).call(this);
-                // }
+            with(arguments[0]) {
+                return (function(){
+                    "use strict";
+                    return eval(\`${sourceText}\`);
+                }).call(this);
             }
         }
     `;
@@ -51,10 +48,10 @@ export function evaluate(sourceText, sandbox) {
     if (!sourceText) {
         return undefined;
     }
-    sourceText = addLexicalScopesToSource(sourceText);
+    sourceText = addLexicalScopesToSource(sourceText + '');
     setInternalEvaluation();
     const fn = evalAndReturn(sourceText, sandbox);
-    const result = fn.apply(sandbox.thisValue, [sandbox.globalObject, sandbox.globalProxy]);
+    const result = fn.apply(sandbox.thisValue, [sandbox.globalProxy]);
     resetInternalEvaluation();
     return result;
 }
