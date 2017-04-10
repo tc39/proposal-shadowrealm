@@ -1,11 +1,12 @@
 <html>
     <header>
         <script src="../dist/realm-shim.js"></script>
+        <script src="./frozen-realm.js"></script>
     </header>
     <body>
-        <h1>Realm Shim</h1>
+        <h1>Frozen Realm Shim</h1>
         <p>
-            This demo show allow you to evaluate code inside a brand new Realm:
+            This demo show allow you to evaluate code inside a frozen Realm:
         </p>
 
         Input:<br />
@@ -23,14 +24,13 @@
         </p>
 
         <script>
-        var r = new RealmShim();
+        const r = new FrozenRealm();
 
-        // basic sanity check: they all should output true
+        // basic sanity check: they all should output true or error
         // for now extra () are needed as a signal that it should return something :/
-        console.log(1, r.eval('( JSON )'));
-        console.log(2, r.eval('( JSON )') !== JSON);
-        console.log(3, r.eval('( JSON )') === r.eval('( JSON )'));
-        console.log(4, r.eval('( JSON )') === r.eval('( eval("JSON") )'));
+        console.log(1, r.eval(`let r; try { [].__proto__.slice = function () {} } catch(e) { r = e; }; r;`));
+        console.log(2, r.eval(`typeof Array.prototype.foo === 'function';`));
+        console.log(3, r.eval(`let r; try { Map.prototype.set = function () {} } catch(e) { r = e; }; r;`));
 
         document.getElementById('run').addEventListener('click', function () {
             var sourceText = document.getElementById('sourceText').value;

@@ -18,14 +18,14 @@ function getSandbox(realm) {
 
 export default class Realm {
 
-    constructor() {
-        const sandbox = createSandbox();
+    constructor(options = {}) {
+        const { thisValue, globalObj } = options;
+        const sandbox = createSandbox(globalObj, thisValue);
         sanitize(sandbox);
         Object.assign(sandbox, getEvaluators(sandbox));
         // TODO: assert that RealmToSandbox does not have `this` entry
         RealmToSandbox.set(this, sandbox);
         sandbox.globalProxy = new Proxy(sandbox, proxyHandler);
-        this.global = sandbox.globalObject;
         this.init();
     }
 
@@ -46,6 +46,16 @@ export default class Realm {
     get intrinsics() {
         const sandbox = getSandbox(this);
         return getIntrinsics(sandbox);
+    }
+
+    get global() {
+        const sandbox = getSandbox(this);
+        return sandbox.globalObject;
+    }
+
+    get thisValue() {
+        const sandbox = getSandbox(this);
+        return sandbox.thisValue;
     }
 
 }

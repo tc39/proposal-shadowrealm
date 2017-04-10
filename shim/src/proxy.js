@@ -1,16 +1,20 @@
-let isInternalEvaluation = false;
+let internalFlag = false;
 
 export function setInternalEvaluation() {
-    isInternalEvaluation = true;
+    internalFlag = true;
 }
 
 export function resetInternalEvaluation() {
-    isInternalEvaluation = false;
+    internalFlag = false;
+}
+
+export function isInternalEvaluation() {
+    return internalFlag === true;
 }
 
 export const proxyHandler = {
     get(sandbox, propName) {
-        if (propName === 'eval' && isInternalEvaluation) {
+        if (propName === 'eval' && internalFlag) {
             resetInternalEvaluation();
             return sandbox.confinedWindow.eval;
         }
@@ -28,7 +32,7 @@ export const proxyHandler = {
         return Reflect.deleteProperty(sandbox.globalObject, propName);
     },
     has(sandbox, propName) {
-        if (propName === 'eval' && isInternalEvaluation) {
+        if (propName === 'eval' && internalFlag) {
             return true;
         }
         if (propName in sandbox.globalObject) {

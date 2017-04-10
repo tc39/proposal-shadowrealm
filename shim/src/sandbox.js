@@ -8,14 +8,16 @@ function createIframe() {
     return el;
 }
 
-export function createSandbox() {
+export function createSandbox(customGlobalObj, customThisValue) {
     const iframe = createIframe();
     const { contentDocument: iframeDocument, contentWindow: confinedWindow } = iframe;
-    const globalObject = confinedWindow.Object.create(null);
+    const globalObject = customGlobalObj || confinedWindow.Object.create(null);
+    const thisValue = customThisValue || globalObject;
     return {
         iframe,
         iframeDocument,
         confinedWindow,
+        thisValue,
         globalObject,
         globalProxy: undefined,
     };
