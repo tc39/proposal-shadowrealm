@@ -265,7 +265,7 @@ function Menu() {
                     && target.offsetHeight + target.scrollTop >= target.scrollHeight;
 
     if (offBottom) {
-		  event.preventDefault();
+		  e.preventDefault();
 	  }
   })
 }

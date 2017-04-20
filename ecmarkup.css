@@ -9,7 +9,7 @@ body {
 }
 
 #spec-container {
-  padding-left: 20px;
+  padding: 0 20px;
   flex-grow: 1;
   flex-basis: 66%;
   box-sizing: border-box;
@@ -476,6 +476,7 @@ emu-grammar > ins, emu-grammar > del {
   padding: 0 5px;
   position: fixed;
   left: 0; top: 0;
+  border-right: 2px solid #bbb;
 
   z-index: 2;
 }
