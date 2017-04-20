@@ -86,12 +86,41 @@ class FakeWindow extends Realm {
 ### Example: language hooks
 
 ```js
-class ESNextRealm extends Realm {
-  [Realm.directEval](source) { return compile(source); }
-  [Realm.indirectEval](source) { ... }
-  ...
-}
+const r = new Realm({
+  evalHook(sourceText) {
+    return compile(sourceText);
+  },
+  importHook(referrerNamespace, specifier) {
+    ...
+  }
+});
+const result = r.eval('eval("1")'); // calls compile('1'), and evaluate the returned value
+const ns = r.eval('import("foo")'); // where referrerNamespace is null, and specifier is "foo"
 ```
+
+### Example: custom direct evaluation
+
+```js
+const r = new Realm({
+  isDirectEvalHook(func) {
+    return func === r.customEval;
+  },
+});
+r.customEval = function (sourceText) {
+  return 3;
+}
+const source = `
+  let x = 1;
+  (function foo() {
+    let x = 2;
+    eval('x');      // yields 2
+    (0,eval)('x');  // yields 3
+  })();
+`;
+r.eval(source);
+```
+
+These example demonstrate how to fully customize the direct and indirect evaluations.
 
 ### Example: JS dialects with ES6 Realms
 
