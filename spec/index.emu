@@ -34,7 +34,11 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
     </table>
 </emu-table>
 
-<emu-table id="table-2" caption="Realm Record Fields">
+<!-- es6num="8.2" -->
+<emu-clause id="sec-code-realms">
+  <h1>Realms</h1>
+
+  <emu-table id="table-21" caption="Realm Record Fields">
     <table>
         <tbody>
             <tr>
@@ -50,21 +54,76 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
             <tr>
                 <td>[[EvalHook]]</td>
                 <td>A function object or *undefined*</td>
-                <td>The function that is used as the eval hook. If [[EvalHook]] is undefined, a function that returns the original source text value will be used instead.</td>
+                <td>The function that is used as the eval hook. If [[EvalHook]] is undefined, the hook invoker will carry on the default behavior.</td>
+            </tr>
+            <tr>
+                <td>[[IsDirectEvalHook]]</td>
+                <td>A function object or *undefined*</td>
+                <td>The function that is used as the direct eval check hook. If [[IsDirectEvalHook]] is undefined, the hook invoker will carry on the default behavior.</td>
             </tr>
             <tr>
                 <td>[[ImportHook]]</td>
                 <td>A function object or *undefined*</td>
-                <td>The function that is used as the import hook. If [[ImportHook]] is undefined, a function that returns a rejected promise value will be used instead.</td>
-            </tr>
-            <tr>
-                <td>[[IsUserCreated]]</td>
-                <td>Boolean</td>
-                <td>Determines whether the Realm was created in user-land.</td>
+                <td>The function that is used as the import hook. If [[ImportHook]] is undefined, the hook invoker will carry on the default behavior.</td>
             </tr>
         </tbody>
     </table>
-</emu-table>
+  </emu-table>
+
+  <emu-clause id="sec-invokeisdirectevalhook" aoid="InvokeIsDirectEvalHook">
+    <h1>InvokeIsDirectEvalHook(_realmRec_, _func_)</h1>
+    <p>The abstract operation InvokeIsDirectEvalHook with arguments _realmRec_ and _func_ performs the following steps:</p>
+    <emu-alg>
+      1. Assert: realm is a Realm Record.
+      1. Let _fn_ be _realmRec_.[[IsDirectEvalHook]].
+      1. If _fn_ is *undefined*, return SameValue(_func_, %eval%).
+      1. Assert: IsCallable(_fn_) is *true*.
+      1. Let _result_ be ToBoolean( ? Call(_fn_, *undefined*, &laquo; _func_ &raquo;)).
+      1. Return _result_.
+    </emu-alg>
+  </emu-clause>
+
+  <emu-clause id="sec-invokedirectevalhook" aoid="InvokeDirectEvalHook">
+    <h1>InvokeDirectEvalHook ( _realmRec_, _x_ )</h1>
+
+    <p>The abstract operation InvokeDirectEvalHook with arguments _realmRec_ and _x_ performs the following steps:</p>
+
+    <emu-alg>
+    1. Assert: realm is a Realm Record.
+    1. Let _fn_ be _realmRec_.[[EvalHook]].
+    1. If _fn_ is *undefined*, return _x_.
+    1. Assert: IsCallable(_fn_) is *true*.
+    1. Return ? Call(_fn_, *undefined*, « _x_ »).
+    </emu-alg>
+  </emu-clause>
+
+  <emu-clause id="sec-invokeimporthook" aoid="InvokeImportHook">
+    <h1>InvokeImportHook ( _realmRec_, _referencingScriptOrModule_, _specifierString_, _promiseCapability_ )</h1>
+
+    <p>The abstract operation InvokeImportHook with arguments _realmRec_, _referencingScriptOrModule_, _specifier_ and _promiseCapability_ performs the following steps:</p>
+
+    <emu-alg>
+    1. Assert: _realmRec_ is a Realm Record.
+    1. Assert: Type(_specifierString_) is String.
+    1. Assert: _referencingScriptOrModule_ is a Script Record or Module Record (i.e. is not null).
+    1. Assert: _resultCapability_ is a PromiseCapability Record.
+    1. Let _fn_ be _realmRec_.[[ImportHook]].
+    1. If _fn_ is *undefined*, then
+      1. Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, _specifierString_, _promiseCapability_).
+    1. Assert: IsCallable(_fn_) is *true*.
+    1. If _referencingScriptOrModule_ is a Module Record, then
+      1. Assert: ModuleEvaluation has already been invoked on _referencingScriptOrModule_ and successfully completed.
+      1. Let _referrer_ be GetModuleNamespace(_referencingScriptOrModule_).
+      1. IfAbruptRejectPromise(_referrer_, _promiseCapability_).
+    1. Else,
+      1. Let _referrer_ be *null*.
+    1. Let _value_ be Call(_fn_, *undefined*, « _referrer_, _specifier_ »).
+    1. IfAbruptRejectPromise(_value_, _promiseCapability_).
+    1. Perform ! Call(_promiseCapability_.[[Resolve]], *undefined*, « _value_ »).
+    </emu-alg>
+  </emu-clause>
+
+</emu-clause>
 
 <!-- es6num="15.2.1.16.1" -->
 <emu-clause id="sec-parsemodule" aoid="ParseModule">
@@ -161,36 +220,57 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
   <emu-alg>
     1. Assert: If _direct_ is *false*, then _strictCaller_ is also *false*.
     1. <ins>If _direct_ is *true*, then</ins>
-      1. <ins>Let _xValue_ be ? InvokeEvalHook(_x_, _evalRealm_).</ins>
+      1. <ins>Let _xValue_ be ? InvokeDirectEvalHook(_x_, _evalRealm_).</ins>
     1. If Type(_xValue_) is not String, return _xValue_.
     1. ...
   </emu-alg>
 </emu-clause>
 
-<emu-clause id="sec-import-calls">
-  <h1><ins>Import Calls</ins></h1>
 
-  <emu-clause id="sec-import-call-runtime-semantics-evaluation">
-    <h1>Runtime Semantics: Evaluation</h1>
+<!-- es6num="12.3.4.1" -->
+<emu-clause id="sec-function-calls-runtime-semantics-evaluation">
+  <h1>Runtime Semantics: Evaluation</h1>
+  <emu-grammar>CallExpression : CoverCallExpressionAndAsyncArrowHead</emu-grammar>
+  <emu-alg>
+    1. Let _expr_ be CoveredCallExpression of |CoverCallExpressionAndAsyncArrowHead|.
+    1. Let _memberExpr_ be the |MemberExpression| of _expr_.
+    1. Let _arguments_ be the |Arguments| of _expr_.
+    1. Let _ref_ be the result of evaluating _memberExpr_.
+    1. Let _func_ be ? GetValue(_ref_).
+    1. If Type(_ref_) is Reference and IsPropertyReference(_ref_) is *false* and GetReferencedName(_ref_) is `"eval"`, then
+      1. <ins>Let _evalRealm_ be the current Realm Record</ins>.
+      1. <ins>Let _isDirectEval_ be ? InvokeIsDirectEvalHook(_evalRealm_, _func_)</ins>.
+      1. If <ins>_isDirectEval_</ins><del>SameValue(_func_, %eval%)</del> is *true*, then
+        1. Let _argList_ be ? ArgumentListEvaluation(_arguments_).
+        1. If _argList_ has no elements, return *undefined*.
+        1. Let _evalText_ be the first element of _argList_.
+        1. If the source code matching this |CallExpression| is strict mode code, let _strictCaller_ be *true*. Otherwise let _strictCaller_ be *false*.
+        1. <del>Let _evalRealm_ be the current Realm Record</del>.
+        1. Perform ? HostEnsureCanCompileStrings(_evalRealm_, _evalRealm_).
+        1. Return ? PerformEval(_evalText_, _evalRealm_, _strictCaller_, *true*).
+    1. ...
+  </emu-alg>
+  ...
+</emu-clause>
 
-    <emu-grammar>ImportCall : `import` `(` AssignmentExpression `)`</emu-grammar>
-    <emu-alg>
-    1. Let _referencingScriptOrModule_ be ! GetActiveScriptOrModule().
-    1. Assert: _referencingScriptOrModule_ is a Script Record or Module Record (i.e. is not *null*).
-    1. Let _argRef_ be the result of evaluating |AssignmentExpression|.
-    1. Let _specifier_ be ? GetValue(_argRef_).
-    1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
-    1. Let _specifierString_ be ToString(_specifier_).
-    1. IfAbruptRejectPromise(_specifierString_, _promiseCapability_).
-    1. <ins>Let _ctx_ be the running execution context</ins>.
-    1. <ins>Let _currentRealm_ be ctx's Realm</ins>.
-    1. <ins>If _currentRealm_.[[IsUserCreated]] is *true*, then</ins>
-      1. <ins>Return ? InvokeImportHook(_referencingScriptOrModule_, _specifierString_).</ins>
-    1. <ins>Else,</ins>
-      1. Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, _specifierString_, _promiseCapability_).
-    1. Return _promiseCapability_.[[Promise]].
-    </emu-alg>
-  </emu-clause>
+<emu-clause id="sec-import-call-runtime-semantics-evaluation">
+  <h1>Runtime Semantics: Evaluation</h1>
+
+  <emu-grammar>ImportCall : `import` `(` AssignmentExpression `)`</emu-grammar>
+  <emu-alg>
+  1. Let _referencingScriptOrModule_ be ! GetActiveScriptOrModule().
+  1. Assert: _referencingScriptOrModule_ is a Script Record or Module Record (i.e. is not *null*).
+  1. Let _argRef_ be the result of evaluating |AssignmentExpression|.
+  1. Let _specifier_ be ? GetValue(_argRef_).
+  1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
+  1. Let _specifierString_ be ToString(_specifier_).
+  1. IfAbruptRejectPromise(_specifierString_, _promiseCapability_).
+  1. <ins>Let _ctx_ be the running execution context</ins>.
+  1. <ins>Let _currentRealm_ be ctx's Realm</ins>.
+  1. <ins>Perform ! InvokeImportHook(_currentRealm_, _referencingScriptOrModule_, _specifierString_, _promiseCapability_)</ins>.
+  1. <del>Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, _specifierString_, _promiseCapability_)</del>.
+  1. Return _promiseCapability_.[[Promise]].
+  </emu-alg>
 </emu-clause>
 
 <emu-clause id="sec-realm-objects">
@@ -198,48 +278,28 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
 
     <emu-clause id="sec-realm-abstract-operations">
         <h1>Realm Abstract Operations</h1>
-
-        <emu-clause id="sec-invokeevalhook" aoid="InvokeEvalHook">
-            <h1>InvokeEvalHook ( _realmRec_, _x_ )</h1>
-
-            <p>The abstract operation InvokeEvalHook with arguments _realmRec_ and _x_ performs the following steps:</p>
-
-            <emu-alg>
-            1. Assert: realm is a Realm Record.
-            1. Let _fn_ be _realmRec_.[[EvalHook]].
-            1. If _fn_ is *undefined*, return _x_.
-            1. Assert: IsCallable(_fn_) is *true*.
-            1. Return ? Call(_fn_, *undefined*, « _x_ »).
-            </emu-alg>
-        </emu-clause>
-
-        <emu-clause id="sec-invokeimporthook" aoid="InvokeImportHook">
-            <h1>InvokeImportHook ( _realmRec_, _referencingScriptOrModule_, _specifier_ )</h1>
-
-            <p>The abstract operation InvokeImportHook with arguments _realmRec_, _referencingScriptOrModule_, and _specifier_ performs the following steps:</p>
-
-            <emu-alg>
-            1. Assert: _realmRec_ is a Realm Record.
-            1. Assert: Type(_specifier_) is String.
-            1. Assert: _referencingScriptOrModule_ is a Script Record or Module Record (i.e. is not null).
-            1. Let _fn_ be _realmRec_.[[ImportHook]].
-            1. If _fn_ is *undefined*, then
-              1. Return a promise rejected with a new *TypeError* exception.
-            1. If _referencingScriptOrModule_ is a Module Record, then
-              1. Assert: ModuleEvaluation has already been invoked on _referencingScriptOrModule_ and successfully completed.
-              1. Let _ns_ be GetModuleNamespace(_referencingScriptOrModule_).
-              1. If _ns_ is an abrupt completion, return a promise rejected with _namespace_.[[Value]].
-            1. Else,
-              1. Let _ns_ be *null*.
-            1. Let _p_ be Call(_fn_, *undefined*, « _ns_, _specifier_ »).
-            1. If _p_ is an abrupt completion, then
-              1. return a promise rejected with _p_.[[Value]].
-            1. Else,
-              1. If _p_ is a Completion Record, return _p_.[[Value]].
-            </emu-alg>
-        </emu-clause>
-
     </emu-clause>
+
+    <emu-clause id="sec-realm-built-in-function-objects">
+      <h1>Built-in Function Objects</h1>
+
+      <emu-clause id="sec-realm-default-import-hook-functions">
+        <h1>Realm Default Import Hook Functions</h1>
+
+        <p>A Realm default import hook function is an anonymous built-in function.</p>
+
+        <p>When aRealm default import hook function is called with arguments _referrer_ and _specifier_, the following steps are taken:</p>
+
+        <emu-alg>
+          1. Throw a new *TypeError*.
+        </emu-alg>
+
+        <emu-note>
+          By default, newly created realms do not expose host specific behavior when evaluating _import()_ calls.
+        </emu-note>
+      </emu-clause>
+    </emu-clause>
+
 
     <emu-clause id="sec-the-realm-constructor">
         <h1>The Realm Constructor</h1>
@@ -264,8 +324,10 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
               1. Let _opts_ be ? ToObject(_options_).
               1. Let _importHook_ be ? Get(_opts_, "importHook").
               1. If _importHook_ is not *undefined* and IsCallable(_importHook_) is *false*, throw a TypeError exception.
-              1. Let _evalHook_ be ? Get(_opts_, "importHook").
+              1. Let _evalHook_ be ? Get(_opts_, "evalHook").
               1. If _evalHook_ is not *undefined* and IsCallable(_evalHook_) is *false*, throw a TypeError exception.
+              1. Let _isDirectEvalHook_ be ? Get(_opts_, "isDirectEvalHook").
+              1. If _isDirectEvalHook_ is not *undefined* and IsCallable(_isDirectEvalHook_) is *false*, throw a TypeError exception.
               1. Let _thisValue_ be ? Get(_opts_, "thisValue").
               1. If _thisValue_ is not *undefined* and Type(_thisValue_) is not Object, throw a TypeError exception.
               1. Let _globalObj_ be ? Get(_opts_, "global").
@@ -273,11 +335,13 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
             1. Let _realmRec_ be CreateRealm().
             1. Set _O_.[[Realm]] to _realmRec_.
             1. Perform ? SetRealmGlobalObject(_realmRec_, _globalObj_, _thisValue_).
-            1. Set _realmRec_.[[IsUserCreated]] to *true*.
+            1. If _importHook_ is *undefined*, then
+              1. Let _importHook_ be a new built-in function object as defined in <emu-xref href="#sec-realm-default-import-hook-functions"></emu-xref>.
+            1. Set _realmRec_.[[ImportHook]] to _importHook_.
             1. If _evalHook_ is not *undefined*, then
-              1. Set _realmRec_.[[directEval]] to _evalHook_.
-            1. If _importHook_ is not *undefined*, then
-              1. Set _realmRec_.[[directImport]] to _importHook_.
+              1. Set _realmRec_.[[EvalHook]] to _evalHook_.
+            1. If _isDirectEvalHook_ is not *undefined*, then
+              1. Set _realmRec_.[[IsDirectEvalHook]] to _isDirectEvalHook_.
             1. Let _init_ be ? GetMethod(_O_, *"init"*).
             1. If IsCallable(_init_) is not *true*, throw a *TypeError* exception.
             1. Perform ? Call(_init_, _O_).
