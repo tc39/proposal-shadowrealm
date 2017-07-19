@@ -66,6 +66,11 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
                 <td>A function object or *undefined*</td>
                 <td>The function that is used as the import hook. If [[ImportHook]] is undefined, the hook invoker will carry on the default behavior.</td>
             </tr>
+            <tr>
+                <td>[[ImportMetaHook]]</td>
+                <td>A function object or *undefined*</td>
+                <td>The function that is used as the import.meta hook. If [[ImportMetaHook]] is undefined, the hook invoker will carry on the default behavior.</td>
+            </tr>
         </tbody>
     </table>
   </emu-table>
@@ -274,227 +279,254 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
 </emu-clause>
 
 <emu-clause id="sec-realm-objects">
-    <h1>Realm Objects</h1>
-
-    <emu-clause id="sec-realm-abstract-operations">
-        <h1>Realm Abstract Operations</h1>
+  <h1>Realm Objects</h1>
+  <emu-clause id="sec-realm-abstract-operations">
+    <h1>Realm Abstract Operations</h1>
+    <emu-clause id="sec-create-realm-rec">
+      <h1>CreateRealmRec ( _intrinsics_ )</h1>
+      <emu-alg>
+      1. Let _realmRec_ be a new Realm Record.
+      1. If _intrinsics_ is *undefined*, then
+        1. Perform CreateIntrinsics(realmRec).
+      1. Else
+        1. Assert: In this case, _intrinsics_ must be a Record with field names listed in column one of Table 7.
+        1. Set _realmRec_.[[Intrinsics]] to _intrinsics_.
+      1. Set _realmRec_.[[GlobalObject]] to *undefined*.
+      1. Set _realmRec_.[[GlobalEnv]] to *undefined*.
+      1. Set _realmRec_.[[TemplateMap]] to a new empty List.
+      1. Return _realmRec_.
+      </emu-alg>
     </emu-clause>
+  </emu-clause>
 
-    <emu-clause id="sec-realm-built-in-function-objects">
-      <h1>Built-in Function Objects</h1>
+  <emu-clause id="sec-realm-built-in-function-objects">
+    <h1>Built-in Function Objects</h1>
 
-      <emu-clause id="sec-realm-default-import-hook-functions">
-        <h1>Realm Default Import Hook Functions</h1>
+    <emu-clause id="sec-realm-default-import-hook-functions">
+      <h1>Realm Default Import Hook Functions</h1>
 
-        <p>A Realm default import hook function is an anonymous built-in function.</p>
+      <p>A Realm default import hook function is an anonymous built-in function.</p>
 
-        <p>When aRealm default import hook function is called with arguments _referrer_ and _specifier_, the following steps are taken:</p>
+      <p>When a Realm default import hook function is called with arguments _referrer_ and _specifier_, the following steps are taken:</p>
 
-        <emu-alg>
-          1. Throw a new *TypeError*.
-        </emu-alg>
+      <emu-alg>
+        1. Throw a new *TypeError*.
+      </emu-alg>
 
-        <emu-note>
-          By default, newly created realms do not expose host specific behavior when evaluating _import()_ calls.
-        </emu-note>
+      <emu-note>
+        By default, newly created realms do not expose host specific behavior when evaluating _import()_ calls.
+      </emu-note>
+    </emu-clause>
+  </emu-clause>
+
+
+  <emu-clause id="sec-the-realm-constructor">
+      <h1>The Realm Constructor</h1>
+
+      <p>
+          The Ream constructor is the %Realm% intrinsic object and the initial value of the *Realm* property of the global object. When called as a constructor it creates and initializes a new Realm object. Realm is not intended to be called as a function and will throw an exception when called in that manner.
+      </p>
+
+      <p>
+          The Realm constructor is designed to be subclassable. It may be used as the value in an extends clause of a class definition. Subclass constructors that intend to inherit the specified Realm behaviour must include a super call to the Realm constructor to create and initialize the subclass instance with the internal state necessary to support the Realm.prototype built-in methods.
+      </p>
+
+      <emu-clause id="sec-realm" aoid="Realm">
+          <h1>Realm ([ _options_ ])</h1>
+
+          When Realm is called with argument _option_ performs the following steps:
+
+          <emu-alg>
+          1. If NewTarget is *undefined*, throw a *TypeError* exception.
+          1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]] »).
+          1. If _options_ is not *undefined*, then
+            1. Let _parentRealm_ be the current Realm Record.
+            1. Let _opts_ be ? ToObject(_options_).
+            1. Let _importHook_ be ? Get(_opts_, "importHook").
+            1. If _importHook_ is equal `"inherit"`, then
+              1. Set _importHook_ to _parentRealm_.[[ImportHook]].
+            1. Else if IsCallable(_importHook_) is *false*, throw a TypeError exception.
+            1. Let _importMetaHook_ be ? Get(_opts_, "importMetaHook").
+            1. If _importMetaHook_ is equal `"inherit"`, then
+              1. Set _importMetaHook_ to _parentRealm_.[[ImportMetaHook]].
+            1. Else if IsCallable(_importMetaHook_) is *false*, throw a TypeError exception.
+            1. Let _evalHook_ be ? Get(_opts_, "evalHook").
+            1. If _evalHook_ is equal `"inherit"`, then
+              1. Set _evalHook_ to _parentRealm_.[[EvalHook]].
+            1. Else if IsCallable(_evalHook_) is *false*, throw a TypeError exception.
+            1. Let _isDirectEvalHook_ be ? Get(_opts_, "isDirectEvalHook").
+            1. If _isDirectEvalHook_ is equal `"inherit"`, then
+              1. Set _isDirectEvalHook_ to _parentRealm_.[[IsDirectEvalHook]].
+            1. Else if IsCallable(_isDirectEvalHook_) is *false*, throw a TypeError exception.
+            1. Let _intrinsics_ be ? Get(_opts_, "intrinsics").
+            1. If _intrinsics_ is equal `"inherit"`, then
+              1. Set _intrinsics_ to _parentRealm_.[[Intrinsics]].
+            1. Else if _intrinsics_ is not *undefined*, , throw a TypeError exception.
+            1. Let _thisValue_ be ? Get(_opts_, "thisValue").
+            1. If _thisValue_ is not *undefined* and Type(_thisValue_) is not Object, throw a TypeError exception.
+          1. Let _realmRec_ be CreateRealmRec(_intrinsics_).
+          1. Set _O_.[[Realm]] to _realmRec_.
+          1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, _thisValue_).
+          1. If _importHook_ is *undefined*, then
+            1. Let _importHook_ be a new built-in function object as defined in <emu-xref href="#sec-realm-default-import-hook-functions"></emu-xref>.
+          1. Set _realmRec_.[[ImportHook]] to _importHook_.
+          1. If _evalHook_ is not *undefined*, then
+            1. Set _realmRec_.[[EvalHook]] to _evalHook_.
+          1. If _isDirectEvalHook_ is not *undefined*, then
+            1. Set _realmRec_.[[IsDirectEvalHook]] to _isDirectEvalHook_.
+          1. Let _init_ be ? GetMethod(_O_, *"init"*).
+          1. If IsCallable(_init_) is not *true*, throw a *TypeError* exception.
+          1. Perform ? Call(_init_, _O_).
+          1. Return _O_.
+          </emu-alg>
+
       </emu-clause>
-    </emu-clause>
+  </emu-clause>
 
+  <emu-clause id="sec-properties-of-the-realm-constructor">
+      <h1>Properties of the Realm Constructor</h1>
 
-    <emu-clause id="sec-the-realm-constructor">
-        <h1>The Realm Constructor</h1>
+      The value of the [[Prototype]] internal slot of the *Realm* constructor is the intrinsic object %FunctionPrototype%.
 
-        <p>
-            The Ream constructor is the %Realm% intrinsic object and the initial value of the *Realm* property of the global object. When called as a constructor it creates and initializes a new Realm object. Realm is not intended to be called as a function and will throw an exception when called in that manner.
-        </p>
+  </emu-clause>
 
-        <p>
-            The Realm constructor is designed to be subclassable. It may be used as the value in an extends clause of a class definition. Subclass constructors that intend to inherit the specified Realm behaviour must include a super call to the Realm constructor to create and initialize the subclass instance with the internal state necessary to support the Realm.prototype built-in methods.
-        </p>
+  <emu-clause id="sec-properties-of-the-realm-prototype-object">
+      <h1>Properties of the Realm Prototype Object</h1>
 
-        <emu-clause id="sec-realm" aoid="Realm">
-            <h1>Realm ([ _options_ ])</h1>
+      <emu-clause id="sec-realm.prototype.init">
+          <h1>Realm.prototype.init ()</h1>
 
-            When Realm is called with argument _option_ performs the following steps:
+          <emu-alg>
+          1. Let _O_ be *this* value.
+          1. If Type(_O_) is not Object, throw a *TypeError* exception.
+          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+          1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
+          </emu-alg>
 
-            <emu-alg>
-            1. If NewTarget is *undefined*, throw a *TypeError* exception.
-            1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]] »).
-            1. If _options_ is not *undefined*, then
-              1. Let _opts_ be ? ToObject(_options_).
-              1. Let _importHook_ be ? Get(_opts_, "importHook").
-              1. If _importHook_ is not *undefined* and IsCallable(_importHook_) is *false*, throw a TypeError exception.
-              1. Let _evalHook_ be ? Get(_opts_, "evalHook").
-              1. If _evalHook_ is not *undefined* and IsCallable(_evalHook_) is *false*, throw a TypeError exception.
-              1. Let _isDirectEvalHook_ be ? Get(_opts_, "isDirectEvalHook").
-              1. If _isDirectEvalHook_ is not *undefined* and IsCallable(_isDirectEvalHook_) is *false*, throw a TypeError exception.
-              1. Let _thisValue_ be ? Get(_opts_, "thisValue").
-              1. If _thisValue_ is not *undefined* and Type(_thisValue_) is not Object, throw a TypeError exception.
-              1. Let _globalObj_ be ? Get(_opts_, "global").
-              1. If _globalObj_ is not *undefined* and Type(_globalObj_) is not Object, throw a TypeError exception.
-            1. Let _realmRec_ be CreateRealm().
-            1. Set _O_.[[Realm]] to _realmRec_.
-            1. Perform ? SetRealmGlobalObject(_realmRec_, _globalObj_, _thisValue_).
-            1. If _importHook_ is *undefined*, then
-              1. Let _importHook_ be a new built-in function object as defined in <emu-xref href="#sec-realm-default-import-hook-functions"></emu-xref>.
-            1. Set _realmRec_.[[ImportHook]] to _importHook_.
-            1. If _evalHook_ is not *undefined*, then
-              1. Set _realmRec_.[[EvalHook]] to _evalHook_.
-            1. If _isDirectEvalHook_ is not *undefined*, then
-              1. Set _realmRec_.[[IsDirectEvalHook]] to _isDirectEvalHook_.
-            1. Let _init_ be ? GetMethod(_O_, *"init"*).
-            1. If IsCallable(_init_) is not *true*, throw a *TypeError* exception.
-            1. Perform ? Call(_init_, _O_).
-            1. Return _O_.
-            </emu-alg>
+          <emu-note>
+              Extensible web: This is the dynamic way to define globals in a new realm.
+          </emu-note>
+      </emu-clause>
 
-        </emu-clause>
-    </emu-clause>
+      <emu-clause id="sec-realm.prototype.eval">
+          <h1>Realm.prototype.eval ( _x_ )</h1>
 
-    <emu-clause id="sec-properties-of-the-realm-constructor">
-        <h1>Properties of the Realm Constructor</h1>
+          Synchronously execute a top-level script. The _x_ is interpreted as a Script and evaluated with this bound to the realm's global object.
 
-        The value of the [[Prototype]] internal slot of the *Realm* constructor is the intrinsic object %FunctionPrototype%.
+          <emu-alg>
+          1. Let _O_ be *this* value.
+          1. If Type(_O_) is not Object, throw a *TypeError* exception.
+          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+          1. Let _evalRealm_ be _O_.[[Realm]].
+          1. Perform ? HostEnsureCanCompileStrings(the current Realm Record, _evalRealm_).
+          1. Return ? PerformEval(_x_, _evalRealm_, *false*, *false*).
+          </emu-alg>
 
-    </emu-clause>
+          <emu-note>
+              Extensible web: This is the dynamic equivalent of a &lt;script&gt; in HTML.
+          </emu-note>
+      </emu-clause>
 
-    <emu-clause id="sec-properties-of-the-realm-prototype-object">
-        <h1>Properties of the Realm Prototype Object</h1>
+      <emu-clause id="sec-realm.prototype.global">
+          <h1>get Realm.prototype.global</h1>
 
-        <emu-clause id="sec-realm.prototype.init">
-            <h1>Realm.prototype.init ()</h1>
+          Realm.prototype.global is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
 
-            <emu-alg>
-            1. Let _O_ be *this* value.
-            1. If Type(_O_) is not Object, throw a *TypeError* exception.
-            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
-            </emu-alg>
+          <emu-alg>
+          1. Let _O_ be *this* value.
+          1. If Type(_O_) is not Object, throw a *TypeError* exception.
+          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+          1. Return _O_.[[Realm]].[[GlobalObject]].
+          </emu-alg>
+      </emu-clause>
 
-            <emu-note>
-                Extensible web: This is the dynamic way to define globals in a new realm.
-            </emu-note>
-        </emu-clause>
+      <emu-clause id="sec-realm.prototype.thisValue">
+          <h1>get Realm.prototype.thisValue</h1>
 
-        <emu-clause id="sec-realm.prototype.eval">
-            <h1>Realm.prototype.eval ( _x_ )</h1>
+          Realm.prototype.thisValue is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
 
-            Synchronously execute a top-level script. The _x_ is interpreted as a Script and evaluated with this bound to the realm's global object.
+          <emu-alg>
+          1. Let _O_ be *this* value.
+          1. If Type(_O_) is not Object, throw a *TypeError* exception.
+          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+          1. Let _envRec_ be _O_.[[Realm]].[[GlobalEnv]].
+          1. Return _envRec_.[[GlobalThisValue]].
+          </emu-alg>
+      </emu-clause>
 
-            <emu-alg>
-            1. Let _O_ be *this* value.
-            1. If Type(_O_) is not Object, throw a *TypeError* exception.
-            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Let _evalRealm_ be _O_.[[Realm]].
-            1. Perform ? HostEnsureCanCompileStrings(the current Realm Record, _evalRealm_).
-            1. Return ? PerformEval(_x_, _evalRealm_, *false*, *false*).
-            </emu-alg>
+      <emu-clause id="sec-realm.prototype.stdlib">
+          <h1>get Realm.prototype.stdlib</h1>
 
-            <emu-note>
-                Extensible web: This is the dynamic equivalent of a &lt;script&gt; in HTML.
-            </emu-note>
-        </emu-clause>
+          Realm.prototype.stdlib is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
 
-        <emu-clause id="sec-realm.prototype.global">
-            <h1>get Realm.prototype.global</h1>
+          <emu-alg>
+          1. Let _O_ be *this* value.
+          1. If Type(_O_) is not Object, throw a *TypeError* exception.
+          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+          1. Let _realmRec_ be _O_.[[Realm]].
+          1. Let global be realmRec.[[GlobalObject]].
+          1. Let _stdlib_ be ObjectCreate(%ObjectPrototype%).
+          1. For each property of the Global Object specified in clause <emu-xref href="#sec-global-object"></emu-xref> that correspond to an intrinsic object, do:
+            1. Let _name_ be the String value of the property name.
+            1. Let _value_ be the corresponding value of the intrinsic object from record _realmRec_.[[Intrinsics]].
+            1. Let _descObj_ be ObjectCreate(%ObjectPrototype%).
+            1. Perform ? DefinePropertyOrThrow(_descObj_, *"value"*, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
+            1. Perform ? DefinePropertyOrThrow(_stdlib_, _name_, PropertyDescriptor{[[Value]]: _descObj_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
+          1. Return _stdlib_.
+          </emu-alg>
+      </emu-clause>
 
-            Realm.prototype.global is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
+      <emu-clause id="sec-realm.prototype.intrinsics">
+          <h1>get Realm.prototype.intrinsics</h1>
 
-            <emu-alg>
-            1. Let _O_ be *this* value.
-            1. If Type(_O_) is not Object, throw a *TypeError* exception.
-            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Return _O_.[[Realm]].[[GlobalObject]].
-            </emu-alg>
-        </emu-clause>
+          Realm.prototype.intrinsics is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
 
-        <emu-clause id="sec-realm.prototype.thisValue">
-            <h1>get Realm.prototype.thisValue</h1>
+          <emu-alg>
+          1. Let _O_ be *this* value.
+          1. If Type(_O_) is not Object, throw a *TypeError* exception.
+          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+          1. Let _realmRec_ be _O_.[[Realm]].
+          1. Let _intrinsics_ be ObjectCreate(%ObjectPrototype%).
+          1. For each intrinsic name listed in <emu-xref href="#table-7"></emu-xref>, do:
+            1. Let _intrinsicName_ be the String value in column one of the table.
+            1. Let _name_ be the String value of _intrinsicName_ without the *%* symbols.
+            1. Let _value_ be the value of the field name _intrisicName_ from record _realmRec_.[[Intrinsics]].
+            1. Perform ? DefinePropertyOrThrow(_intrinsics_, _name_, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
+          1. Return _intrinsics_.
+          </emu-alg>
+      </emu-clause>
 
-            Realm.prototype.thisValue is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
+      <emu-clause id="sec-realm.prototype-@@tostringtag">
+          <h1>Realm.prototype [ @@toStringTag ]</h1>
 
-            <emu-alg>
-            1. Let _O_ be *this* value.
-            1. If Type(_O_) is not Object, throw a *TypeError* exception.
-            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Let _envRec_ be _O_.[[Realm]].[[GlobalEnv]].
-            1. Return _envRec_.[[GlobalThisValue]].
-            </emu-alg>
-        </emu-clause>
+          The initial value of the @@toStringTag property is the String value "Realm".
 
-        <emu-clause id="sec-realm.prototype.stdlib">
-            <h1>get Realm.prototype.stdlib</h1>
+          This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.
+      </emu-clause>
+  </emu-clause>
 
-            Realm.prototype.stdlib is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
+  <emu-clause id="sec-properties-of-realm-instances">
+      <h1>Properties of Realm Instances</h1>
 
-            <emu-alg>
-            1. Let _O_ be *this* value.
-            1. If Type(_O_) is not Object, throw a *TypeError* exception.
-            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Let _realmRec_ be _O_.[[Realm]].
-            1. Let global be realmRec.[[GlobalObject]].
-            1. Let _stdlib_ be ObjectCreate(%ObjectPrototype%).
-            1. For each property of the Global Object specified in clause <emu-xref href="#sec-global-object"></emu-xref> that correspond to an intrinsic object, do:
-              1. Let _name_ be the String value of the property name.
-              1. Let _value_ be the corresponding value of the intrinsic object from record _realmRec_.[[Intrinsics]].
-              1. Let _descObj_ be ObjectCreate(%ObjectPrototype%).
-              1. Perform ? DefinePropertyOrThrow(_descObj_, *"value"*, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
-              1. Perform ? DefinePropertyOrThrow(_stdlib_, _name_, PropertyDescriptor{[[Value]]: _descObj_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
-            1. Return _stdlib_.
-            </emu-alg>
-        </emu-clause>
+      Realm instances are ordinary objects that inherit properties from the Realm prototype object (the intrinsic, %RealmPrototype%). Realm instances are initially created with the internal slots described in <emu-xref href="#table-3"></emu-xref>.
 
-        <emu-clause id="sec-realm.prototype.intrinsics">
-            <h1>get Realm.prototype.intrinsics</h1>
+      <emu-table id="table-3" caption="Internal Slots of Realm Instances">
+          <table>
+              <tbody>
+                  <tr>
+                      <th>Internal Slot</th>
+                      <th>Type</th>
+                      <th>Description</th>
+                  </tr>
+                  <tr>
+                      <td>[[Realm]]</td>
+                      <td>Realm Record</td>
+                      <td>The Realm Record for the initial execution context.</td>
+                  </tr>
+              </tbody>
+          </table>
+      </emu-table>
 
-            Realm.prototype.intrinsics is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
-
-            <emu-alg>
-            1. Let _O_ be *this* value.
-            1. If Type(_O_) is not Object, throw a *TypeError* exception.
-            1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-            1. Let _realmRec_ be _O_.[[Realm]].
-            1. Let _intrinsics_ be ObjectCreate(%ObjectPrototype%).
-            1. For each intrinsic name listed in <emu-xref href="#table-7"></emu-xref>, do:
-              1. Let _intrinsicName_ be the String value in column one of the table.
-              1. Let _name_ be the String value of _intrinsicName_ without the *%* symbols.
-              1. Let _value_ be the value of the field name _intrisicName_ from record _realmRec_.[[Intrinsics]].
-              1. Perform ? DefinePropertyOrThrow(_intrinsics_, _name_, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
-            1. Return _intrinsics_.
-            </emu-alg>
-        </emu-clause>
-
-        <emu-clause id="sec-realm.prototype-@@tostringtag">
-            <h1>Realm.prototype [ @@toStringTag ]</h1>
-
-            The initial value of the @@toStringTag property is the String value "Realm".
-
-            This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.
-        </emu-clause>
-    </emu-clause>
-
-    <emu-clause id="sec-properties-of-realm-instances">
-        <h1>Properties of Realm Instances</h1>
-
-        Realm instances are ordinary objects that inherit properties from the Realm prototype object (the intrinsic, %RealmPrototype%). Realm instances are initially created with the internal slots described in <emu-xref href="#table-3"></emu-xref>.
-
-        <emu-table id="table-3" caption="Internal Slots of Realm Instances">
-            <table>
-                <tbody>
-                    <tr>
-                        <th>Internal Slot</th>
-                        <th>Type</th>
-                        <th>Description</th>
-                    </tr>
-                    <tr>
-                        <td>[[Realm]]</td>
-                        <td>Realm Record</td>
-                        <td>The Realm Record for the initial execution context.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </emu-table>
-
-    </emu-clause>
+  </emu-clause>
 
 </emu-clause>
