@@ -225,8 +225,8 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
   <emu-alg>
     1. Assert: If _direct_ is *false*, then _strictCaller_ is also *false*.
     1. <ins>If _direct_ is *true*, then</ins>
-      1. <ins>Let _xValue_ be ? InvokeDirectEvalHook(_x_, _evalRealm_).</ins>
-    1. If Type(_xValue_) is not String, return _xValue_.
+      1. <ins>Let _x_ be ? InvokeDirectEvalHook(_x_, _evalRealm_).</ins>
+    1. If Type(_x_) is not String, return _x_.
     1. ...
   </emu-alg>
 </emu-clause>
@@ -345,23 +345,23 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
             1. Let _importHook_ be ? Get(_opts_, "importHook").
             1. If _importHook_ is equal `"inherit"`, then
               1. Set _importHook_ to _parentRealm_.[[ImportHook]].
-            1. Else if IsCallable(_importHook_) is *false*, throw a TypeError exception.
+            1. Else if _importHook_ is not *undefined* and IsCallable(_importHook_) is *false*, throw a TypeError exception.
             1. Let _importMetaHook_ be ? Get(_opts_, "importMetaHook").
             1. If _importMetaHook_ is equal `"inherit"`, then
               1. Set _importMetaHook_ to _parentRealm_.[[ImportMetaHook]].
-            1. Else if IsCallable(_importMetaHook_) is *false*, throw a TypeError exception.
+            1. Else if _importMetaHook_ is not *undefined* and IsCallable(_importMetaHook_) is *false*, throw a TypeError exception.
             1. Let _evalHook_ be ? Get(_opts_, "evalHook").
             1. If _evalHook_ is equal `"inherit"`, then
               1. Set _evalHook_ to _parentRealm_.[[EvalHook]].
-            1. Else if IsCallable(_evalHook_) is *false*, throw a TypeError exception.
+            1. Else if _evalHook_ is not *undefined* and IsCallable(_evalHook_) is *false*, throw a TypeError exception.
             1. Let _isDirectEvalHook_ be ? Get(_opts_, "isDirectEvalHook").
             1. If _isDirectEvalHook_ is equal `"inherit"`, then
               1. Set _isDirectEvalHook_ to _parentRealm_.[[IsDirectEvalHook]].
-            1. Else if IsCallable(_isDirectEvalHook_) is *false*, throw a TypeError exception.
+            1. Else if _isDirectEvalHook_ is not *undefined* and IsCallable(_isDirectEvalHook_) is *false*, throw a TypeError exception.
             1. Let _intrinsics_ be ? Get(_opts_, "intrinsics").
             1. If _intrinsics_ is equal `"inherit"`, then
               1. Set _intrinsics_ to _parentRealm_.[[Intrinsics]].
-            1. Else if _intrinsics_ is not *undefined*, , throw a TypeError exception.
+            1. Else if _intrinsics_ is not *undefined*, throw a TypeError exception.
             1. Let _thisValue_ be ? Get(_opts_, "thisValue").
             1. If _thisValue_ is not *undefined* and Type(_thisValue_) is not Object, throw a TypeError exception.
           1. Let _realmRec_ be CreateRealmRec(_intrinsics_).
