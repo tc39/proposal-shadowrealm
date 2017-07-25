@@ -4,7 +4,7 @@ const getProto = Object.getPrototypeOf;
 const iteratorSymbol = (typeof Symbol && Symbol.iterator) || "@@iterator";
 
 export function getIntrinsics(sandbox) {
-    const { confinedWindow: _, globalObject } = sandbox;
+    const { confinedWindow: _ } = sandbox;
     const anonymousArrayIteratorPrototype = getProto(_.Array(0)[iteratorSymbol]());
     const anonymousStringIteratorPrototype = getProto(_.String()[iteratorSymbol]());
     const anonymousIteratorPrototype = getProto(anonymousArrayIteratorPrototype);
@@ -202,7 +202,6 @@ export function getIntrinsics(sandbox) {
         // TODO: other special cases
 
         // ESNext
-        global: globalObject,
-        Realm,
+        Realm, // intentionally passing around the Realm Constructor, which could be used as a side channel, but still!
     };
 }

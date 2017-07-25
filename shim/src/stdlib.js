@@ -51,9 +51,5 @@ export function getStdLib(sandbox) {
         
         // TODO: Annex B
         // TODO: other special cases
-
-        // ESNext
-        global: { value: intrinsics.global },
-        Realm: { value: intrinsics.Realm },
     };
 }

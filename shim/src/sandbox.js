@@ -1,3 +1,7 @@
+import { sanitize } from "./sanitize.js";
+import { getEvaluators } from "./evaluators.js";
+import { proxyHandler } from "./proxy.js";
+
 function createIframe() {
     const el = document.createElement("iframe");
     el.style.display = "none";
@@ -8,17 +12,24 @@ function createIframe() {
     return el;
 }
 
-export function createSandbox(customGlobalObj, customThisValue) {
+export function createSandbox() {
     const iframe = createIframe();
     const { contentDocument: iframeDocument, contentWindow: confinedWindow } = iframe;
-    const globalObject = customGlobalObj || confinedWindow.Object.create(null);
-    const thisValue = customThisValue || globalObject;
-    return {
+    const sandbox = {
         iframe,
         iframeDocument,
         confinedWindow,
-        thisValue,
-        globalObject,
+        thisValue: undefined,
+        globalObject: undefined,
         globalProxy: undefined,
     };
+    sanitize(sandbox);
+    Object.assign(sandbox, getEvaluators(sandbox));
+    sandbox.globalProxy = new Proxy(sandbox, proxyHandler);
+    return sandbox;
+}
+
+export function setSandboxGlobalObject(sandbox, globalObject, thisValue) {
+    sandbox.thisValue = thisValue;
+    sandbox.globalObject = globalObject;
 }
