@@ -1,4 +1,4 @@
-import { getIntrinsics } from "./intrinsics.js";
+import { getIntrinsics } from "./intrinsics";
 
 export function getStdLib(sandbox) {
     const intrinsics = getIntrinsics(sandbox);
@@ -48,7 +48,7 @@ export function getStdLib(sandbox) {
         URIError: { value: intrinsics.URIError },
         WeakMap: { value: intrinsics.WeakMap },
         WeakSet: { value: intrinsics.WeakSet },
-        
+
         // TODO: Annex B
         // TODO: other special cases
 

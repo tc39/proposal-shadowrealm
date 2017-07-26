@@ -1,4 +1,4 @@
-import { evaluate } from "./evaluate.js";
+import { evaluate } from "./evaluate";
 
 function getEvalEvaluator(sandbox) {
     const o = {

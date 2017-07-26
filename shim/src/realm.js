@@ -1,10 +1,10 @@
-import { createSandbox } from "./sandbox.js";
-import { sanitize } from "./sanitize.js";
-import { evaluate } from "./evaluate.js";
-import { getEvaluators } from "./evaluators.js";
-import { getStdLib } from "./stdlib.js";
-import { getIntrinsics } from "./intrinsics.js";
-import { proxyHandler } from "./proxy.js";
+import { createSandbox } from "./sandbox";
+import { sanitize } from "./sanitize";
+import { evaluate } from "./evaluate";
+import { getEvaluators } from "./evaluators";
+import { getStdLib } from "./stdlib";
+import { getIntrinsics } from "./intrinsics";
+import { proxyHandler } from "./proxy";
 
 const RealmToSandbox = new WeakMap();
 
