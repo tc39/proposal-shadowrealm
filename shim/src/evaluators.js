@@ -1,4 +1,5 @@
 import { evaluate } from "./evaluate";
+import { setPrototypeOf } from "./commons";
 
 function getEvalEvaluator(sandbox) {
     const o = {
@@ -8,7 +9,7 @@ function getEvalEvaluator(sandbox) {
             return evaluate(sourceText, sandbox);
         }
     };
-    Object.setPrototypeOf(o.eval, sandbox.Function);
+    setPrototypeOf(o.eval, sandbox.Function);
     o.eval.toString = () => 'function eval() { [shim code] }';
     return o.eval;
 }
@@ -22,7 +23,7 @@ function getFunctionEvaluator(sandbox) {
         return evaluate(`(function anonymous(${fnArgs}){\n${sourceText}\n}).bind(this)`, sandbox);
     }
     f.prototype = confinedWindow.Function.prototype;
-    Object.setPrototypeOf(f, f.prototype);
+    setPrototypeOf(f, f.prototype);
     f.prototype.constructor = f;
     f.toString = () => 'function Function() { [shim code] }';
     return f;

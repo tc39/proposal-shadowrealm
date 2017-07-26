@@ -3,6 +3,7 @@ import { evaluate } from "./evaluate";
 import { getStdLib } from "./stdlib";
 import { getIntrinsics } from "./intrinsics";
 import { assert, IsCallable } from "./utils";
+import { defineProperties, create } from "./commons";
 
 const RealmRecord = Symbol('Realm Slot');
 const Intrinsics = Symbol('Intrinsics Slot');
@@ -50,7 +51,7 @@ function NewGlobalEnvironment(G, thisValue) {
 function SetRealmGlobalObject(realmRec, globalObj, thisValue) {
     if (globalObj === undefined) {
         const intrinsics = realmRec[Intrinsics];
-        globalObj = Object.create(intrinsics['ObjectPrototype']);
+        globalObj = create(intrinsics['ObjectPrototype']);
     }
     assert(typeof globalObj === 'object');
     if (thisValue === undefined) thisValue = globalObj;
@@ -66,7 +67,7 @@ function SetDefaultGlobalBindings(realmRec) {
     // For each property of the Global Object specified in clause <emu-xref href="#sec-global-object"></emu-xref>, do
     // ---> diverging:
     const GlobalObjectDescriptors = getStdLib(realmRec[ShimSandbox]);
-    Object.defineProperties(global, GlobalObjectDescriptors);
+    defineProperties(global, GlobalObjectDescriptors);
     return global;
 }
 
