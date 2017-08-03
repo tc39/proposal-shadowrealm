@@ -1,6 +1,7 @@
 import { sanitize } from "./sanitize";
 import { getEvaluators } from "./evaluators";
 import { proxyHandler } from "./proxy";
+import { assign } from "./commons";
 
 function createIframe() {
     const el = document.createElement("iframe");
@@ -24,7 +25,7 @@ export function createSandbox() {
         globalProxy: undefined,
     };
     sanitize(sandbox);
-    Object.assign(sandbox, getEvaluators(sandbox));
+    assign(sandbox, getEvaluators(sandbox));
     sandbox.globalProxy = new Proxy(sandbox, proxyHandler);
     return sandbox;
 }

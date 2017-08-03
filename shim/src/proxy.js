@@ -1,3 +1,5 @@
+import { defineProperty, deleteProperty, getOwnPropertyDescriptor, getOwnPropertyNames } from './commons';
+
 // this flag allow us to determine if the eval() call is a controlled eval done by the realm's code
 // or if it is user-land invocation, so we can react differently.
 let isInternalEvaluation = false;
@@ -23,11 +25,11 @@ export const proxyHandler = {
         return true;
     },
     defineProperty(sandbox, propName, descriptor) {
-        Object.defineProperty(sandbox.globalObject, propName, descriptor);
+        defineProperty(sandbox.globalObject, propName, descriptor);
         return true;
     },
     deleteProperty(sandbox, propName) {
-        return Reflect.deleteProperty(sandbox.globalObject, propName);
+        return deleteProperty(sandbox.globalObject, propName);
     },
     has(sandbox, propName) {
         if (propName === 'eval' && isInternalEvaluation) {
@@ -41,10 +43,10 @@ export const proxyHandler = {
         return false;
     },
     ownKeys(sandbox) {
-        return Object.getOwnPropertyNames(sandbox.globalObject);
+        return getOwnPropertyNames(sandbox.globalObject);
     },
     getOwnPropertyDescriptor(sandbox, propName) {
-        return Object.getOwnPropertyDescriptor(sandbox.globalObject, propName);
+        return getOwnPropertyDescriptor(sandbox.globalObject, propName);
     },
     isExtensible(sandbox) {
         // TODO: can it becomes non-extensible?

@@ -1,17 +1,17 @@
 import Realm from "./realm";
+import { getPrototypeOf } from "./commons";
 
-const getProto = Object.getPrototypeOf;
 const iteratorSymbol = (typeof Symbol && Symbol.iterator) || "@@iterator";
 
 export function getIntrinsics(sandbox) {
     const { confinedWindow: _ } = sandbox;
-    const anonymousArrayIteratorPrototype = getProto(_.Array(0)[iteratorSymbol]());
-    const anonymousStringIteratorPrototype = getProto(_.String()[iteratorSymbol]());
-    const anonymousIteratorPrototype = getProto(anonymousArrayIteratorPrototype);
+    const anonymousArrayIteratorPrototype = getPrototypeOf(_.Array(0)[iteratorSymbol]());
+    const anonymousStringIteratorPrototype = getPrototypeOf(_.String()[iteratorSymbol]());
+    const anonymousIteratorPrototype = getPrototypeOf(anonymousArrayIteratorPrototype);
 
     const strictArgumentsGenerator = _.eval('(function*(){"use strict";yield arguments;})');
-    const anonymousGenerator = getProto(strictArgumentsGenerator);
-    const anonymousGeneratorPrototype = getProto(anonymousGenerator);
+    const anonymousGenerator = getPrototypeOf(strictArgumentsGenerator);
+    const anonymousGeneratorPrototype = getPrototypeOf(anonymousGenerator);
     const anonymousGeneratorFunction = anonymousGeneratorPrototype.constructor;
 
     return {
