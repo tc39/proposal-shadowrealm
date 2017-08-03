@@ -4,33 +4,6 @@
 	(global.RealmShim = factory());
 }(this, (function () { 'use strict';
 
-function createIframe() {
-    var el = document.createElement("iframe");
-    el.style.display = "none";
-    // accessibility
-    el.title = "script";
-    el.setAttribute('aria-hidden', true);
-    document.body.appendChild(el);
-    return el;
-}
-
-function createSandbox(customGlobalObj, customThisValue) {
-    var iframe = createIframe();
-    var iframeDocument = iframe.contentDocument,
-        confinedWindow = iframe.contentWindow;
-
-    var globalObject = customGlobalObj || confinedWindow.Object.create(null);
-    var thisValue = customThisValue || globalObject;
-    return {
-        iframe: iframe,
-        iframeDocument: iframeDocument,
-        confinedWindow: confinedWindow,
-        thisValue: thisValue,
-        globalObject: globalObject,
-        globalProxy: undefined
-    };
-}
-
 // locking down the environment
 function sanitize(sandbox) {
     var o = sandbox.confinedWindow.Object;
@@ -232,14 +205,47 @@ function getEvaluators(sandbox) {
     sandbox.eval = getEvalEvaluator(sandbox);
 }
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+function createIframe() {
+    var el = document.createElement("iframe");
+    el.style.display = "none";
+    // accessibility
+    el.title = "script";
+    el.setAttribute('aria-hidden', true);
+    document.body.appendChild(el);
+    return el;
+}
+
+function createSandbox() {
+    var iframe = createIframe();
+    var iframeDocument = iframe.contentDocument,
+        confinedWindow = iframe.contentWindow;
+
+    var sandbox = {
+        iframe: iframe,
+        iframeDocument: iframeDocument,
+        confinedWindow: confinedWindow,
+        thisValue: undefined,
+        globalObject: undefined,
+        globalProxy: undefined
+    };
+    sanitize(sandbox);
+    Object.assign(sandbox, getEvaluators(sandbox));
+    sandbox.globalProxy = new Proxy(sandbox, proxyHandler);
+    return sandbox;
+}
+
+function setSandboxGlobalObject(sandbox, globalObject, thisValue) {
+    sandbox.thisValue = thisValue;
+    sandbox.globalObject = globalObject;
+}
+
+var _typeof$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var getProto = Object.getPrototypeOf;
-var iteratorSymbol = (typeof Symbol === "undefined" ? "undefined" : _typeof(Symbol)) && Symbol.iterator || "@@iterator";
+var iteratorSymbol = (typeof Symbol === "undefined" ? "undefined" : _typeof$1(Symbol)) && Symbol.iterator || "@@iterator";
 
 function getIntrinsics(sandbox) {
-    var _ = sandbox.confinedWindow,
-        globalObject = sandbox.globalObject;
+    var _ = sandbox.confinedWindow;
 
     var anonymousArrayIteratorPrototype = getProto(_.Array(0)[iteratorSymbol]());
     var anonymousStringIteratorPrototype = getProto(_.String()[iteratorSymbol]());
@@ -438,8 +444,7 @@ function getIntrinsics(sandbox) {
         // TODO: other special cases
 
         // ESNext
-        global: globalObject,
-        Realm: Realm
+        Realm: Realm // intentionally passing around the Realm Constructor, which could be used as a side channel, but still!
     };
 }
 
@@ -490,83 +495,247 @@ function getStdLib(sandbox) {
         Uint32Array: { value: intrinsics.Uint32Array },
         URIError: { value: intrinsics.URIError },
         WeakMap: { value: intrinsics.WeakMap },
-        WeakSet: { value: intrinsics.WeakSet },
+        WeakSet: { value: intrinsics.WeakSet }
 
         // TODO: Annex B
         // TODO: other special cases
-
-        // ESNext
-        global: { value: intrinsics.global },
-        Realm: { value: intrinsics.Realm }
     };
+}
+
+function assert(condition) {
+    if (!condition) {
+        throw new Error();
+    }
+}
+
+function IsCallable(obj) {
+    return typeof obj === 'function';
 }
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var RealmToSandbox = new WeakMap();
+var RealmRecord = Symbol('Realm Slot');
+var Intrinsics = Symbol('Intrinsics Slot');
+var GlobalObject = Symbol('GlobalObject Slot');
+var GlobalThisValue = Symbol('GlobalThisValue Slot');
+var GlobalEnv = Symbol('GlobalEnv Slot');
+var EvalHook = Symbol('EvalHook Slot');
+var IsDirectEvalHook = Symbol('IsDirectEvalHook Slot');
+var ImportHook = Symbol('ImportHook Slot');
+var ImportMetaHook = Symbol('ImportMetaHook Slot');
+var ShimSandbox = Symbol('Sandbox');
 
-function getSandbox(realm) {
-    var sandbox = RealmToSandbox.get(realm);
-    if (!sandbox) {
-        throw new Error("Invalid realm object.");
-    }
+// shim specific
+function getSandbox(realmRec) {
+    var sandbox = realmRec[ShimSandbox];
+    assert((typeof sandbox === "undefined" ? "undefined" : _typeof(sandbox)) === 'object');
     return sandbox;
 }
 
-var Realm = function () {
-    function Realm() {
-        var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+function getCurrentRealmRecord() {
+    var realmRec = window[RealmRecord];
+    if (!realmRec) {
+        // this is an outer realm, and we should set up the RealmRecord
+        window[RealmRecord] = {
+            // TODO: mimic what the global realm record should have
+            // including default hooks, etc.
+        };
+    }
+    return realmRec;
+}
 
+// <!-- es6num="8.1.2.5" -->
+function NewGlobalEnvironment(G, thisValue) {
+    // diverging from spec to accomodate the iframe as the lexical environment
+    // using a class for better debugability
+    var EnvironmentRecord = function EnvironmentRecord() /*globalObject*/{
+        _classCallCheck(this, EnvironmentRecord);
+
+        this[GlobalThisValue] = thisValue;
+    };
+
+    return new EnvironmentRecord(G);
+}
+
+// <!-- es6num="8.2.3" -->
+function SetRealmGlobalObject(realmRec, globalObj, thisValue) {
+    if (globalObj === undefined) {
+        var intrinsics = realmRec[Intrinsics];
+        globalObj = Object.create(intrinsics['ObjectPrototype']);
+    }
+    assert((typeof globalObj === "undefined" ? "undefined" : _typeof(globalObj)) === 'object');
+    if (thisValue === undefined) thisValue = globalObj;
+    realmRec[GlobalObject] = globalObj;
+    var newGlobalEnv = NewGlobalEnvironment(globalObj, thisValue);
+    realmRec[GlobalEnv] = newGlobalEnv;
+    return realmRec;
+}
+
+// <!-- es6num="8.2.4" -->
+function SetDefaultGlobalBindings(realmRec) {
+    var global = realmRec[GlobalObject];
+    // For each property of the Global Object specified in clause <emu-xref href="#sec-global-object"></emu-xref>, do
+    // ---> diverging:
+    var GlobalObjectDescriptors = getStdLib(realmRec[ShimSandbox]);
+    Object.defineProperties(global, GlobalObjectDescriptors);
+    return global;
+}
+
+// <!-- es6num="8.2.2" -->
+function CreateIntrinsics(realmRec) {
+    // ---> diverging
+    var intrinsics = getIntrinsics(realmRec[ShimSandbox]);
+    realmRec[Intrinsics] = intrinsics;
+    return intrinsics;
+}
+
+function CreateRealmRec(intrinsics) {
+    var _realmRec;
+
+    var realmRec = (_realmRec = {}, _defineProperty(_realmRec, Intrinsics, {}), _defineProperty(_realmRec, GlobalObject, undefined), _defineProperty(_realmRec, GlobalEnv, undefined), _defineProperty(_realmRec, EvalHook, undefined), _defineProperty(_realmRec, IsDirectEvalHook, undefined), _defineProperty(_realmRec, ImportHook, undefined), _defineProperty(_realmRec, ImportMetaHook, undefined), _defineProperty(_realmRec, ShimSandbox, createSandbox()), _realmRec);
+    if (intrinsics === undefined) {
+        CreateIntrinsics(realmRec);
+    } else {
+        // 1. Assert: In this case, _intrinsics_ must be a Record with field names listed in column one of Table 7.
+        realmRec[Intrinsics] = intrinsics;
+    }
+    return realmRec;
+}
+
+function InvokeDirectEvalHook(realmRec, x) {
+    // 1. Assert: realm is a Realm Record.
+    var fn = realmRec[EvalHook];
+    if (fn === undefined) return x;
+    assert(IsCallable(fn) === true);
+    return fn.call(undefined, x);
+}
+
+// <!-- es6num="18.2.1.1" -->
+function PerformEval(x, evalRealm, strictCaller, direct) {
+    assert(direct === false ? strictCaller === false : true);
+    // realm spec segment begins
+    if (direct === true) {
+        x = InvokeDirectEvalHook(x, evalRealm);
+    }
+    // realm spec segment ends
+    if (typeof x !== 'string') return x;
+    // ---> diverging
+    var sandbox = getSandbox(evalRealm);
+    return evaluate(x, sandbox);
+}
+
+var Realm = function () {
+    function Realm(options) {
         _classCallCheck(this, Realm);
 
-        var thisValue = options.thisValue,
-            globalObj = options.globalObj;
-
-        var sandbox = createSandbox(globalObj, thisValue);
-        sanitize(sandbox);
-        Object.assign(sandbox, getEvaluators(sandbox));
-        // TODO: assert that RealmToSandbox does not have `this` entry
-        RealmToSandbox.set(this, sandbox);
-        sandbox.globalProxy = new Proxy(sandbox, proxyHandler);
-        this.init();
+        var O = this;
+        var parentRealm = getCurrentRealmRecord();
+        var opts = Object(options);
+        var importHook = opts.importHook;
+        if (importHook === "inherit") {
+            importHook = parentRealm[ImportHook];
+        } else if (importHook !== undefined && IsCallable(importHook) === false) throw new TypeError();
+        var importMetaHook = opts.importMetaHook;
+        if (importMetaHook === "inherit") {
+            importMetaHook = parentRealm[ImportMetaHook];
+        } else if (importMetaHook !== undefined && IsCallable(importMetaHook) === false) throw new TypeError();
+        var evalHook = opts.evalHook;
+        if (evalHook === "inherit") {
+            evalHook = parentRealm[EvalHook];
+        } else if (evalHook !== undefined && IsCallable(evalHook) === false) throw new TypeError();
+        var isDirectEvalHook = opts.isDirectEvalHook;
+        if (isDirectEvalHook === "inherit") {
+            isDirectEvalHook = parentRealm[IsDirectEvalHook];
+        } else if (isDirectEvalHook !== undefined && IsCallable(isDirectEvalHook) === false) throw new TypeError();
+        var intrinsics = opts.intrinsics;
+        if (intrinsics === "inherit") {
+            intrinsics = parentRealm[Intrinsics];
+        } else if (intrinsics !== undefined) throw new TypeError();
+        var thisValue = opts.thisValue;
+        if (thisValue !== undefined && (typeof thisValue === "undefined" ? "undefined" : _typeof(thisValue)) !== "object") throw new TypeError();
+        var realmRec = CreateRealmRec(intrinsics);
+        O[RealmRecord] = realmRec;
+        SetRealmGlobalObject(realmRec, undefined, thisValue);
+        if (importHook === undefined) {
+            // new built-in function object as defined in <emu-xref href="#sec-realm-default-import-hook-functions"></emu-xref>
+            importHook = function importHook() /*referrer, specifier*/{
+                throw new TypeError();
+            };
+        }
+        realmRec[ImportHook] = importHook;
+        if (evalHook !== undefined) {
+            realmRec[EvalHook] = evalHook;
+        }
+        if (isDirectEvalHook !== undefined) {
+            realmRec[IsDirectEvalHook] = isDirectEvalHook;
+        }
+        var init = O.init;
+        if (!IsCallable(init)) throw new TypeError();
+        init.call(O);
+        // ---> diverging
+        setSandboxGlobalObject(realmRec[ShimSandbox], realmRec[GlobalObject], realmRec[GlobalEnv][GlobalThisValue]);
     }
 
     _createClass(Realm, [{
         key: "init",
         value: function init() {
-            Object.defineProperties(this.global, this.stdlib);
+            var O = this;
+            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+            if (!(RealmRecord in O)) throw new TypeError();
+            SetDefaultGlobalBindings(O[RealmRecord]);
         }
     }, {
         key: "eval",
-        value: function _eval(sourceText) {
-            var sandbox = getSandbox(this);
-            return evaluate(sourceText, sandbox);
+        value: function _eval(x) {
+            var O = this;
+            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+            if (!(RealmRecord in O)) throw new TypeError();
+            var evalRealm = O[RealmRecord];
+            // HostEnsureCanCompileStrings(the current Realm Record, _evalRealm_).
+            return PerformEval(x, evalRealm, false, false);
         }
     }, {
         key: "stdlib",
         get: function get() {
-            var sandbox = getSandbox(this);
+            var O = this;
+            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+            if (!(RealmRecord in O)) throw new TypeError();
+            // TODO: align with spec
+            var sandbox = getSandbox(O[RealmRecord]);
             return getStdLib(sandbox);
         }
     }, {
         key: "intrinsics",
         get: function get() {
-            var sandbox = getSandbox(this);
-            return getIntrinsics(sandbox);
+            var O = this;
+            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+            if (!(RealmRecord in O)) throw new TypeError();
+            // TODO: align with spec
+            var sandbox = getSandbox(O[RealmRecord]);
+            return getIntrinsics(sandbox.confinedWindow);
         }
     }, {
         key: "global",
         get: function get() {
-            var sandbox = getSandbox(this);
-            return sandbox.globalObject;
+            var O = this;
+            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+            if (!(RealmRecord in O)) throw new TypeError();
+            return O[RealmRecord][GlobalObject];
         }
     }, {
         key: "thisValue",
         get: function get() {
-            var sandbox = getSandbox(this);
-            return sandbox.thisValue;
+            var O = this;
+            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+            if (!(RealmRecord in O)) throw new TypeError();
+            var envRec = O[RealmRecord][GlobalEnv];
+            return envRec[GlobalThisValue];
         }
     }]);
 
