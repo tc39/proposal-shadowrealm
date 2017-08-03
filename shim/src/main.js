@@ -1,1 +1,1 @@
-export { default } from "./realm.js";
+export { default } from "./realm";

@@ -291,7 +291,7 @@ function getIntrinsics(sandbox) {
         "eval": sandbox.eval,
         // %EvalError%
         "EvalError": _.EvalError,
-        // %EvalErrorPrototype% 
+        // %EvalErrorPrototype%
         "EvalErrorPrototype": _.EvalError.prototype,
         // %Float32Array%
         "Float32Array": _.Float32Array,
