@@ -4,6 +4,6 @@ export function assert(condition) {
     }
 }
 
-function IsCallable(obj) {
+export function IsCallable(obj) {
     return typeof obj === 'function';
 }
