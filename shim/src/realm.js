@@ -36,7 +36,7 @@ function getCurrentRealmRecord() {
 
 // <!-- es6num="8.1.2.5" -->
 function NewGlobalEnvironment(G, thisValue) {
-    // divering from spec to accomodate the iframe as the lexical environment
+    // diverging from spec to accomodate the iframe as the lexical environment
     // using a class for better debugability
     class EnvironmentRecord {
         constructor(/*globalObject*/) {
@@ -72,7 +72,7 @@ function SetDefaultGlobalBindings(realmRec) {
 
 // <!-- es6num="8.2.2" -->
 function CreateIntrinsics(realmRec) {
-    // ---> divering
+    // ---> diverging
     let intrinsics = getIntrinsics(realmRec[ShimSandbox]);
     realmRec[Intrinsics] = intrinsics;
     return intrinsics;
@@ -89,7 +89,7 @@ function CreateRealmRec(intrinsics) {
         [IsDirectEvalHook]: undefined,
         [ImportHook]: undefined,
         [ImportMetaHook]: undefined,
-        // ---> divering to create the internal shim iframe
+        // ---> diverging to create the internal shim iframe
         [ShimSandbox]: createSandbox(),
     };
     if (intrinsics === undefined) {
@@ -118,7 +118,7 @@ function PerformEval(x, evalRealm, strictCaller, direct) {
     }
     // realm spec segment ends
     if (typeof x !== 'string') return x;
-    // ---> divering
+    // ---> diverging
     const sandbox = getSandbox(evalRealm);
     return evaluate(x, sandbox);
 }
@@ -170,7 +170,7 @@ export default class Realm {
         let init = O.init;
         if (!IsCallable(init)) throw new TypeError();
         init.call(O);
-        // ---> divering
+        // ---> diverging
         setSandboxGlobalObject(realmRec[ShimSandbox], realmRec[GlobalObject], realmRec[GlobalEnv][GlobalThisValue]);
     }
 
