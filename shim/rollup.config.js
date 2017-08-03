@@ -14,7 +14,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 module.exports = {
     entry: path.resolve('shim/src/main.js'),
-    dest: path.resolve('shim/dist/realm-shim.js'),
+    dest: path.resolve(isProduction ? 'shim/dist/realm-shim.min.js' : 'shim/dist/realm-shim.js'),
     format: 'umd',
     moduleName: 'RealmShim',
     sourceMap: true,
@@ -23,5 +23,5 @@ module.exports = {
         isProduction && uglify({
             warnings: false,
         }),
-    ].filter(Boolean),
+    ],
 };

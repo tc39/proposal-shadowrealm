@@ -1,7 +1,7 @@
-import { createSandbox, setSandboxGlobalObject } from "./sandbox.js";
-import { evaluate } from "./evaluate.js";
-import { getStdLib } from "./stdlib.js";
-import { getIntrinsics } from "./intrinsics.js";
+import { createSandbox, setSandboxGlobalObject } from "./sandbox";
+import { evaluate } from "./evaluate";
+import { getStdLib } from "./stdlib";
+import { getIntrinsics } from "./intrinsics";
 import { assert, IsCallable } from "./utils";
 
 const RealmRecord = Symbol('Realm Slot');

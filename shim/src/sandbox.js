@@ -1,6 +1,6 @@
-import { sanitize } from "./sanitize.js";
-import { getEvaluators } from "./evaluators.js";
-import { proxyHandler } from "./proxy.js";
+import { sanitize } from "./sanitize";
+import { getEvaluators } from "./evaluators";
+import { proxyHandler } from "./proxy";
 
 function createIframe() {
     const el = document.createElement("iframe");

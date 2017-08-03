@@ -1,4 +1,4 @@
-import Realm from "./realm.js";
+import Realm from "./realm";
 
 const getProto = Object.getPrototypeOf;
 const iteratorSymbol = (typeof Symbol && Symbol.iterator) || "@@iterator";
@@ -55,7 +55,7 @@ export function getIntrinsics(sandbox) {
         "eval": sandbox.eval,
         // %EvalError%
         "EvalError": _.EvalError,
-        // %EvalErrorPrototype% 
+        // %EvalErrorPrototype%
         "EvalErrorPrototype": _.EvalError.prototype,
         // %Float32Array%
         "Float32Array": _.Float32Array,
@@ -197,7 +197,7 @@ export function getIntrinsics(sandbox) {
         "WeakSet": _.WeakSet,
         // %WeakSetPrototype%
         "WeakSetPrototype": _.WeakSet.prototype,
-        
+
         // TODO: Annex B
         // TODO: other special cases
 

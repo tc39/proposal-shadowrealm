@@ -1,7 +1,7 @@
 import {
     setInternalEvaluation,
     resetInternalEvaluation,
-} from "./proxy.js";
+} from "./proxy";
 
 const HookFnName = '$RealmEvaluatorIIFE$';
 
