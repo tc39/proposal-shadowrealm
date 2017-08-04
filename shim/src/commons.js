@@ -6,12 +6,12 @@ const {
   getPrototypeOf,
   setPrototypeOf,
   defineProperty,
-  defineProperties,
   deleteProperty,
   ownKeys
 } = Reflect;
 
 const {
+  defineProperties,
   getOwnPropertyDescriptor,
   getOwnPropertyDescriptors,
   getOwnPropertyNames,
