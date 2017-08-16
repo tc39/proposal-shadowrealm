@@ -9,27 +9,12 @@ function getEvalEvaluator(sandbox) {
             return evaluate(sourceText, sandbox);
         }
     };
-    setPrototypeOf(o.eval, sandbox.Function);
+    // TODO
+    // setPrototypeOf(o.eval, sandbox.Function);
     o.eval.toString = () => 'function eval() { [shim code] }';
     return o.eval;
 }
 
-function getFunctionEvaluator(sandbox) {
-    const { confinedWindow } = sandbox;
-    const f = function Function(...args) {
-        // console.log(`Shim-Evaluation: Function("${args.join('", "')}")`);
-        const sourceText = args.pop();
-        const fnArgs = args.join(', ');
-        return evaluate(`(function anonymous(${fnArgs}){\n${sourceText}\n}).bind(this)`, sandbox);
-    }
-    f.prototype = confinedWindow.Function.prototype;
-    setPrototypeOf(f, f.prototype);
-    f.prototype.constructor = f;
-    f.toString = () => 'function Function() { [shim code] }';
-    return f;
-}
-
 export function getEvaluators(sandbox) {
-    sandbox.Function = getFunctionEvaluator(sandbox);
     sandbox.eval = getEvalEvaluator(sandbox);
 }

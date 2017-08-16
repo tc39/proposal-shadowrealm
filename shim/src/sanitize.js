@@ -1,10 +1,11 @@
-import repairAccessors from "./repair/accessors";
+import repairObjectAccessors from "./repair/objectAccessors";
+import repairFunctionConstructors from "./repair/functionConstructors";
 
 // locking down the environment
 export function sanitize(sandbox) {
 
-    const { confinedWindow: { Object: { prototype: objProto } } } = sandbox;
+    const { confinedWindow } = sandbox;
 
-    repairAccessors(objProto);
-    // TODO: other steps
+    repairObjectAccessors(confinedWindow);
+    repairFunctionConstructors(confinedWindow);
 }
