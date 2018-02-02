@@ -8,9 +8,7 @@ import { getPrototypeOf, defineProperty, getOwnPropertyDescriptor } from '../com
 // we need to redefine them while in strict mode.
 // https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
 
-export default function repairObjectAccessors(confinedWindow) {
-
-    const { Object: { prototype: objProto } } = confinedWindow;
+export default function repairAccessors(objProto) {
 
     try {
 
