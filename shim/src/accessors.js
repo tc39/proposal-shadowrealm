@@ -2,13 +2,13 @@
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/startSES.js
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/repairES5.js
 
-import { getPrototypeOf, defineProperty, getOwnPropertyDescriptor } from '../commons';
+import { getPrototypeOf, defineProperty, getOwnPropertyDescriptor } from './commons';
 
 // Fix legacy accessors to comply with strict mode and ES2016 semantics,
 // we need to redefine them while in strict mode.
 // https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
 
-export default function repairAccessors(objProto) {
+export function repairAccessors(objProto) {
 
     try {
 

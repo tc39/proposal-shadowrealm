@@ -2,35 +2,23 @@
 // improves both consitency and minification. Unused declarations are dropped
 // by the tree shaking process.
 
-const {
-  getPrototypeOf,
-  setPrototypeOf,
-  defineProperty,
-  deleteProperty,
-  ownKeys
-} = Reflect;
-
-const {
-  defineProperties,
-  getOwnPropertyDescriptor,
-  getOwnPropertyDescriptors,
-  getOwnPropertyNames,
-  create,
+export const {
   assign,
-  freeze
+  create,
+  defineProperties,
+  freeze,
+  getOwnPropertyDescriptors,
+  getOwnPropertyNames
 } = Object;
 
-export {
-  getPrototypeOf,
-  setPrototypeOf,
+export const {
+  apply,
   defineProperty,
-  defineProperties,
   deleteProperty,
-  ownKeys,
   getOwnPropertyDescriptor,
-  getOwnPropertyDescriptors,
-  getOwnPropertyNames,
-  create,
-  assign,
-  freeze
-};
+  getPrototypeOf,
+  ownKeys,
+  setPrototypeOf
+} = Reflect;
+
+
