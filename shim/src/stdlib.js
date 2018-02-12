@@ -2,18 +2,35 @@ import { getIntrinsics } from "./intrinsics";
 
 export function getStdLib(sandbox) {
     const intrinsics = getIntrinsics(sandbox);
+
     return {
+        // *** 18.1 Value Properties of the Global Object
+
+        Infinity: { value: Infinity },
+        NaN: { value: NaN },
+        undefined: { value: undefined },
+
+        // *** 18.2 Function Properties of the Global Object
+
+        eval: { value: intrinsics.eval },
+        isFinite: { value: intrinsics.isFinite },
+        isNaN: { value: intrinsics.isNaN },
+        parseFloat: { value: intrinsics.parseFloat },
+        parseInt: { value: intrinsics.parseInt },
+
+        decodeURI: { value: intrinsics.decodeURI },
+        decodeURIComponent: { value: intrinsics.decodeURIComponent },
+        encodeURI: { value: intrinsics.encodeURI },
+        encodeURIComponent: { value: intrinsics.encodeURIComponent },
+
+        // *** 18.3 Constructor Properties of the Global Object
+
         Array: { value: intrinsics.Array },
         ArrayBuffer: { value: intrinsics.ArrayBuffer },
         Boolean: { value: intrinsics.Boolean },
         DataView: { value: intrinsics.DataView },
         Date: { value: intrinsics.Date },
-        decodeURI: { value: intrinsics.decodeURI },
-        decodeURIComponent: { value: intrinsics.decodeURIComponent },
-        encodeURI: { value: intrinsics.encodeURI },
-        encodeURIComponent: { value: intrinsics.encodeURIComponent },
         Error: { value: intrinsics.Error },
-        eval: { value: intrinsics.eval },
         EvalError: { value: intrinsics.EvalError },
         Float32Array: { value: intrinsics.Float32Array },
         Float64Array: { value: intrinsics.Float64Array },
@@ -21,22 +38,17 @@ export function getStdLib(sandbox) {
         Int8Array: { value: intrinsics.Int8Array },
         Int16Array: { value: intrinsics.Int16Array },
         Int32Array: { value: intrinsics.Int32Array },
-        isFinite: { value: intrinsics.isFinite },
-        isNaN: { value: intrinsics.isNaN },
-        JSON: { value: intrinsics.JSON },
         Map: { value: intrinsics.Map },
-        Math: { value: intrinsics.Math },
         Number: { value: intrinsics.Number },
         Object: { value: intrinsics.Object },
-        parseFloat: { value: intrinsics.parseFloat },
-        parseInt: { value: intrinsics.parseInt },
         Promise: { value: intrinsics.Promise },
         Proxy: { value: intrinsics.Proxy },
         RangeError: { value: intrinsics.RangeError },
         ReferenceError: { value: intrinsics.ReferenceError },
-        Reflect: { value: intrinsics.Reflect },
         RegExp: { value: intrinsics.RegExp },
         Set: { value: intrinsics.Set },
+        // Deprecated
+        // SharedArrayBuffer: intrinsics.SharedArrayBuffer,
         String: { value: intrinsics.String },
         Symbol: { value: intrinsics.Symbol },
         SyntaxError: { value: intrinsics.SyntaxError },
@@ -49,7 +61,16 @@ export function getStdLib(sandbox) {
         WeakMap: { value: intrinsics.WeakMap },
         WeakSet: { value: intrinsics.WeakSet },
 
-        // TODO: Annex B
-        // TODO: other special cases
+        // *** 18.4 Other Properties of the Global Object
+
+        Atomics: { value: intrinsics.Atomics },
+        JSON: { value: intrinsics.JSON },
+        Math: { value: intrinsics.Math },
+        Reflect: { value: intrinsics.Reflect },
+
+        // *** Annex B
+
+        escape: { value: intrinsics.escape },
+        unescape: { value: intrinsics.unescape }
     };
 }
