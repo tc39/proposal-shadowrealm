@@ -7,7 +7,7 @@ import { getPrototypeOf } from "./commons";
  * https://tc39.github.io/ecma262/#table-73
  */
 export function getIntrinsics(sandbox) {
-    const { unsafeGlobal } = sandbox;
+    const { confinedWindow: global } = sandbox;
 
     // Anonymous intrinsics.
 
