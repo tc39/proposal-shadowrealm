@@ -4,57 +4,85 @@
 	(global.RealmShim = factory());
 }(this, (function () { 'use strict';
 
-// locking down the environment
-function sanitize(sandbox) {
-    var o = sandbox.confinedWindow.Object;
+// Declare shorthand functions. Sharing these declarations accross modules
+// improves both consitency and minification. Unused declarations are dropped
+// by the tree shaking process.
+
+var assign = Object.assign;
+var create = Object.create;
+var defineProperties = Object.defineProperties;
+var getOwnPropertyNames = Object.getOwnPropertyNames;
+var defineProperty = Reflect.defineProperty;
+var deleteProperty = Reflect.deleteProperty;
+var getOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor;
+var getPrototypeOf = Reflect.getPrototypeOf;
+var setPrototypeOf = Reflect.setPrototypeOf;
+
+// Adapted from SES/Caja - Copyright (C) 2011 Google Inc.
+// https://github.com/google/caja/blob/master/src/com/google/caja/ses/startSES.js
+// https://github.com/google/caja/blob/master/src/com/google/caja/ses/repairES5.js
+
+// Fix legacy accessors to comply with strict mode and ES2016 semantics,
+// we need to redefine them while in strict mode.
+// https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
+
+function repairAccessors(objProto) {
 
     try {
-        // Fixing properties of Object to comply with strict mode
-        // and ES2016 semantics, we do this by redefining them while in 'use strict'
-        // https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
-        if (o === undefined) {
-            return;
-        }
-        o.defineProperty(o.prototype, '__defineGetter__', {
-            value: function value(key, fn) {
-                return o.defineProperty(this, key, {
-                    get: fn
+
+        defineProperty(objProto, '__defineGetter__', {
+            value: function value(prop, func) {
+                return defineProperty(this, prop, {
+                    get: func,
+                    enumerable: true,
+                    configurable: true
                 });
             }
         });
-        o.defineProperty(o.prototype, '__defineSetter__', {
-            value: function value(key, fn) {
-                return o.defineProperty(this, key, {
-                    set: fn
+
+        defineProperty(objProto, '__defineSetter__', {
+            value: function value(prop, func) {
+                return defineProperty(this, prop, {
+                    set: func,
+                    enumerable: true,
+                    configurable: true
                 });
             }
         });
-        o.defineProperty(o.prototype, '__lookupGetter__', {
-            value: function value(key) {
-                var d,
-                    p = this;
-                while (p && (d = o.getOwnPropertyDescriptor(p, key)) === undefined) {
-                    p = o.getPrototypeOf(this);
+
+        defineProperty(objProto, '__lookupGetter__', {
+            value: function value(prop) {
+                var base = this;
+                var desc = void 0;
+                while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
+                    base = getPrototypeOf(base);
                 }
-                return d ? d.get : undefined;
+                return desc && desc.get;
             }
         });
-        o.defineProperty(o.prototype, '__lookupSetter__', {
-            value: function value(key) {
-                var d,
-                    p = this;
-                while (p && (d = o.getOwnPropertyDescriptor(p, key)) === undefined) {
-                    p = o.getPrototypeOf(this);
+
+        defineProperty(objProto, '__lookupSetter__', {
+            value: function value(prop) {
+                var base = this;
+                var desc = void 0;
+                while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
+                    base = getPrototypeOf(base);
                 }
-                return d ? d.set : undefined;
+                return desc && desc.set;
             }
         });
-        // Immutable Prototype Exotic Objects
-        // https://github.com/tc39/ecma262/issues/272
-        o.seal(o.prototype);
     } catch (ignore) {
         // Ignored
     }
+}
+
+// locking down the environment
+function sanitize(sandbox) {
+    var objProto = sandbox.confinedWindow.Object.prototype;
+
+
+    repairAccessors(objProto);
+    // TODO: other steps
 }
 
 // this flag allow us to determine if the eval() call is a controlled eval done by the realm's code
@@ -81,12 +109,12 @@ var proxyHandler = {
         sandbox.globalObject[propName] = newValue;
         return true;
     },
-    defineProperty: function defineProperty(sandbox, propName, descriptor) {
-        Object.defineProperty(sandbox.globalObject, propName, descriptor);
+    defineProperty: function defineProperty$$1(sandbox, propName, descriptor) {
+        defineProperty(sandbox.globalObject, propName, descriptor);
         return true;
     },
-    deleteProperty: function deleteProperty(sandbox, propName) {
-        return Reflect.deleteProperty(sandbox.globalObject, propName);
+    deleteProperty: function deleteProperty$$1(sandbox, propName) {
+        return deleteProperty(sandbox.globalObject, propName);
     },
     has: function has(sandbox, propName) {
         if (propName === 'eval' && isInternalEvaluation) {
@@ -99,20 +127,20 @@ var proxyHandler = {
         }
         return false;
     },
-    ownKeys: function ownKeys(sandbox) {
-        return Object.getOwnPropertyNames(sandbox.globalObject);
+    ownKeys: function ownKeys$$1(sandbox) {
+        return getOwnPropertyNames(sandbox.globalObject);
     },
-    getOwnPropertyDescriptor: function getOwnPropertyDescriptor(sandbox, propName) {
-        return Object.getOwnPropertyDescriptor(sandbox.globalObject, propName);
+    getOwnPropertyDescriptor: function getOwnPropertyDescriptor$$1(sandbox, propName) {
+        return getOwnPropertyDescriptor(sandbox.globalObject, propName);
     },
     isExtensible: function isExtensible(sandbox) {
         // TODO: can it becomes non-extensible?
         return true;
     },
-    getPrototypeOf: function getPrototypeOf(sandbox) {
+    getPrototypeOf: function getPrototypeOf$$1(sandbox) {
         return null;
     },
-    setPrototypeOf: function setPrototypeOf(sandbox, prototype) {
+    setPrototypeOf: function setPrototypeOf$$1(sandbox, prototype) {
         return prototype === null ? true : false;
     }
 };
@@ -171,7 +199,7 @@ function getEvalEvaluator(sandbox) {
             return evaluate(sourceText, sandbox);
         }
     };
-    Object.setPrototypeOf(o.eval, sandbox.Function);
+    setPrototypeOf(o.eval, sandbox.Function);
     o.eval.toString = function () {
         return 'function eval() { [shim code] }';
     };
@@ -189,10 +217,10 @@ function getFunctionEvaluator(sandbox) {
         // console.log(`Shim-Evaluation: Function("${args.join('", "')}")`);
         var sourceText = args.pop();
         var fnArgs = args.join(', ');
-        return evaluate('(function anonymous(' + fnArgs + '){\n' + sourceText + '\n}).bind(this)', sandbox);
+        return evaluate("(function anonymous(" + fnArgs + "){\n" + sourceText + "\n}).bind(this)", sandbox);
     };
     f.prototype = confinedWindow.Function.prototype;
-    Object.setPrototypeOf(f, f.prototype);
+    setPrototypeOf(f, f.prototype);
     f.prototype.constructor = f;
     f.toString = function () {
         return 'function Function() { [shim code] }';
@@ -229,7 +257,7 @@ function createSandbox() {
         globalProxy: undefined
     };
     sanitize(sandbox);
-    Object.assign(sandbox, getEvaluators(sandbox));
+    assign(sandbox, getEvaluators(sandbox));
     sandbox.globalProxy = new Proxy(sandbox, proxyHandler);
     return sandbox;
 }
@@ -241,227 +269,322 @@ function setSandboxGlobalObject(sandbox, globalObject, thisValue) {
 
 var _typeof$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var getProto = Object.getPrototypeOf;
-var iteratorSymbol = (typeof Symbol === "undefined" ? "undefined" : _typeof$1(Symbol)) && Symbol.iterator || "@@iterator";
-
+/**
+ * Get the intrinsics from Table 7 & Annex B
+ * https://tc39.github.io/ecma262/#table-7
+ * https://tc39.github.io/ecma262/#table-73
+ */
 function getIntrinsics(sandbox) {
-    var _ = sandbox.confinedWindow;
+    var global = sandbox.confinedWindow;
 
-    var anonymousArrayIteratorPrototype = getProto(_.Array(0)[iteratorSymbol]());
-    var anonymousStringIteratorPrototype = getProto(_.String()[iteratorSymbol]());
-    var anonymousIteratorPrototype = getProto(anonymousArrayIteratorPrototype);
+    // Anonymous intrinsics.
 
-    var strictArgumentsGenerator = _.eval('(function*(){"use strict";yield arguments;})');
-    var anonymousGenerator = getProto(strictArgumentsGenerator);
-    var anonymousGeneratorPrototype = getProto(anonymousGenerator);
-    var anonymousGeneratorFunction = anonymousGeneratorPrototype.constructor;
+    var SymbolIterator = _typeof$1(global.Symbol) && global.Symbol.iterator || "@@iterator";
+
+    var ArrayIteratorObject = new global.Array()[SymbolIterator]();
+    var ArrayIteratorPrototype = getPrototypeOf(ArrayIteratorObject);
+    var IteratorPrototype = getPrototypeOf(ArrayIteratorPrototype);
+
+    var AsyncFunctionObject = global.eval("(async function(){})");
+    var AsyncFunction = AsyncFunctionObject.constructor;
+    var AsyncFunctionPrototype = AsyncFunction.prototype;
+
+    var GeneratorFunctionObject = global.eval("(function*(){})");
+    var GeneratorFunction = GeneratorFunctionObject.constructor;
+    var Generator = GeneratorFunction.prototype;
+    var GeneratorPrototype = Generator.prototype;
+
+    var AsyncGeneratorFunctionObject = global.eval('(async function*(){})');
+    var AsyncGeneratorFunction = AsyncGeneratorFunctionObject.constructor;
+    var AsyncGenerator = AsyncGeneratorFunction.prototype;
+    var AsyncGeneratorPrototype = AsyncGenerator.prototype;
+
+    var AsyncFromSyncIteratorPrototype = undefined; // TODO
+    var AsyncIteratorPrototype = getPrototypeOf(AsyncGeneratorPrototype);
+
+    var MapIteratorObject = new global.Map()[SymbolIterator]();
+    var MapIteratorPrototype = getPrototypeOf(MapIteratorObject);
+
+    var SetIteratorObject = new global.Set()[SymbolIterator]();
+    var SetIteratorPrototype = getPrototypeOf(SetIteratorObject);
+
+    var StringIteratorObject = new global.String()[SymbolIterator]();
+    var StringIteratorPrototype = getPrototypeOf(StringIteratorObject);
+
+    var ThrowTypeError = global.eval('(function () { "use strict"; return Object.getOwnPropertyDescriptor(arguments, "callee").get; })()');
+
+    var TypedArray = getPrototypeOf(Int8Array);
+    var TypedArrayPrototype = TypedArray.prototype;
+
+    // Named intrinsics
 
     return {
+        // *** Table 7
+
         // %Array%
-        "Array": _.Array,
+        Array: global.Array,
         // %ArrayBuffer%
-        "ArrayBuffer": _.ArrayBuffer,
+        ArrayBuffer: global.ArrayBuffer,
         // %ArrayBufferPrototype%
-        "ArrayBufferPrototype": _.ArrayBuffer.prototype,
+        ArrayBufferPrototype: global.ArrayBuffer.prototype,
         // %ArrayIteratorPrototype%
-        "ArrayIteratorPrototype": anonymousArrayIteratorPrototype,
+        ArrayIteratorPrototype: ArrayIteratorPrototype,
         // %ArrayPrototype%
-        "ArrayPrototype": _.Array.prototype,
+        ArrayPrototype: global.Array.prototype,
+        // %ArrayProto_entries%
+        ArrayProto_entries: global.Array.prototype.entries,
+        // %ArrayProto_foreach%
+        ArrayProto_foreach: global.Array.prototype.forEach,
+        // %ArrayProto_keys%
+        ArrayProto_keys: global.Array.prototype.forEach,
         // %ArrayProto_values%
-        "ArrayProto_values": _.Array.prototype.values,
+        ArrayProto_values: global.Array.prototype.values,
+        // %AsyncFromSyncIteratorPrototype%
+        AsyncFromSyncIteratorPrototype: AsyncFromSyncIteratorPrototype,
+        // %AsyncFunction%
+        AsyncFunction: AsyncFunction,
+        // %AsyncFunctionPrototype%
+        AsyncFunctionPrototype: AsyncFunctionPrototype,
+        // %AsyncGenerator%
+        AsyncGenerator: AsyncGenerator,
+        // %AsyncGeneratorFunction%
+        AsyncGeneratorFunction: AsyncGeneratorFunction,
+        // %AsyncGeneratorPrototype%
+        AsyncGeneratorPrototype: AsyncGeneratorPrototype,
+        // %AsyncIteratorPrototype%
+        AsyncIteratorPrototype: AsyncIteratorPrototype,
+        // %Atomics%
+        Atomics: global.Atomics,
         // %Boolean%
-        "Boolean": _.Boolean,
+        Boolean: global.Boolean,
         // %BooleanPrototype%
-        "BooleanPrototype": _.Boolean.prototype,
+        BooleanPrototype: global.Boolean.prototype,
         // %DataView%
-        "DataView": _.DataView,
+        DataView: global.DataView,
         // %DataViewPrototype%
-        "DataViewPrototype": _.DataView.prototype,
+        DataViewPrototype: global.DataView.prototype,
         // %Date%
-        "Date": _.Date,
+        Date: global.Date,
         // %DatePrototype%
-        "DatePrototype": _.Date.prototype,
+        DatePrototype: global.Date.prototype,
         // %decodeURI%
-        "decodeURI": _.decodeURI,
+        decodeURI: global.decodeURI,
         // %decodeURIComponent%
-        "decodeURIComponent": _.decodeURIComponent,
+        decodeURIComponent: global.decodeURIComponent,
         // %encodeURI%
-        "encodeURI": _.encodeURI,
+        encodeURI: global.encodeURI,
         // %encodeURIComponent%
-        "encodeURIComponent": _.encodeURIComponent,
+        encodeURIComponent: global.encodeURIComponent,
         // %Error%
-        "Error": _.Error,
+        Error: global.Error,
         // %ErrorPrototype%
-        "ErrorPrototype": _.Error.prototype,
+        ErrorPrototype: global.Error.prototype,
         // %eval%
-        "eval": sandbox.eval,
+        eval: sandbox.eval,
         // %EvalError%
-        "EvalError": _.EvalError,
+        EvalError: global.EvalError,
         // %EvalErrorPrototype%
-        "EvalErrorPrototype": _.EvalError.prototype,
+        EvalErrorPrototype: global.EvalError.prototype,
         // %Float32Array%
-        "Float32Array": _.Float32Array,
+        Float32Array: global.Float32Array,
         // %Float32ArrayPrototype%
-        "Float32ArrayPrototype": _.Float32Array.prototype,
+        Float32ArrayPrototype: global.Float32Array.prototype,
         // %Float64Array%
-        "Float64Array": _.Float64Array,
+        Float64Array: global.Float64Array,
         // %Float64ArrayPrototype%
-        "Float64ArrayPrototype": _.Float64Array.prototype,
+        Float64ArrayPrototype: global.Float64Array.prototype,
         // %Function%
-        "Function": sandbox.Function,
+        Function: sandbox.Function,
         // %FunctionPrototype%
-        "FunctionPrototype": _.Function.prototype,
+        FunctionPrototype: sandbox.Function.prototype,
         // %Generator%
-        "Generator": anonymousGenerator,
+        Generator: Generator,
         // %GeneratorFunction%
-        "GeneratorFunction": anonymousGeneratorFunction,
+        GeneratorFunction: GeneratorFunction,
         // %GeneratorPrototype%
-        "GeneratorPrototype": anonymousGeneratorPrototype,
+        GeneratorPrototype: GeneratorPrototype,
         // %Int8Array%
-        "Int8Array": _.Int8Array,
+        Int8Array: global.Int8Array,
         // %Int8ArrayPrototype%
-        "Int8ArrayPrototype": _.Int8Array.prototype,
+        Int8ArrayPrototype: global.Int8Array.prototype,
         // %Int16Array%
-        "Int16Array": _.Int16Array,
+        Int16Array: global.Int16Array,
         // %Int16ArrayPrototype%,
-        "Int16ArrayPrototype": _.Int16Array.prototype,
+        Int16ArrayPrototype: global.Int16Array.prototype,
         // %Int32Array%
-        "Int32Array": _.Int32Array,
+        Int32Array: global.Int32Array,
         // %Int32ArrayPrototype%
-        "Int32ArrayPrototype": _.Int32Array.prototype,
+        Int32ArrayPrototype: global.Int32Array.prototype,
         // %isFinite%
-        "isFinite": _.isFinite,
+        isFinite: global.isFinite,
         // %isNaN%
-        "isNaN": _.isNaN,
+        isNaN: global.isNaN,
         // %IteratorPrototype%
-        "IteratorPrototype": anonymousIteratorPrototype,
+        IteratorPrototype: IteratorPrototype,
         // %JSON%
-        "JSON": _.JSON,
+        JSON: global.JSON,
+        // %JSONParse%
+        JSONParse: global.JSON.parse,
         // %Map%
-        "Map": _.Map,
+        Map: global.Map,
         // %MapIteratorPrototype%
-        "MapIteratorPrototype": undefined,
+        MapIteratorPrototype: MapIteratorPrototype,
         // %MapPrototype%
-        "MapPrototype": _.Map.prototype,
+        MapPrototype: global.Map.prototype,
         // %Math%
-        "Math": _.Math,
+        Math: global.Math,
         // %Number%
-        "Number": _.Number,
+        Number: global.Number,
         // %NumberPrototype%
-        "NumberPrototype": _.Number.prototype,
+        NumberPrototype: global.Number.prototype,
         // %Object%
-        "Object": _.Object,
+        Object: global.Object,
         // %ObjectPrototype%
-        "ObjectPrototype": _.Object.prototype,
+        ObjectPrototype: global.Object.prototype,
         // %ObjProto_toString%
-        "ObjProto_toString": _.Object.prototype.toString,
+        ObjProto_toString: global.Object.prototype.toString,
         // %ObjProto_valueOf%
-        "ObjProto_valueOf": _.Object.prototype.valueOf,
+        ObjProto_valueOf: global.Object.prototype.valueOf,
         // %parseFloat%
-        "parseFloat": _.parseFloat,
+        parseFloat: global.parseFloat,
         // %parseInt%
-        "parseInt": _.parseInt,
+        parseInt: global.parseInt,
         // %Promise%
-        "Promise": _.Promise,
+        Promise: global.Promise,
+        // %Promise_all%
+        Promise_all: global.Promise.all,
+        // %Promise_reject%
+        Promise_reject: global.Promise.reject,
+        // %Promise_resolve%
+        Promise_resolve: global.Promise.resolve,
+        // %PromiseProto_then%
+        PromiseProto_then: global.Promise.prototype.then,
         // %PromisePrototype%
-        "PromisePrototype": _.Promise.prototype,
+        PromisePrototype: global.Promise.prototype,
         // %Proxy%
-        "Proxy": _.Proxy,
+        Proxy: global.Proxy,
         // %RangeError%
-        "RangeError": _.RangeError,
+        RangeError: global.RangeError,
         // %RangeErrorPrototype%
-        "RangeErrorPrototype": _.RangeError.prototype,
+        RangeErrorPrototype: global.RangeError.prototype,
         // %ReferenceError%
-        "ReferenceError": _.ReferenceError,
+        ReferenceError: global.ReferenceError,
         // %ReferenceErrorPrototype%
-        "ReferenceErrorPrototype": _.ReferenceError.prototype,
+        ReferenceErrorPrototype: global.ReferenceError.prototype,
         // %Reflect%
-        "Reflect": _.Reflect,
+        Reflect: global.Reflect,
         // %RegExp%
-        "RegExp": _.RegExp,
+        RegExp: global.RegExp,
         // %RegExpPrototype%
-        "RegExpPrototype": _.RegExp.prototype,
+        RegExpPrototype: global.RegExp.prototype,
         // %Set%
-        "Set": _.Set,
+        Set: global.Set,
         // %SetIteratorPrototype%
-        "SetIteratorPrototype": undefined,
+        SetIteratorPrototype: SetIteratorPrototype,
         // %SetPrototype%
-        "SetPrototype": _.Set.prototype,
+        SetPrototype: global.Set.prototype,
+        // %SharedArrayBuffer%
+        // SharedArrayBuffer: undefined, // Deprecated on Jan 5, 2018
+        // %SharedArrayBufferPrototype%
+        // SharedArrayBufferPrototype: undefined, // Deprecated on Jan 5, 2018
         // %String%
-        "String": _.String,
+        String: global.String,
         // %StringIteratorPrototype%
-        "StringIteratorPrototype": anonymousStringIteratorPrototype,
+        StringIteratorPrototype: StringIteratorPrototype,
         // %StringPrototype%
-        "StringPrototype": _.String.prototype,
+        StringPrototype: global.String.prototype,
         // %Symbol%
-        "Symbol": _.Symbol,
+        Symbol: global.Symbol,
         // %SymbolPrototype%
-        "SymbolPrototype": _.Symbol.prototype,
+        SymbolPrototype: global.Symbol.prototype,
         // %SyntaxError%
-        "SyntaxError": _.SyntaxError,
+        SyntaxError: global.SyntaxError,
         // %SyntaxErrorPrototype%
-        "SyntaxErrorPrototype": _.SyntaxError.prototype,
+        SyntaxErrorPrototype: global.SyntaxError.prototype,
         // %ThrowTypeError%
-        "ThrowTypeError": undefined,
+        ThrowTypeError: ThrowTypeError,
         // %TypedArray%
-        "TypedArray": undefined,
+        TypedArray: TypedArray,
         // %TypedArrayPrototype%
-        "TypedArrayPrototype": undefined,
+        TypedArrayPrototype: TypedArrayPrototype,
         // %TypeError%
-        "TypeError": _.TypeError,
+        TypeError: global.TypeError,
         // %TypeErrorPrototype%
-        "TypeErrorPrototype": _.TypeError.prototype,
+        TypeErrorPrototype: global.TypeError.prototype,
         // %Uint8Array%
-        "Uint8Array": _.Uint8Array,
+        Uint8Array: global.Uint8Array,
         // %Uint8ArrayPrototype%
-        "Uint8ArrayPrototype": _.Uint8Array.prototype,
+        Uint8ArrayPrototype: global.Uint8Array.prototype,
         // %Uint8ClampedArray%
-        "Uint8ClampedArray": _.Uint8ClampedArray,
+        Uint8ClampedArray: global.Uint8ClampedArray,
         // %Uint8ClampedArrayPrototype%
-        "Uint8ClampedArrayPrototype": _.Uint8ClampedArray.prototype,
+        Uint8ClampedArrayPrototype: global.Uint8ClampedArray.prototype,
         // %Uint16Array%
-        "Uint16Array": _.Uint16Array,
+        Uint16Array: global.Uint16Array,
         // %Uint16ArrayPrototype%
-        "Uint16ArrayPrototype": Uint16Array.prototype,
+        Uint16ArrayPrototype: Uint16Array.prototype,
         // %Uint32Array%
-        "Uint32Array": _.Uint32Array,
+        Uint32Array: global.Uint32Array,
         // %Uint32ArrayPrototype%
-        "Uint32ArrayPrototype": _.Uint32Array.prototype,
+        Uint32ArrayPrototype: global.Uint32Array.prototype,
         // %URIError%
-        "URIError": _.URIError,
+        URIError: global.URIError,
         // %URIErrorPrototype%
-        "URIErrorPrototype": _.URIError.prototype,
+        URIErrorPrototype: global.URIError.prototype,
         // %WeakMap%
-        "WeakMap": _.WeakMap,
+        WeakMap: global.WeakMap,
         // %WeakMapPrototype%
-        "WeakMapPrototype": _.WeakMap.prototype,
+        WeakMapPrototype: global.WeakMap.prototype,
         // %WeakSet%
-        "WeakSet": _.WeakSet,
+        WeakSet: global.WeakSet,
         // %WeakSetPrototype%
-        "WeakSetPrototype": _.WeakSet.prototype,
+        WeakSetPrototype: global.WeakSet.prototype,
 
-        // TODO: Annex B
-        // TODO: other special cases
+        // *** Annex B
 
-        // ESNext
+        // %escape%
+        escape: global.escape,
+        // %unescape%
+        unescape: global.unescape,
+
+        // TODOther special cases
+
+        // *** ESNext
         Realm: Realm // intentionally passing around the Realm Constructor, which could be used as a side channel, but still!
     };
 }
 
 function getStdLib(sandbox) {
     var intrinsics = getIntrinsics(sandbox);
+
     return {
+        // *** 18.1 Value Properties of the Global Object
+
+        Infinity: { value: Infinity },
+        NaN: { value: NaN },
+        undefined: { value: undefined },
+
+        // *** 18.2 Function Properties of the Global Object
+
+        eval: { value: intrinsics.eval },
+        isFinite: { value: intrinsics.isFinite },
+        isNaN: { value: intrinsics.isNaN },
+        parseFloat: { value: intrinsics.parseFloat },
+        parseInt: { value: intrinsics.parseInt },
+
+        decodeURI: { value: intrinsics.decodeURI },
+        decodeURIComponent: { value: intrinsics.decodeURIComponent },
+        encodeURI: { value: intrinsics.encodeURI },
+        encodeURIComponent: { value: intrinsics.encodeURIComponent },
+
+        // *** 18.3 Constructor Properties of the Global Object
+
         Array: { value: intrinsics.Array },
         ArrayBuffer: { value: intrinsics.ArrayBuffer },
         Boolean: { value: intrinsics.Boolean },
         DataView: { value: intrinsics.DataView },
         Date: { value: intrinsics.Date },
-        decodeURI: { value: intrinsics.decodeURI },
-        decodeURIComponent: { value: intrinsics.decodeURIComponent },
-        encodeURI: { value: intrinsics.encodeURI },
-        encodeURIComponent: { value: intrinsics.encodeURIComponent },
         Error: { value: intrinsics.Error },
-        eval: { value: intrinsics.eval },
         EvalError: { value: intrinsics.EvalError },
         Float32Array: { value: intrinsics.Float32Array },
         Float64Array: { value: intrinsics.Float64Array },
@@ -469,22 +592,17 @@ function getStdLib(sandbox) {
         Int8Array: { value: intrinsics.Int8Array },
         Int16Array: { value: intrinsics.Int16Array },
         Int32Array: { value: intrinsics.Int32Array },
-        isFinite: { value: intrinsics.isFinite },
-        isNaN: { value: intrinsics.isNaN },
-        JSON: { value: intrinsics.JSON },
         Map: { value: intrinsics.Map },
-        Math: { value: intrinsics.Math },
         Number: { value: intrinsics.Number },
         Object: { value: intrinsics.Object },
-        parseFloat: { value: intrinsics.parseFloat },
-        parseInt: { value: intrinsics.parseInt },
         Promise: { value: intrinsics.Promise },
         Proxy: { value: intrinsics.Proxy },
         RangeError: { value: intrinsics.RangeError },
         ReferenceError: { value: intrinsics.ReferenceError },
-        Reflect: { value: intrinsics.Reflect },
         RegExp: { value: intrinsics.RegExp },
         Set: { value: intrinsics.Set },
+        // Deprecated
+        // SharedArrayBuffer: intrinsics.SharedArrayBuffer,
         String: { value: intrinsics.String },
         Symbol: { value: intrinsics.Symbol },
         SyntaxError: { value: intrinsics.SyntaxError },
@@ -495,10 +613,19 @@ function getStdLib(sandbox) {
         Uint32Array: { value: intrinsics.Uint32Array },
         URIError: { value: intrinsics.URIError },
         WeakMap: { value: intrinsics.WeakMap },
-        WeakSet: { value: intrinsics.WeakSet }
+        WeakSet: { value: intrinsics.WeakSet },
 
-        // TODO: Annex B
-        // TODO: other special cases
+        // *** 18.4 Other Properties of the Global Object
+
+        Atomics: { value: intrinsics.Atomics },
+        JSON: { value: intrinsics.JSON },
+        Math: { value: intrinsics.Math },
+        Reflect: { value: intrinsics.Reflect },
+
+        // *** Annex B
+
+        escape: { value: intrinsics.escape },
+        unescape: { value: intrinsics.unescape }
     };
 }
 
@@ -512,7 +639,7 @@ function IsCallable(obj) {
     return typeof obj === 'function';
 }
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+var _createClass = function () { function defineProperties$$1(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties$$1(Constructor.prototype, protoProps); if (staticProps) defineProperties$$1(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
@@ -567,7 +694,7 @@ function NewGlobalEnvironment(G, thisValue) {
 function SetRealmGlobalObject(realmRec, globalObj, thisValue) {
     if (globalObj === undefined) {
         var intrinsics = realmRec[Intrinsics];
-        globalObj = Object.create(intrinsics['ObjectPrototype']);
+        globalObj = create(intrinsics['ObjectPrototype']);
     }
     assert((typeof globalObj === "undefined" ? "undefined" : _typeof(globalObj)) === 'object');
     if (thisValue === undefined) thisValue = globalObj;
@@ -583,7 +710,7 @@ function SetDefaultGlobalBindings(realmRec) {
     // For each property of the Global Object specified in clause <emu-xref href="#sec-global-object"></emu-xref>, do
     // ---> diverging:
     var GlobalObjectDescriptors = getStdLib(realmRec[ShimSandbox]);
-    Object.defineProperties(global, GlobalObjectDescriptors);
+    defineProperties(global, GlobalObjectDescriptors);
     return global;
 }
 
