@@ -1,4 +1,4 @@
-import repairAccessors from "./repair/accessors";
+import { repairAccessors } from "./accessors";
 
 // locking down the environment
 export function sanitize(sandbox) {
