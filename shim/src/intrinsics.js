@@ -2,10 +2,15 @@ import Realm from "./realm";
 import { getPrototypeOf } from "./commons";
 
 /**
- * Get the intrinsics not otherwise reachable by named own property traversal.
+ * Get the intrinsics from Table 7 & Annex B
  * https://tc39.github.io/ecma262/#table-7
+ * https://tc39.github.io/ecma262/#table-73
  */
-function getAnonymousIntrinsics(global) {
+export function getIntrinsics(sandbox) {
+    const { unsafeGlobal } = sandbox;
+
+    // Anonymous intrinsics.
+
     const SymbolIterator = (typeof global.Symbol && global.Symbol.iterator) || "@@iterator";
 
     const ArrayIteratorObject = new global.Array()[SymbolIterator]();
@@ -20,6 +25,14 @@ function getAnonymousIntrinsics(global) {
     const GeneratorFunction = GeneratorFunctionObject.constructor;
     const Generator = GeneratorFunction.prototype;
     const GeneratorPrototype = Generator.prototype;
+
+    const AsyncGeneratorFunctionObject = global.eval('(async function*(){})');
+    const AsyncGeneratorFunction = AsyncGeneratorFunctionObject.constructor;
+    const AsyncGenerator = AsyncGeneratorFunction.prototype;
+    const AsyncGeneratorPrototype = AsyncGenerator.prototype;
+
+    const AsyncFromSyncIteratorPrototype = undefined; // TODO
+    const AsyncIteratorPrototype = getPrototypeOf(AsyncGeneratorPrototype);
 
     const MapIteratorObject = new global.Map()[SymbolIterator]();
     const MapIteratorPrototype = getPrototypeOf(MapIteratorObject);
@@ -37,34 +50,7 @@ function getAnonymousIntrinsics(global) {
     const TypedArray = getPrototypeOf(Int8Array);
     const TypedArrayPrototype = TypedArray.prototype;
 
-    return {
-        // *** Table 7
-
-        ArrayIteratorPrototype,
-        AsyncFunction,
-        AsyncFunctionPrototype,
-        Generator,
-        GeneratorFunction,
-        GeneratorPrototype,
-        IteratorPrototype,
-        MapIteratorPrototype,
-        SetIteratorPrototype,
-        StringIteratorPrototype,
-        ThrowTypeError,
-        TypedArray,
-        TypedArrayPrototype
-    };
-}
-
-/**
- * Get the intrinsics from Table 7 & Annex B
- * https://tc39.github.io/ecma262/#table-7
- * https://tc39.github.io/ecma262/#table-73
- */
-export function getIntrinsics(sandbox) {
-    const { confinedWindow: global } = sandbox;
-
-    const anonymous = getAnonymousIntrinsics(global);
+    // Named intrinsics
 
     return {
         // *** Table 7
@@ -76,7 +62,7 @@ export function getIntrinsics(sandbox) {
         // %ArrayBufferPrototype%
         ArrayBufferPrototype: global.ArrayBuffer.prototype,
         // %ArrayIteratorPrototype%
-        ArrayIteratorPrototype: anonymous.ArrayIteratorPrototype,
+        ArrayIteratorPrototype,
         // %ArrayPrototype%
         ArrayPrototype: global.Array.prototype,
         // %ArrayProto_entries%
@@ -87,10 +73,20 @@ export function getIntrinsics(sandbox) {
         ArrayProto_keys: global.Array.prototype.forEach,
         // %ArrayProto_values%
         ArrayProto_values: global.Array.prototype.values,
+        // %AsyncFromSyncIteratorPrototype%
+        AsyncFromSyncIteratorPrototype,
         // %AsyncFunction%
-        AsyncFunction: anonymous.AsyncFunction,
+        AsyncFunction,
         // %AsyncFunctionPrototype%
-        AsyncFunctionPrototype: anonymous.AsyncFunctionPrototype,
+        AsyncFunctionPrototype,
+        // %AsyncGenerator%
+        AsyncGenerator,
+        // %AsyncGeneratorFunction%
+        AsyncGeneratorFunction,
+        // %AsyncGeneratorPrototype%
+        AsyncGeneratorPrototype,
+        // %AsyncIteratorPrototype%
+        AsyncIteratorPrototype,
         // %Atomics%
         Atomics: global.Atomics,
         // %Boolean%
@@ -134,13 +130,13 @@ export function getIntrinsics(sandbox) {
         // %Function%
         Function: sandbox.Function,
         // %FunctionPrototype%
-        FunctionPrototype: global.Function.prototype,
+        FunctionPrototype: sandbox.Function.prototype,
         // %Generator%
-        Generator: anonymous.Generator,
+        Generator,
         // %GeneratorFunction%
-        GeneratorFunction: anonymous.GeneratorFunction,
+        GeneratorFunction,
         // %GeneratorPrototype%
-        GeneratorPrototype: anonymous.GeneratorPrototype,
+        GeneratorPrototype,
         // %Int8Array%
         Int8Array: global.Int8Array,
         // %Int8ArrayPrototype%
@@ -158,7 +154,7 @@ export function getIntrinsics(sandbox) {
         // %isNaN%
         isNaN: global.isNaN,
         // %IteratorPrototype%
-        IteratorPrototype: anonymous.IteratorPrototype,
+        IteratorPrototype,
         // %JSON%
         JSON: global.JSON,
         // %JSONParse%
@@ -166,7 +162,7 @@ export function getIntrinsics(sandbox) {
         // %Map%
         Map: global.Map,
         // %MapIteratorPrototype%
-        MapIteratorPrototype: anonymous.MapIteratorPrototype,
+        MapIteratorPrototype,
         // %MapPrototype%
         MapPrototype: global.Map.prototype,
         // %Math%
@@ -179,10 +175,10 @@ export function getIntrinsics(sandbox) {
         Object: global.Object,
         // %ObjectPrototype%
         ObjectPrototype: global.Object.prototype,
-        // %ObjProtoglobaltoString%
-        ObjProtoglobaltoString: global.Object.prototype.toString,
-        // %ObjProtoglobalvalueOf%
-        ObjProtoglobalvalueOf: global.Object.prototype.valueOf,
+        // %ObjProto_toString%
+        ObjProto_toString: global.Object.prototype.toString,
+        // %ObjProto_valueOf%
+        ObjProto_valueOf: global.Object.prototype.valueOf,
         // %parseFloat%
         parseFloat: global.parseFloat,
         // %parseInt%
@@ -218,7 +214,7 @@ export function getIntrinsics(sandbox) {
         // %Set%
         Set: global.Set,
         // %SetIteratorPrototype%
-        SetIteratorPrototype: anonymous.SetIteratorPrototype,
+        SetIteratorPrototype,
         // %SetPrototype%
         SetPrototype: global.Set.prototype,
         // %SharedArrayBuffer%
@@ -228,7 +224,7 @@ export function getIntrinsics(sandbox) {
         // %String%
         String: global.String,
         // %StringIteratorPrototype%
-        StringIteratorPrototype: anonymous.StringIteratorPrototype,
+        StringIteratorPrototype,
         // %StringPrototype%
         StringPrototype: global.String.prototype,
         // %Symbol%
@@ -240,11 +236,11 @@ export function getIntrinsics(sandbox) {
         // %SyntaxErrorPrototype%
         SyntaxErrorPrototype: global.SyntaxError.prototype,
         // %ThrowTypeError%
-        ThrowTypeError: anonymous.ThrowTypeError,
+        ThrowTypeError,
         // %TypedArray%
-        TypedArray: anonymous.TypedArray,
+        TypedArray,
         // %TypedArrayPrototype%
-        TypedArrayPrototype: anonymous.TypedArrayPrototype,
+        TypedArrayPrototype,
         // %TypeError%
         TypeError: global.TypeError,
         // %TypeErrorPrototype%
@@ -285,7 +281,7 @@ export function getIntrinsics(sandbox) {
         // %unescape%
         unescape: global.unescape,
 
-        // TODO: other special cases
+        // TODOther special cases
 
         // *** ESNext
         Realm // intentionally passing around the Realm Constructor, which could be used as a side channel, but still!
