@@ -13,26 +13,31 @@ export function getIntrinsics(sandbox) {
 
     const SymbolIterator = (typeof global.Symbol && global.Symbol.iterator) || "@@iterator";
 
-    const ArrayIteratorObject = new global.Array()[SymbolIterator]();
-    const ArrayIteratorPrototype = getPrototypeOf(ArrayIteratorObject);
+    const ArrayIteratorInstance = new global.Array()[SymbolIterator]();
+    const ArrayIteratorPrototype = getPrototypeOf(ArrayIteratorInstance);
     const IteratorPrototype = getPrototypeOf(ArrayIteratorPrototype);
 
-    const AsyncFunctionObject = global.eval("(async function(){})");
-    const AsyncFunction = AsyncFunctionObject.constructor;
+    const AsyncFunctionInstance = global.eval("(async function(){})");
+    const AsyncFunction = AsyncFunctionInstance.constructor;
     const AsyncFunctionPrototype = AsyncFunction.prototype;
 
-    const GeneratorFunctionObject = global.eval("(function*(){})");
-    const GeneratorFunction = GeneratorFunctionObject.constructor;
+    const GeneratorFunctionInstance = global.eval("(function*(){})");
+    const GeneratorFunction = GeneratorFunctionInstance.constructor;
     const Generator = GeneratorFunction.prototype;
     const GeneratorPrototype = Generator.prototype;
 
-    const AsyncGeneratorFunctionObject = global.eval('(async function*(){})');
-    const AsyncGeneratorFunction = AsyncGeneratorFunctionObject.constructor;
-    const AsyncGenerator = AsyncGeneratorFunction.prototype;
-    const AsyncGeneratorPrototype = AsyncGenerator.prototype;
+    let AsyncGeneratorFunctionInstance;
+    try {
+        AsyncGeneratorFunctionInstance = global.eval('(async function*(){})');
+    } catch(e) {
+      /* unsupported */
+    }
+    const AsyncGeneratorFunction = AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
+    const AsyncGenerator = AsyncGeneratorFunctionInstance && AsyncGeneratorFunction.prototype;
+    const AsyncGeneratorPrototype = AsyncGeneratorFunctionInstance && AsyncGenerator.prototype;
 
-    const AsyncFromSyncIteratorPrototype = undefined; // TODO
-    const AsyncIteratorPrototype = getPrototypeOf(AsyncGeneratorPrototype);
+    const AsyncFromSyncIteratorPrototype = AsyncGeneratorFunctionInstance && undefined; // TODO
+    const AsyncIteratorPrototype = AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorPrototype);
 
     const MapIteratorObject = new global.Map()[SymbolIterator]();
     const MapIteratorPrototype = getPrototypeOf(MapIteratorObject);
