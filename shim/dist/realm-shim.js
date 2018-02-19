@@ -281,26 +281,31 @@ function getIntrinsics(sandbox) {
 
     var SymbolIterator = _typeof$1(global.Symbol) && global.Symbol.iterator || "@@iterator";
 
-    var ArrayIteratorObject = new global.Array()[SymbolIterator]();
-    var ArrayIteratorPrototype = getPrototypeOf(ArrayIteratorObject);
+    var ArrayIteratorInstance = new global.Array()[SymbolIterator]();
+    var ArrayIteratorPrototype = getPrototypeOf(ArrayIteratorInstance);
     var IteratorPrototype = getPrototypeOf(ArrayIteratorPrototype);
 
-    var AsyncFunctionObject = global.eval("(async function(){})");
-    var AsyncFunction = AsyncFunctionObject.constructor;
+    var AsyncFunctionInstance = global.eval("(async function(){})");
+    var AsyncFunction = AsyncFunctionInstance.constructor;
     var AsyncFunctionPrototype = AsyncFunction.prototype;
 
-    var GeneratorFunctionObject = global.eval("(function*(){})");
-    var GeneratorFunction = GeneratorFunctionObject.constructor;
+    var GeneratorFunctionInstance = global.eval("(function*(){})");
+    var GeneratorFunction = GeneratorFunctionInstance.constructor;
     var Generator = GeneratorFunction.prototype;
     var GeneratorPrototype = Generator.prototype;
 
-    var AsyncGeneratorFunctionObject = global.eval('(async function*(){})');
-    var AsyncGeneratorFunction = AsyncGeneratorFunctionObject.constructor;
-    var AsyncGenerator = AsyncGeneratorFunction.prototype;
-    var AsyncGeneratorPrototype = AsyncGenerator.prototype;
+    var AsyncGeneratorFunctionInstance = void 0;
+    try {
+        AsyncGeneratorFunctionInstance = global.eval('(async function*(){})');
+    } catch (e) {
+        /* unsupported */
+    }
+    var AsyncGeneratorFunction = AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
+    var AsyncGenerator = AsyncGeneratorFunctionInstance && AsyncGeneratorFunction.prototype;
+    var AsyncGeneratorPrototype = AsyncGeneratorFunctionInstance && AsyncGenerator.prototype;
 
-    var AsyncFromSyncIteratorPrototype = undefined; // TODO
-    var AsyncIteratorPrototype = getPrototypeOf(AsyncGeneratorPrototype);
+    var AsyncFromSyncIteratorPrototype = AsyncGeneratorFunctionInstance && undefined; // TODO
+    var AsyncIteratorPrototype = AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorPrototype);
 
     var MapIteratorObject = new global.Map()[SymbolIterator]();
     var MapIteratorPrototype = getPrototypeOf(MapIteratorObject);
@@ -547,7 +552,7 @@ function getIntrinsics(sandbox) {
         // %unescape%
         unescape: global.unescape,
 
-        // TODOther special cases
+        // TODO: Other special cases
 
         // *** ESNext
         Realm: Realm // intentionally passing around the Realm Constructor, which could be used as a side channel, but still!
