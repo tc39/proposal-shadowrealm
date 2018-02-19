@@ -281,7 +281,7 @@ export function getIntrinsics(sandbox) {
         // %unescape%
         unescape: global.unescape,
 
-        // TODOther special cases
+        // TODO: Other special cases
 
         // *** ESNext
         Realm // intentionally passing around the Realm Constructor, which could be used as a side channel, but still!
