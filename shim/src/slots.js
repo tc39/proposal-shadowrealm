@@ -1,0 +1,10 @@
+export const RealmRecord = Symbol('Realm Slot');
+export const Intrinsics = Symbol('Intrinsics Slot');
+export const GlobalObject = Symbol('GlobalObject Slot');
+export const GlobalThisValue = Symbol('GlobalThisValue Slot');
+export const GlobalEnv = Symbol('GlobalEnv Slot');
+export const EvalHook = Symbol('EvalHook Slot');
+export const IsDirectEvalHook = Symbol('IsDirectEvalHook Slot');
+export const ImportHook = Symbol('ImportHook Slot');
+export const ImportMetaHook = Symbol('ImportMetaHook Slot');
+export const ShimSandbox = Symbol('Sandbox');

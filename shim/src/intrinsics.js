@@ -9,8 +9,8 @@ import { getPrototypeOf } from './commons';
  * https://tc39.github.io/ecma262/#table-7
  * https://tc39.github.io/ecma262/#table-73
  */
-export function getIntrinsics(sandbox) {
-  const { unsafeGlobal: g } = sandbox;
+export function getIntrinsics(global) {
+  const g = global;
 
   // Anonymous intrinsics.
 
@@ -53,7 +53,7 @@ export function getIntrinsics(sandbox) {
   );
 
   const TypedArray = getPrototypeOf(g.Int8Array);
-  const TypedArrayPrototype = g.TypedArray.prototype;
+  const TypedArrayPrototype = TypedArray.prototype;
 
   // Named intrinsics
 
@@ -119,7 +119,7 @@ export function getIntrinsics(sandbox) {
     // %ErrorPrototype%
     ErrorPrototype: g.Error.prototype,
     // %eval%
-    eval: sandbox.eval,
+    eval: g.eval,
     // %EvalError%
     EvalError: g.EvalError,
     // %EvalErrorPrototype%
@@ -133,9 +133,9 @@ export function getIntrinsics(sandbox) {
     // %Float64ArrayPrototype%
     Float64ArrayPrototype: g.Float64Array.prototype,
     // %Function%
-    Function: sandbox.Function,
+    Function: g.Function,
     // %FunctionPrototype%
-    FunctionPrototype: sandbox.Function.prototype,
+    FunctionPrototype: g.Function.prototype,
     // %Generator%
     Generator,
     // %GeneratorFunction%

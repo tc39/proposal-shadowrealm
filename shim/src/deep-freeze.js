@@ -1,5 +1,4 @@
-// Adapted from SES/Caja
-// Copyright (C) 2011 Google Inc.
+// Adapted from SES/Caja - Copyright (C) 2011 Google Inc.
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/startSES.js
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/repairES5.js
 

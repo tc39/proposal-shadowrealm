@@ -1,36 +1,38 @@
+import { createEvalEvaluatorFactory } from './evaluators';
 import { sanitize } from './sanitize';
-import { getEvaluators } from './evaluators';
-import { proxyHandler } from './proxy';
-import { assign } from './commons';
 
-function createIframe() {
-  const el = document.createElement('iframe');
-  el.style.display = 'none';
-  // accessibility
-  el.title = 'script';
-  el.setAttribute('aria-hidden', true);
-  document.body.appendChild(el);
-  return el;
+// The sandbox is shim-specific. It acts as the mechanism
+// to obtain a fresh set of intrinsics together with their
+// associated eval and Function evaluators. This association
+// must be respected since the evaluators are imposing a
+// set of intrinsics, aka the "undeniables".
+
+function createContext() {
+  const iframe = document.createElement('iframe');
+
+  iframe.title = 'script';
+  iframe.style.display = 'none';
+  iframe.setAttribute('aria-hidden', true);
+
+  document.body.appendChild(iframe);
+
+  return iframe.contentWindow;
 }
 
-export function createSandbox() {
-  const iframe = createIframe();
-  const { contentDocument: iframeDocument, contentWindow: confinedWindow } = iframe;
+export function createSandbox(context) {
+  if (context === undefined) {
+    context = createContext();
+  }
+  // The sandbox is entirely defined by these three objects.
+  // Reusing the terminology from SES/Caja.
   const sandbox = {
-    iframe,
-    iframeDocument,
-    confinedWindow,
-    thisValue: undefined,
-    globalObject: undefined,
-    globalProxy: undefined
+    unsafeGlobal: context,
+    unsafeEval: context.eval,
+    unsafeFunction: context.Function
   };
+  if (sandbox.evalEvaluatorFactory === undefined) {
+    sandbox.evalEvaluatorFactory = createEvalEvaluatorFactory(sandbox);
+  }
   sanitize(sandbox);
-  assign(sandbox, getEvaluators(sandbox));
-  sandbox.globalProxy = new Proxy(sandbox, proxyHandler);
   return sandbox;
-}
-
-export function setSandboxGlobalObject(sandbox, globalObject, thisValue) {
-  sandbox.thisValue = thisValue;
-  sandbox.globalObject = globalObject;
 }

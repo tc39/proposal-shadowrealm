@@ -8,8 +8,8 @@
         "watch": "ecmarkup --watch spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
         "build-shim-dev": "cross-env NODE_ENV=development rollup -c shim/rollup.config.js --watch",
         "build-shim-prod": "cross-env NODE_ENV=production rollup -c shim/rollup.config.js",
-        "lint": "./node_modules/.bin/eslint ./shim/src",
-        "prettier": "./node_modules/.bin/prettier --config ./shim/.prettierrc --write ./shim/src/**/*.js"
+        "lint": "eslint ./shim/src",
+        "prettier": "prettier --config ./shim/.prettierrc --write ./shim/src/**/*.js"
     },
     "repository": {
         "type": "git",
@@ -35,8 +35,8 @@
     "dependencies": {},
     "devDependencies": {
         "babel-eslint": "^6.1.2",
-        "babel-preset-es2015": "^6.22.0",
-        "cross-env": "^3.1.4",
+        "babel-minify": "^0.4.1",
+        "cross-env": "^3.2.4",
         "ecmarkup": "latest",
         "eslint": "^4.19.1",
         "eslint-config-airbnb-base": "^12.1.0",
@@ -45,9 +45,8 @@
         "eslint-plugin-prettier": "^2.6.0",
         "forever": "^0.15.2",
         "prettier": "^1.12.1",
-        "rollup": "^0.41.3",
-        "rollup-plugin-babel": "^2.7.1",
-        "rollup-plugin-uglify": "^1.0.1",
+        "rollup": "^0.58.2",
+        "rollup-plugin-babel-minify": "^4.0.0",
         "rollup-watch": "^3.2.2"
     }
 }

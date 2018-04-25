@@ -1,7 +1,5 @@
-import { getIntrinsics } from './intrinsics';
-
-export function getStdLib(sandbox) {
-  const i = getIntrinsics(sandbox);
+export function getStdLib(intrinsics) {
+  const i = intrinsics;
 
   return {
     // *** 18.1 Value Properties of the Global Object
