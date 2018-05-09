@@ -4,634 +4,722 @@
   (global.RealmShim = factory());
 }(this, (function () { 'use strict';
 
+  const RealmRecord = Symbol('Realm Slot');
+  const Intrinsics = Symbol('Intrinsics Slot');
+  const GlobalObject = Symbol('GlobalObject Slot');
+  const GlobalThisValue = Symbol('GlobalThisValue Slot');
+  const GlobalEnv = Symbol('GlobalEnv Slot');
+  const EvalHook = Symbol('EvalHook Slot');
+  const IsDirectEvalHook = Symbol('IsDirectEvalHook Slot');
+  const ImportHook = Symbol('ImportHook Slot');
+  const ImportMetaHook = Symbol('ImportMetaHook Slot');
+  const ShimSandbox = Symbol('Sandbox');
+
   // Declare shorthand functions. Sharing these declarations accross modules
   // improves both consitency and minification. Unused declarations are dropped
   // by the tree shaking process.
 
-var assign = Object.assign;
-var create = Object.create;
-var defineProperties = Object.defineProperties;
-var getOwnPropertyNames = Object.getOwnPropertyNames;
-var defineProperty = Reflect.defineProperty;
-var deleteProperty = Reflect.deleteProperty;
-var getOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor;
-var getPrototypeOf = Reflect.getPrototypeOf;
-var setPrototypeOf = Reflect.setPrototypeOf;
+  const {
+    assign,
+    create,
+    defineProperties,
+    freeze,
+    getOwnPropertyDescriptors,
+    getOwnPropertyNames
+  } = Object;
 
-// Adapted from SES/Caja - Copyright (C) 2011 Google Inc.
-// https://github.com/google/caja/blob/master/src/com/google/caja/ses/startSES.js
-// https://github.com/google/caja/blob/master/src/com/google/caja/ses/repairES5.js
+  const {
+    apply,
+    defineProperty,
+    deleteProperty,
+    getOwnPropertyDescriptor,
+    getPrototypeOf,
+    ownKeys,
+    setPrototypeOf
+  } = Reflect;
 
-// Fix legacy accessors to comply with strict mode and ES2016 semantics,
-// we need to redefine them while in strict mode.
-// https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
+  class Handler {
+    constructor(sandbox) {
+      const { unsafeGlobal } = sandbox;
+      this.unsafeGlobal = unsafeGlobal;
 
-function repairAccessors(objProto) {
+      // this flag allow us to determine if the eval() call is a controlled
+      // eval done by the realm's code or if it is user-land invocation, so
+      // we can react differently.
+      this.isInternalEvaluation = false;
+    }
 
-    try {
+    get(target, prop) {
+      // Special treatment for eval.
+      if (prop === 'eval') {
+        if (this.isInternalEvaluation) {
+          this.isInternalEvaluation = false;
+          return this.unsafeGlobal.eval;
+        }
+        return target.eval;
+      }
+      // Properties of global.
+      if (prop in target) {
+        return target[prop];
+      }
+      // Prevent the lookup for other properties.
+      return undefined;
+    }
 
-        defineProperty(objProto, '__defineGetter__', {
-            value: function value(prop, func) {
+    has(target, prop) {
+      if (prop === 'eval') {
+        return true;
+      }
+      if (prop === 'arguments') {
+        return false;
+      }
+      if (prop in target) {
+        return true;
+      }
+      if (prop in this.unsafeGlobal) {
+        return true;
+      }
+      return false;
+    }
+  }
+
+  // Portions adapted from V8 - Copyright 2016 the V8 project authors.
+
+  function createEvalEvaluatorFactory(sandbox) {
+    const { unsafeFunction } = sandbox;
+
+    return unsafeFunction(`
+    with (arguments[0]) {
+      return function() {
+        'use strict';
+        return eval(arguments[0]);
+      };
+    }
+  `);
+  }
+
+  function createEvalEvaluator(realmRec) {
+    const sandbox = realmRec[ShimSandbox];
+    const globalObject = realmRec[GlobalObject];
+    const intrinsics = realmRec[Intrinsics];
+
+    // This proxy has several functions:
+    // 1. works with the sentinel to alternate between direct eval and confined eval.
+    // 2. shadows all properties of the hidden global by declaring them as undefined.
+    // 3. resolves all existing properties of the sandboxed global.
+    const handler = new Handler(sandbox);
+    const proxy = new Proxy(globalObject, handler);
+
+    const scopedEvaluator = sandbox.evalEvaluatorFactory(proxy);
+
+    function evaluator(src) {
+      handler.isInternalEvaluation = true;
+      // Ensure that "this" resolves to the secure global.
+      const result = scopedEvaluator.call(globalObject, src);
+      handler.isInternalEvaluation = false;
+      return result;
+    }
+
+    // Mimic the native eval() function. New properties are
+    // by default non-writable and non-configurable.
+    defineProperties(evaluator, {
+      name: {
+        value: 'eval'
+      }
+    });
+
+    // This instance is realm-specific, and therefore doesn't
+    // need to be frozen (only the objects reachable from it).
+
+    // Once created for a realm, the reference must be updated everywhere.
+    realmRec[EvalHook] = globalObject.eval = intrinsics.eval = evaluator;
+  }
+
+  /**
+   * A safe version of the native Function which relies on
+   * the safety of evalEvaluator for confinement.
+   */
+  function createFunctionEvaluator(realmRec) {
+    const { unsafeFunction } = realmRec[ShimSandbox];
+    const globalObject = realmRec[GlobalObject];
+    const intrinsics = realmRec[Intrinsics];
+
+    function evaluator(...params) {
+      const functionBody = params.pop() || '';
+      let functionParams = params.join(',');
+
+      if (functionParams.includes(')')) {
+        // If the formal parameters string include ) - an illegal
+        // character - it may make the combined function expression
+        // compile. We avoid this problem by checking for this early on.
+        throw new Error('Function arg string contains parenthesis');
+      }
+
+      if (functionParams.length > 0) {
+        // If the formal parameters include an unbalanced block comment, the
+        // function must be rejected. Since JavaScript does not allow nested
+        // comments we can include a trailing block comment to catch this.
+        functionParams += '\n/*``*/';
+      }
+
+      const src = `(function(${functionParams}){\n${functionBody}\n})`;
+
+      return intrinsics.eval(src);
+    }
+
+    // Ensure that the different Function instances of the different
+    // sandboxes all answer properly when used with the instanceof
+    // operator to preserve indentity.
+    const FunctionPrototype = unsafeFunction.prototype;
+
+    // Mimic the native signature. New properties are
+    // by default non-writable and non-configurable.
+    defineProperties(evaluator, {
+      name: {
+        value: 'Function'
+      },
+      prototype: {
+        value: FunctionPrototype
+      }
+    });
+
+    // This instance is namespace-specific, and therefore doesn't
+    // need to be frozen (only the objects reachable from it).
+
+    // Once created for a realm, the reference must be everywhere.
+    globalObject.Function = intrinsics.Function = evaluator;
+  }
+
+  // Adapted from SES/Caja - Copyright (C) 2011 Google Inc.
+
+  /**
+   * Replace the legacy accessors of Object to comply with strict mode
+   * and ES2016 semantics, we do this by redefining them while in 'use strict'
+   * https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
+   */
+  function repairAccessors(sandbox) {
+    const { unsafeGlobal: g } = sandbox;
+
+    defineProperties(g.Object.prototype, {
+      __defineGetter__: {
+        value(prop, func) {
           return defineProperty(this, prop, {
             get: func,
             enumerable: true,
             configurable: true
           });
         }
-        });
-
-        defineProperty(objProto, '__defineSetter__', {
-            value: function value(prop, func) {
+      },
+      __defineSetter__: {
+        value(prop, func) {
           return defineProperty(this, prop, {
             set: func,
             enumerable: true,
             configurable: true
           });
         }
-        });
-
-        defineProperty(objProto, '__lookupGetter__', {
-            value: function value(prop) {
-                var base = this;
-                var desc = void 0;
+      },
+      __lookupGetter__: {
+        value(prop) {
+          let base = this;
+          let desc;
           while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
             base = getPrototypeOf(base);
           }
           return desc && desc.get;
         }
-        });
-
-        defineProperty(objProto, '__lookupSetter__', {
-            value: function value(prop) {
-                var base = this;
-                var desc = void 0;
+      },
+      __lookupSetter__: {
+        value(prop) {
+          let base = this;
+          let desc;
           while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
             base = getPrototypeOf(base);
           }
           return desc && desc.set;
         }
-        });
-    } catch (ignore) {
-        // Ignored
       }
+    });
   }
 
-// locking down the environment
-function sanitize(sandbox) {
-    var objProto = sandbox.confinedWindow.Object.prototype;
+  // Adapted from SES/Caja
 
-
-    repairAccessors(objProto);
-    // TODO: other steps
-}
-
-// this flag allow us to determine if the eval() call is a controlled eval done by the realm's code
-// or if it is user-land invocation, so we can react differently.
-var isInternalEvaluation = false;
-
-function setInternalEvaluation() {
-    isInternalEvaluation = true;
-}
-
-function resetInternalEvaluation() {
-    isInternalEvaluation = false;
-      }
-
-var proxyHandler = {
-    get: function get(sandbox, propName) {
-        if (propName === 'eval' && isInternalEvaluation) {
-            resetInternalEvaluation();
-            return sandbox.confinedWindow.eval;
-        }
-        return sandbox.globalObject[propName];
-    },
-    set: function set(sandbox, propName, newValue) {
-        sandbox.globalObject[propName] = newValue;
-        return true;
-    },
-    defineProperty: function defineProperty$$1(sandbox, propName, descriptor) {
-        defineProperty(sandbox.globalObject, propName, descriptor);
-        return true;
-    },
-    deleteProperty: function deleteProperty$$1(sandbox, propName) {
-        return deleteProperty(sandbox.globalObject, propName);
-    },
-    has: function has(sandbox, propName) {
-        if (propName === 'eval' && isInternalEvaluation) {
-            return true;
-    }
-        if (propName in sandbox.globalObject) {
-            return true;
-        } else if (propName in sandbox.confinedWindow) {
-            throw new ReferenceError(propName + ' is not defined. If you are using typeof ' + propName + ', you can change your program to use typeof global.' + propName + ' instead');
-  }
-        return false;
-    },
-    ownKeys: function ownKeys$$1(sandbox) {
-        return getOwnPropertyNames(sandbox.globalObject);
-    },
-    getOwnPropertyDescriptor: function getOwnPropertyDescriptor$$1(sandbox, propName) {
-        return getOwnPropertyDescriptor(sandbox.globalObject, propName);
-    },
-    isExtensible: function isExtensible(sandbox) {
-        // TODO: can it becomes non-extensible?
-        return true;
-    },
-    getPrototypeOf: function getPrototypeOf$$1(sandbox) {
-        return null;
-    },
-    setPrototypeOf: function setPrototypeOf$$1(sandbox, prototype) {
-        return prototype === null ? true : false;
-    }
-};
-
-var HookFnName = '$RealmEvaluatorIIFE$';
-
-// Wrapping the source with `with` statement creates a new lexical scope,
-// that can prevent access to the globals in the sandbox by shadowing them
-// via globalProxy.
-function addLexicalScopesToSource(sourceText) {
   /**
-     * We use a `with` statement who uses `argments[0]`, which is the
-     * `sandbox.globalProxy` that implements the shadowing mechanism as well as access to
-     * any global variable.
-     * Aside from that, the `this` value in sourceText will correspond to `sandbox.thisValue`.
-     * We have to use `arguments` instead of naming them to avoid name collision.
+   * The process to repair constructors:
+   * 1. Obtain the prototype from an instance
+   * 2. Create a substitute noop constructor
+   * 3. Replace its prototype property with the original prototype
+   * 4. Replace its prototype property's constructor with itself
+   * 5. Replace its [[Prototype]] slot with the noop constructor of Function
    */
-    // escaping backsticks to prevent leaking the original eval as well as syntax errors
-    sourceText = sourceText.replace(/\`/g, '\\`');
-    return '\n        function ' + HookFnName + '() {\n            with(arguments[0]) {\n                return (function(){\n                    "use strict";\n                    return eval(`' + sourceText + '`);\n                }).call(this);\n            }\n        }\n    ';
-}
+  function repairFunction(sandbox, functionName, functionDecl) {
+    const { unsafeEval, unsafeFunction } = sandbox;
 
-function evalAndReturn(sourceText, sandbox) {
-    var iframeDocument = sandbox.iframeDocument,
-        confinedWindow = sandbox.confinedWindow;
-    var iframeBody = iframeDocument.body;
+    const FunctionInstance = unsafeEval(`(${functionDecl}(){})`);
+    const FunctionPrototype = getPrototypeOf(FunctionInstance);
 
-    var script = iframeDocument.createElement('script');
-    script.type = 'text/javascript';
-    confinedWindow[HookFnName] = undefined;
-    script.appendChild(iframeDocument.createTextNode(sourceText));
-    iframeBody.appendChild(script);
-    iframeBody.removeChild(script);
-    var result = confinedWindow[HookFnName];
-    confinedWindow[HookFnName] = undefined;
-    return result;
-}
+    // Block evaluation of source when calling constructor on the prototype of functions.
+    const TamedFunction = unsafeFunction('throw new Error();');
 
-function evaluate(sourceText, sandbox) {
-    if (!sourceText) {
-        return undefined;
+    defineProperties(TamedFunction, {
+      name: {
+        value: functionName
+      },
+      prototype: {
+        value: FunctionPrototype
+      }
+    });
+    defineProperty(FunctionPrototype, 'constructor', { value: TamedFunction });
+
+    // Prevent loop in case of Function.
+    if (functionName !== 'Function') {
+      setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
     }
-    sourceText = addLexicalScopesToSource(sourceText + '');
-    setInternalEvaluation();
-    var fn = evalAndReturn(sourceText, sandbox);
-    var result = fn.apply(sandbox.thisValue, [sandbox.globalProxy]);
-    resetInternalEvaluation();
-    return result;
   }
 
-function getEvalEvaluator(sandbox) {
-    var o = {
-        // trick to set the name of the function to "eval"
-        eval: function _eval(sourceText) {
-            // console.log(`Shim-Evaluation: "${sourceText}"`);
-            return evaluate(sourceText, sandbox);
-        }
-    };
-    setPrototypeOf(o.eval, sandbox.Function);
-    o.eval.toString = function () {
-        return 'function eval() { [shim code] }';
-    };
-    return o.eval;
+  /**
+   * This block replaces the original Function constructor, and the original
+   * %GeneratorFunction% %AsyncFunction% and %AsyncGeneratorFunction%, with
+   * safe replacements that preserve SES confinement. After this block is done,
+   * the originals should no longer be reachable.
+   */
+  function repairFunctions(sandbox) {
+    const { unsafeGlobal: g } = sandbox;
+    const hasAsyncIteration = typeof g.Symbol.asyncIterator !== 'undefined';
+
+    // Here, the order of operation is important: Function needs to be
+    // repaired first since the other constructors need it.
+    repairFunction(sandbox, 'Function', 'function');
+    repairFunction(sandbox, 'GeneratorFunction', 'function*');
+    repairFunction(sandbox, 'AsyncFunction', 'async function');
+    if (hasAsyncIteration) {
+      repairFunction(sandbox, 'AsyncGeneratorFunction', 'async function*');
+    }
   }
 
-function getFunctionEvaluator(sandbox) {
-    var confinedWindow = sandbox.confinedWindow;
+  // Sanitizing ensures that neither the legacy
+  // accessors nor the function constructors can be
+  // used to escape the confinement of the evaluators
+  // to execute in the sandbox.
 
-    var f = function Function() {
-        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-            args[_key] = arguments[_key];
-        }
-
-        // console.log(`Shim-Evaluation: Function("${args.join('", "')}")`);
-        var sourceText = args.pop();
-        var fnArgs = args.join(', ');
-        return evaluate("(function anonymous(" + fnArgs + "){\n" + sourceText + "\n}).bind(this)", sandbox);
-    };
-    f.prototype = confinedWindow.Function.prototype;
-    setPrototypeOf(f, f.prototype);
-    f.prototype.constructor = f;
-    f.toString = function () {
-        return 'function Function() { [shim code] }';
-    };
-    return f;
-}
-
-function getEvaluators(sandbox) {
-    sandbox.Function = getFunctionEvaluator(sandbox);
-    sandbox.eval = getEvalEvaluator(sandbox);
-}
-
-function createIframe() {
-    var el = document.createElement("iframe");
-    el.style.display = "none";
-    // accessibility
-    el.title = "script";
-    el.setAttribute('aria-hidden', true);
-    document.body.appendChild(el);
-    return el;
+  function sanitize(sandbox) {
+    repairAccessors(sandbox);
+    repairFunctions(sandbox);
   }
 
-function createSandbox() {
-    var iframe = createIframe();
-    var iframeDocument = iframe.contentDocument,
-        confinedWindow = iframe.contentWindow;
+  // The sandbox is shim-specific. It acts as the mechanism
+  // to obtain a fresh set of intrinsics together with their
+  // associated eval and Function evaluators. This association
+  // must be respected since the evaluators are imposing a
+  // set of intrinsics, aka the "undeniables".
 
-    var sandbox = {
-        iframe: iframe,
-        iframeDocument: iframeDocument,
-        confinedWindow: confinedWindow,
-        thisValue: undefined,
-        globalObject: undefined,
-        globalProxy: undefined
+  function createContext() {
+    const iframe = document.createElement('iframe');
+
+    iframe.title = 'script';
+    iframe.style.display = 'none';
+    iframe.setAttribute('aria-hidden', true);
+
+    document.body.appendChild(iframe);
+
+    return iframe.contentWindow;
+  }
+
+  function createSandbox(context) {
+    if (context === undefined) {
+      context = createContext();
+    }
+    // The sandbox is entirely defined by these three objects.
+    // Reusing the terminology from SES/Caja.
+    const sandbox = {
+      unsafeGlobal: context,
+      unsafeEval: context.eval,
+      unsafeFunction: context.Function
     };
+    if (sandbox.evalEvaluatorFactory === undefined) {
+      sandbox.evalEvaluatorFactory = createEvalEvaluatorFactory(sandbox);
+    }
     sanitize(sandbox);
-    assign(sandbox, getEvaluators(sandbox));
-    sandbox.globalProxy = new Proxy(sandbox, proxyHandler);
     return sandbox;
   }
 
-function setSandboxGlobalObject(sandbox, globalObject, thisValue) {
-    sandbox.thisValue = thisValue;
-    sandbox.globalObject = globalObject;
-}
+  function getStdLib(intrinsics) {
+    const i = intrinsics;
 
-var _typeof$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+    return {
+      // *** 18.1 Value Properties of the Global Object
+
+      Infinity: { value: Infinity },
+      NaN: { value: NaN },
+      undefined: { value: undefined },
+
+      // *** 18.2 Function Properties of the Global Object
+
+      eval: { value: i.eval },
+      isFinite: { value: i.isFinite },
+      isNaN: { value: i.isNaN },
+      parseFloat: { value: i.parseFloat },
+      parseInt: { value: i.parseInt },
+
+      decodeURI: { value: i.decodeURI },
+      decodeURIComponent: { value: i.decodeURIComponent },
+      encodeURI: { value: i.encodeURI },
+      encodeURIComponent: { value: i.encodeURIComponent },
+
+      // *** 18.3 Constructor Properties of the Global Object
+
+      Array: { value: i.Array },
+      ArrayBuffer: { value: i.ArrayBuffer },
+      Boolean: { value: i.Boolean },
+      DataView: { value: i.DataView },
+      Date: { value: i.Date },
+      Error: { value: i.Error },
+      EvalError: { value: i.EvalError },
+      Float32Array: { value: i.Float32Array },
+      Float64Array: { value: i.Float64Array },
+      Function: { value: i.Function },
+      Int8Array: { value: i.Int8Array },
+      Int16Array: { value: i.Int16Array },
+      Int32Array: { value: i.Int32Array },
+      Map: { value: i.Map },
+      Number: { value: i.Number },
+      Object: { value: i.Object },
+      Promise: { value: i.Promise },
+      Proxy: { value: i.Proxy },
+      RangeError: { value: i.RangeError },
+      ReferenceError: { value: i.ReferenceError },
+      RegExp: { value: i.RegExp },
+      Set: { value: i.Set },
+      // SharedArrayBuffer - Deprecated on Jan 5, 2018
+      String: { value: i.String },
+      Symbol: { value: i.Symbol },
+      SyntaxError: { value: i.SyntaxError },
+      TypeError: { value: i.TypeError },
+      Uint8Array: { value: i.Uint8Array },
+      Uint8ClampedArray: { value: i.Uint8ClampedArray },
+      Uint16Array: { value: i.Uint16Array },
+      Uint32Array: { value: i.Uint32Array },
+      URIError: { value: i.URIError },
+      WeakMap: { value: i.WeakMap },
+      WeakSet: { value: i.WeakSet },
+
+      // *** 18.4 Other Properties of the Global Object
+
+      Atomics: { value: i.Atomics },
+      JSON: { value: i.JSON },
+      Math: { value: i.Math },
+      Reflect: { value: i.Reflect },
+
+      // *** Annex B
+
+      escape: { value: i.escape },
+      unescape: { value: i.unescape },
+
+      // *** ECMA-402
+
+      Intl: { value: i.Intl },
+
+      // *** ESNext
+
+      Realm: { value: i.Realm }
+    };
+  }
 
   /**
    * Get the intrinsics from Table 7 & Annex B
+   * Named intrinsics: available as data properties of the global object.
+   * Anonymous intrinsics: not otherwise reachable by own property name traversal.
+   *
    * https://tc39.github.io/ecma262/#table-7
    * https://tc39.github.io/ecma262/#table-73
    */
-function getIntrinsics(sandbox) {
-    var global = sandbox.confinedWindow;
+  function getIntrinsics(global) {
+    const g = global;
 
     // Anonymous intrinsics.
 
-    var SymbolIterator = _typeof$1(global.Symbol) && global.Symbol.iterator || "@@iterator";
+    const SymbolIterator = g.Symbol.iterator;
 
-    var ArrayIteratorInstance = new global.Array()[SymbolIterator]();
-    var ArrayIteratorPrototype = getPrototypeOf(ArrayIteratorInstance);
-    var IteratorPrototype = getPrototypeOf(ArrayIteratorPrototype);
+    const ArrayIteratorInstance = new g.Array()[SymbolIterator]();
+    const ArrayIteratorPrototype = getPrototypeOf(ArrayIteratorInstance);
+    const IteratorPrototype = getPrototypeOf(ArrayIteratorPrototype);
 
-    var AsyncFunctionInstance = global.eval("(async function(){})");
-    var AsyncFunction = AsyncFunctionInstance.constructor;
-    var AsyncFunctionPrototype = AsyncFunction.prototype;
+    const AsyncFunctionInstance = g.eval('(async function(){})');
+    const AsyncFunction = AsyncFunctionInstance.constructor;
+    const AsyncFunctionPrototype = AsyncFunction.prototype;
 
-    var GeneratorFunctionInstance = global.eval("(function*(){})");
-    var GeneratorFunction = GeneratorFunctionInstance.constructor;
-    var Generator = GeneratorFunction.prototype;
-    var GeneratorPrototype = Generator.prototype;
+    const GeneratorFunctionInstance = g.eval('(function*(){})');
+    const GeneratorFunction = GeneratorFunctionInstance.constructor;
+    const Generator = GeneratorFunction.prototype;
+    const GeneratorPrototype = Generator.prototype;
 
-    var AsyncGeneratorFunctionInstance = void 0;
-    try {
-        AsyncGeneratorFunctionInstance = global.eval('(async function*(){})');
-    } catch (e) {
-        /* unsupported */
-    }
-    var AsyncGeneratorFunction = AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
-    var AsyncGenerator = AsyncGeneratorFunctionInstance && AsyncGeneratorFunction.prototype;
-    var AsyncGeneratorPrototype = AsyncGeneratorFunctionInstance && AsyncGenerator.prototype;
+    const hasAsyncIterator = typeof g.Symbol.asyncIterator !== 'undefined';
 
-    var AsyncFromSyncIteratorPrototype = AsyncGeneratorFunctionInstance && undefined; // TODO
-    var AsyncIteratorPrototype = AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorPrototype);
+    const AsyncGeneratorFunctionInstance = hasAsyncIterator && g.eval('(async function*(){})');
+    const AsyncGeneratorFunction = hasAsyncIterator && AsyncGeneratorFunctionInstance.constructor;
+    const AsyncGenerator = hasAsyncIterator && AsyncGeneratorFunction.prototype;
+    const AsyncGeneratorPrototype = hasAsyncIterator && AsyncGenerator.prototype;
 
-    var MapIteratorObject = new global.Map()[SymbolIterator]();
-    var MapIteratorPrototype = getPrototypeOf(MapIteratorObject);
+    const AsyncIteratorPrototype = hasAsyncIterator && getPrototypeOf(AsyncGeneratorPrototype);
+    const AsyncFromSyncIteratorPrototype = undefined; // Not reacheable.
 
-    var SetIteratorObject = new global.Set()[SymbolIterator]();
-    var SetIteratorPrototype = getPrototypeOf(SetIteratorObject);
+    const MapIteratorObject = new g.Map()[SymbolIterator]();
+    const MapIteratorPrototype = getPrototypeOf(MapIteratorObject);
 
-    var StringIteratorObject = new global.String()[SymbolIterator]();
-    var StringIteratorPrototype = getPrototypeOf(StringIteratorObject);
+    const SetIteratorObject = new g.Set()[SymbolIterator]();
+    const SetIteratorPrototype = getPrototypeOf(SetIteratorObject);
 
-    var ThrowTypeError = global.eval('(function () { "use strict"; return Object.getOwnPropertyDescriptor(arguments, "callee").get; })()');
+    const StringIteratorObject = new g.String()[SymbolIterator]();
+    const StringIteratorPrototype = getPrototypeOf(StringIteratorObject);
 
-    var TypedArray = getPrototypeOf(Int8Array);
-    var TypedArrayPrototype = TypedArray.prototype;
+    const ThrowTypeError = g.eval(
+      '(function () { "use strict"; return Object.getOwnPropertyDescriptor(arguments, "callee").get; })()'
+    );
+
+    const TypedArray = getPrototypeOf(g.Int8Array);
+    const TypedArrayPrototype = TypedArray.prototype;
 
     // Named intrinsics
 
-    return {
+    const intrinsics = {
       // *** Table 7
 
       // %Array%
-        Array: global.Array,
+      Array: g.Array,
       // %ArrayBuffer%
-        ArrayBuffer: global.ArrayBuffer,
+      ArrayBuffer: g.ArrayBuffer,
       // %ArrayBufferPrototype%
-        ArrayBufferPrototype: global.ArrayBuffer.prototype,
+      ArrayBufferPrototype: g.ArrayBuffer.prototype,
       // %ArrayIteratorPrototype%
-        ArrayIteratorPrototype: ArrayIteratorPrototype,
+      ArrayIteratorPrototype,
       // %ArrayPrototype%
-        ArrayPrototype: global.Array.prototype,
+      ArrayPrototype: g.Array.prototype,
       // %ArrayProto_entries%
-        ArrayProto_entries: global.Array.prototype.entries,
+      ArrayProto_entries: g.Array.prototype.entries,
       // %ArrayProto_foreach%
-        ArrayProto_foreach: global.Array.prototype.forEach,
+      ArrayProto_foreach: g.Array.prototype.forEach,
       // %ArrayProto_keys%
-        ArrayProto_keys: global.Array.prototype.forEach,
+      ArrayProto_keys: g.Array.prototype.forEach,
       // %ArrayProto_values%
-        ArrayProto_values: global.Array.prototype.values,
+      ArrayProto_values: g.Array.prototype.values,
       // %AsyncFromSyncIteratorPrototype%
-        AsyncFromSyncIteratorPrototype: AsyncFromSyncIteratorPrototype,
+      AsyncFromSyncIteratorPrototype,
       // %AsyncFunction%
-        AsyncFunction: AsyncFunction,
+      AsyncFunction,
       // %AsyncFunctionPrototype%
-        AsyncFunctionPrototype: AsyncFunctionPrototype,
+      AsyncFunctionPrototype,
       // %AsyncGenerator%
-        AsyncGenerator: AsyncGenerator,
+      AsyncGenerator,
       // %AsyncGeneratorFunction%
-        AsyncGeneratorFunction: AsyncGeneratorFunction,
+      AsyncGeneratorFunction,
       // %AsyncGeneratorPrototype%
-        AsyncGeneratorPrototype: AsyncGeneratorPrototype,
+      AsyncGeneratorPrototype,
       // %AsyncIteratorPrototype%
-        AsyncIteratorPrototype: AsyncIteratorPrototype,
+      AsyncIteratorPrototype,
       // %Atomics%
-        Atomics: global.Atomics,
+      Atomics: g.Atomics,
       // %Boolean%
-        Boolean: global.Boolean,
+      Boolean: g.Boolean,
       // %BooleanPrototype%
-        BooleanPrototype: global.Boolean.prototype,
+      BooleanPrototype: g.Boolean.prototype,
       // %DataView%
-        DataView: global.DataView,
+      DataView: g.DataView,
       // %DataViewPrototype%
-        DataViewPrototype: global.DataView.prototype,
+      DataViewPrototype: g.DataView.prototype,
       // %Date%
-        Date: global.Date,
+      Date: g.Date,
       // %DatePrototype%
-        DatePrototype: global.Date.prototype,
+      DatePrototype: g.Date.prototype,
       // %decodeURI%
-        decodeURI: global.decodeURI,
+      decodeURI: g.decodeURI,
       // %decodeURIComponent%
-        decodeURIComponent: global.decodeURIComponent,
+      decodeURIComponent: g.decodeURIComponent,
       // %encodeURI%
-        encodeURI: global.encodeURI,
+      encodeURI: g.encodeURI,
       // %encodeURIComponent%
-        encodeURIComponent: global.encodeURIComponent,
+      encodeURIComponent: g.encodeURIComponent,
       // %Error%
-        Error: global.Error,
+      Error: g.Error,
       // %ErrorPrototype%
-        ErrorPrototype: global.Error.prototype,
+      ErrorPrototype: g.Error.prototype,
       // %eval%
-        eval: sandbox.eval,
+      eval: g.eval,
       // %EvalError%
-        EvalError: global.EvalError,
+      EvalError: g.EvalError,
       // %EvalErrorPrototype%
-        EvalErrorPrototype: global.EvalError.prototype,
+      EvalErrorPrototype: g.EvalError.prototype,
       // %Float32Array%
-        Float32Array: global.Float32Array,
+      Float32Array: g.Float32Array,
       // %Float32ArrayPrototype%
-        Float32ArrayPrototype: global.Float32Array.prototype,
+      Float32ArrayPrototype: g.Float32Array.prototype,
       // %Float64Array%
-        Float64Array: global.Float64Array,
+      Float64Array: g.Float64Array,
       // %Float64ArrayPrototype%
-        Float64ArrayPrototype: global.Float64Array.prototype,
+      Float64ArrayPrototype: g.Float64Array.prototype,
       // %Function%
-        Function: sandbox.Function,
+      Function: g.Function,
       // %FunctionPrototype%
-        FunctionPrototype: sandbox.Function.prototype,
+      FunctionPrototype: g.Function.prototype,
       // %Generator%
-        Generator: Generator,
+      Generator,
       // %GeneratorFunction%
-        GeneratorFunction: GeneratorFunction,
+      GeneratorFunction,
       // %GeneratorPrototype%
-        GeneratorPrototype: GeneratorPrototype,
+      GeneratorPrototype,
       // %Int8Array%
-        Int8Array: global.Int8Array,
+      Int8Array: g.Int8Array,
       // %Int8ArrayPrototype%
-        Int8ArrayPrototype: global.Int8Array.prototype,
+      Int8ArrayPrototype: g.Int8Array.prototype,
       // %Int16Array%
-        Int16Array: global.Int16Array,
+      Int16Array: g.Int16Array,
       // %Int16ArrayPrototype%,
-        Int16ArrayPrototype: global.Int16Array.prototype,
+      Int16ArrayPrototype: g.Int16Array.prototype,
       // %Int32Array%
-        Int32Array: global.Int32Array,
+      Int32Array: g.Int32Array,
       // %Int32ArrayPrototype%
-        Int32ArrayPrototype: global.Int32Array.prototype,
+      Int32ArrayPrototype: g.Int32Array.prototype,
       // %isFinite%
-        isFinite: global.isFinite,
+      isFinite: g.isFinite,
       // %isNaN%
-        isNaN: global.isNaN,
+      isNaN: g.isNaN,
       // %IteratorPrototype%
-        IteratorPrototype: IteratorPrototype,
+      IteratorPrototype,
       // %JSON%
-        JSON: global.JSON,
+      JSON: g.JSON,
       // %JSONParse%
-        JSONParse: global.JSON.parse,
+      JSONParse: g.JSON.parse,
       // %Map%
-        Map: global.Map,
+      Map: g.Map,
       // %MapIteratorPrototype%
-        MapIteratorPrototype: MapIteratorPrototype,
+      MapIteratorPrototype,
       // %MapPrototype%
-        MapPrototype: global.Map.prototype,
+      MapPrototype: g.Map.prototype,
       // %Math%
-        Math: global.Math,
+      Math: g.Math,
       // %Number%
-        Number: global.Number,
+      Number: g.Number,
       // %NumberPrototype%
-        NumberPrototype: global.Number.prototype,
+      NumberPrototype: g.Number.prototype,
       // %Object%
-        Object: global.Object,
+      Object: g.Object,
       // %ObjectPrototype%
-        ObjectPrototype: global.Object.prototype,
+      ObjectPrototype: g.Object.prototype,
       // %ObjProto_toString%
-        ObjProto_toString: global.Object.prototype.toString,
+      ObjProto_toString: g.Object.prototype.toString,
       // %ObjProto_valueOf%
-        ObjProto_valueOf: global.Object.prototype.valueOf,
+      ObjProto_valueOf: g.Object.prototype.valueOf,
       // %parseFloat%
-        parseFloat: global.parseFloat,
+      parseFloat: g.parseFloat,
       // %parseInt%
-        parseInt: global.parseInt,
+      parseInt: g.parseInt,
       // %Promise%
-        Promise: global.Promise,
+      Promise: g.Promise,
       // %Promise_all%
-        Promise_all: global.Promise.all,
+      Promise_all: g.Promise.all,
       // %Promise_reject%
-        Promise_reject: global.Promise.reject,
+      Promise_reject: g.Promise.reject,
       // %Promise_resolve%
-        Promise_resolve: global.Promise.resolve,
+      Promise_resolve: g.Promise.resolve,
       // %PromiseProto_then%
-        PromiseProto_then: global.Promise.prototype.then,
+      PromiseProto_then: g.Promise.prototype.then,
       // %PromisePrototype%
-        PromisePrototype: global.Promise.prototype,
+      PromisePrototype: g.Promise.prototype,
       // %Proxy%
-        Proxy: global.Proxy,
+      Proxy: g.Proxy,
       // %RangeError%
-        RangeError: global.RangeError,
+      RangeError: g.RangeError,
       // %RangeErrorPrototype%
-        RangeErrorPrototype: global.RangeError.prototype,
+      RangeErrorPrototype: g.RangeError.prototype,
       // %ReferenceError%
-        ReferenceError: global.ReferenceError,
+      ReferenceError: g.ReferenceError,
       // %ReferenceErrorPrototype%
-        ReferenceErrorPrototype: global.ReferenceError.prototype,
+      ReferenceErrorPrototype: g.ReferenceError.prototype,
       // %Reflect%
-        Reflect: global.Reflect,
+      Reflect: g.Reflect,
       // %RegExp%
-        RegExp: global.RegExp,
+      RegExp: g.RegExp,
       // %RegExpPrototype%
-        RegExpPrototype: global.RegExp.prototype,
+      RegExpPrototype: g.RegExp.prototype,
       // %Set%
-        Set: global.Set,
+      Set: g.Set,
       // %SetIteratorPrototype%
-        SetIteratorPrototype: SetIteratorPrototype,
+      SetIteratorPrototype,
       // %SetPrototype%
-        SetPrototype: global.Set.prototype,
+      SetPrototype: g.Set.prototype,
       // %SharedArrayBuffer%
-        // SharedArrayBuffer: undefined, // Deprecated on Jan 5, 2018
+      // SharedArrayBuffer - Deprecated on Jan 5, 2018
       // %SharedArrayBufferPrototype%
-        // SharedArrayBufferPrototype: undefined, // Deprecated on Jan 5, 2018
+      // SharedArrayBufferPrototype - Deprecated on Jan 5, 2018
       // %String%
-        String: global.String,
+      String: g.String,
       // %StringIteratorPrototype%
-        StringIteratorPrototype: StringIteratorPrototype,
+      StringIteratorPrototype,
       // %StringPrototype%
-        StringPrototype: global.String.prototype,
+      StringPrototype: g.String.prototype,
       // %Symbol%
-        Symbol: global.Symbol,
+      Symbol: g.Symbol,
       // %SymbolPrototype%
-        SymbolPrototype: global.Symbol.prototype,
+      SymbolPrototype: g.Symbol.prototype,
       // %SyntaxError%
-        SyntaxError: global.SyntaxError,
+      SyntaxError: g.SyntaxError,
       // %SyntaxErrorPrototype%
-        SyntaxErrorPrototype: global.SyntaxError.prototype,
+      SyntaxErrorPrototype: g.SyntaxError.prototype,
       // %ThrowTypeError%
-        ThrowTypeError: ThrowTypeError,
+      ThrowTypeError,
       // %TypedArray%
-        TypedArray: TypedArray,
+      TypedArray,
       // %TypedArrayPrototype%
-        TypedArrayPrototype: TypedArrayPrototype,
+      TypedArrayPrototype,
       // %TypeError%
-        TypeError: global.TypeError,
+      TypeError: g.TypeError,
       // %TypeErrorPrototype%
-        TypeErrorPrototype: global.TypeError.prototype,
+      TypeErrorPrototype: g.TypeError.prototype,
       // %Uint8Array%
-        Uint8Array: global.Uint8Array,
+      Uint8Array: g.Uint8Array,
       // %Uint8ArrayPrototype%
-        Uint8ArrayPrototype: global.Uint8Array.prototype,
+      Uint8ArrayPrototype: g.Uint8Array.prototype,
       // %Uint8ClampedArray%
-        Uint8ClampedArray: global.Uint8ClampedArray,
+      Uint8ClampedArray: g.Uint8ClampedArray,
       // %Uint8ClampedArrayPrototype%
-        Uint8ClampedArrayPrototype: global.Uint8ClampedArray.prototype,
+      Uint8ClampedArrayPrototype: g.Uint8ClampedArray.prototype,
       // %Uint16Array%
-        Uint16Array: global.Uint16Array,
+      Uint16Array: g.Uint16Array,
       // %Uint16ArrayPrototype%
-        Uint16ArrayPrototype: Uint16Array.prototype,
+      Uint16ArrayPrototype: g.Uint16Array.prototype,
       // %Uint32Array%
-        Uint32Array: global.Uint32Array,
+      Uint32Array: g.Uint32Array,
       // %Uint32ArrayPrototype%
-        Uint32ArrayPrototype: global.Uint32Array.prototype,
+      Uint32ArrayPrototype: g.Uint32Array.prototype,
       // %URIError%
-        URIError: global.URIError,
+      URIError: g.URIError,
       // %URIErrorPrototype%
-        URIErrorPrototype: global.URIError.prototype,
+      URIErrorPrototype: g.URIError.prototype,
       // %WeakMap%
-        WeakMap: global.WeakMap,
+      WeakMap: g.WeakMap,
       // %WeakMapPrototype%
-        WeakMapPrototype: global.WeakMap.prototype,
+      WeakMapPrototype: g.WeakMap.prototype,
       // %WeakSet%
-        WeakSet: global.WeakSet,
+      WeakSet: g.WeakSet,
       // %WeakSetPrototype%
-        WeakSetPrototype: global.WeakSet.prototype,
+      WeakSetPrototype: g.WeakSet.prototype,
 
       // *** Annex B
 
       // %escape%
-        escape: global.escape,
+      escape: g.escape,
       // %unescape%
-        unescape: global.unescape,
+      unescape: g.unescape,
 
-        // TODO: Other special cases
+      // *** ECMA-402
 
-        // *** ESNext
-        Realm: Realm // intentionally passing around the Realm Constructor, which could be used as a side channel, but still!
+      Intl: g.Intl,
+
+      // *** ESNext
+
+      Realm // intentionally passing around the Realm Constructor, which could be used as a side channel, but still!
     };
-}
 
-function getStdLib(sandbox) {
-    var intrinsics = getIntrinsics(sandbox);
-
-    return {
-        // *** 18.1 Value Properties of the Global Object
-
-        Infinity: { value: Infinity },
-        NaN: { value: NaN },
-        undefined: { value: undefined },
-
-        // *** 18.2 Function Properties of the Global Object
-
-        eval: { value: intrinsics.eval },
-        isFinite: { value: intrinsics.isFinite },
-        isNaN: { value: intrinsics.isNaN },
-        parseFloat: { value: intrinsics.parseFloat },
-        parseInt: { value: intrinsics.parseInt },
-
-        decodeURI: { value: intrinsics.decodeURI },
-        decodeURIComponent: { value: intrinsics.decodeURIComponent },
-        encodeURI: { value: intrinsics.encodeURI },
-        encodeURIComponent: { value: intrinsics.encodeURIComponent },
-
-        // *** 18.3 Constructor Properties of the Global Object
-
-        Array: { value: intrinsics.Array },
-        ArrayBuffer: { value: intrinsics.ArrayBuffer },
-        Boolean: { value: intrinsics.Boolean },
-        DataView: { value: intrinsics.DataView },
-        Date: { value: intrinsics.Date },
-        Error: { value: intrinsics.Error },
-        EvalError: { value: intrinsics.EvalError },
-        Float32Array: { value: intrinsics.Float32Array },
-        Float64Array: { value: intrinsics.Float64Array },
-        Function: { value: intrinsics.Function },
-        Int8Array: { value: intrinsics.Int8Array },
-        Int16Array: { value: intrinsics.Int16Array },
-        Int32Array: { value: intrinsics.Int32Array },
-        Map: { value: intrinsics.Map },
-        Number: { value: intrinsics.Number },
-        Object: { value: intrinsics.Object },
-        Promise: { value: intrinsics.Promise },
-        Proxy: { value: intrinsics.Proxy },
-        RangeError: { value: intrinsics.RangeError },
-        ReferenceError: { value: intrinsics.ReferenceError },
-        RegExp: { value: intrinsics.RegExp },
-        Set: { value: intrinsics.Set },
-        // Deprecated
-        // SharedArrayBuffer: intrinsics.SharedArrayBuffer,
-        String: { value: intrinsics.String },
-        Symbol: { value: intrinsics.Symbol },
-        SyntaxError: { value: intrinsics.SyntaxError },
-        TypeError: { value: intrinsics.TypeError },
-        Uint8Array: { value: intrinsics.Uint8Array },
-        Uint8ClampedArray: { value: intrinsics.Uint8ClampedArray },
-        Uint16Array: { value: intrinsics.Uint16Array },
-        Uint32Array: { value: intrinsics.Uint32Array },
-        URIError: { value: intrinsics.URIError },
-        WeakMap: { value: intrinsics.WeakMap },
-        WeakSet: { value: intrinsics.WeakSet },
-
-        // *** 18.4 Other Properties of the Global Object
-
-        Atomics: { value: intrinsics.Atomics },
-        JSON: { value: intrinsics.JSON },
-        Math: { value: intrinsics.Math },
-        Reflect: { value: intrinsics.Reflect },
-
-        // *** Annex B
-
-        escape: { value: intrinsics.escape },
-        unescape: { value: intrinsics.unescape }
-    };
+    return intrinsics;
   }
 
   function assert(condition) {
@@ -644,40 +732,36 @@ function getStdLib(sandbox) {
     return typeof obj === 'function';
   }
 
-var _createClass = function () { function defineProperties$$1(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties$$1(Constructor.prototype, protoProps); if (staticProps) defineProperties$$1(Constructor, staticProps); return Constructor; }; }();
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var RealmRecord = Symbol('Realm Slot');
-var Intrinsics = Symbol('Intrinsics Slot');
-var GlobalObject = Symbol('GlobalObject Slot');
-var GlobalThisValue = Symbol('GlobalThisValue Slot');
-var GlobalEnv = Symbol('GlobalEnv Slot');
-var EvalHook = Symbol('EvalHook Slot');
-var IsDirectEvalHook = Symbol('IsDirectEvalHook Slot');
-var ImportHook = Symbol('ImportHook Slot');
-var ImportMetaHook = Symbol('ImportMetaHook Slot');
-var ShimSandbox = Symbol('Sandbox');
-
   // shim specific
   function getSandbox(realmRec) {
-    var sandbox = realmRec[ShimSandbox];
-    assert((typeof sandbox === "undefined" ? "undefined" : _typeof(sandbox)) === 'object');
+    const sandbox = realmRec[ShimSandbox];
+    assert(typeof sandbox === 'object');
     return sandbox;
   }
 
+  // shim specific
+  function getExecutionContext() {
+    // eslint-disable-next-line no-new-func
+    return new Function('return this')();
+  }
+
+  // shim specific
   function getCurrentRealmRecord() {
-    var realmRec = window[RealmRecord];
-    if (!realmRec) {
-        // this is an outer realm, and we should set up the RealmRecord
-        window[RealmRecord] = {
-            // TODO: mimic what the global realm record should have
-            // including default hooks, etc.
+    const context = getExecutionContext();
+    let realmRec = context[RealmRecord];
+    if (realmRec === undefined) {
+      // If there is no realm slot, then we are outside of a realm shim,
+      // and we emulate what the current realm record should be. This is
+      // a root realm and we define all fields based on the context.
+      const sandbox = createSandbox(context);
+      realmRec = {
+        [Intrinsics]: getIntrinsics(sandbox.unsafeGlobal),
+        [GlobalObject]: sandbox.unsafeGlobal,
+        [EvalHook]: sandbox.unsafeEval,
+        [ShimSandbox]: sandbox
       };
+      // Setup the RealmRecord for the next execution.
+      context[RealmRecord] = realmRec;
     }
     return realmRec;
   }
@@ -686,51 +770,71 @@ var ShimSandbox = Symbol('Sandbox');
   function NewGlobalEnvironment(G, thisValue) {
     // diverging from spec to accomodate the iframe as the lexical environment
     // using a class for better debugability
-    var EnvironmentRecord = function EnvironmentRecord() /*globalObject*/{
-        _classCallCheck(this, EnvironmentRecord);
-
+    class EnvironmentRecord {
+      constructor(/*globalObject*/) {
         this[GlobalThisValue] = thisValue;
-    };
-
+      }
+    }
     return new EnvironmentRecord(G);
   }
 
   // <!-- es6num="8.2.3" -->
   function SetRealmGlobalObject(realmRec, globalObj, thisValue) {
     if (globalObj === undefined) {
-        var intrinsics = realmRec[Intrinsics];
-        globalObj = create(intrinsics['ObjectPrototype']);
+      const intrinsics = realmRec[Intrinsics];
+      globalObj = create(intrinsics.ObjectPrototype);
     }
-    assert((typeof globalObj === "undefined" ? "undefined" : _typeof(globalObj)) === 'object');
+    assert(typeof globalObj === 'object');
     if (thisValue === undefined) thisValue = globalObj;
     realmRec[GlobalObject] = globalObj;
-    var newGlobalEnv = NewGlobalEnvironment(globalObj, thisValue);
+    const newGlobalEnv = NewGlobalEnvironment(globalObj, thisValue);
     realmRec[GlobalEnv] = newGlobalEnv;
     return realmRec;
   }
 
   // <!-- es6num="8.2.4" -->
   function SetDefaultGlobalBindings(realmRec) {
-    var global = realmRec[GlobalObject];
-    // For each property of the Global Object specified in clause <emu-xref href="#sec-global-object"></emu-xref>, do
-    // ---> diverging:
-    var GlobalObjectDescriptors = getStdLib(realmRec[ShimSandbox]);
-    defineProperties(global, GlobalObjectDescriptors);
+    const global = realmRec[GlobalObject];
+    // For each property of the Global Object specified in clause 18, do
+    // ---> diverging
+    const intrinsics = realmRec[Intrinsics];
+    const descs = getStdLib(intrinsics);
+    defineProperties(global, descs);
+    // <--- diverging
     return global;
   }
 
   // <!-- es6num="8.2.2" -->
   function CreateIntrinsics(realmRec) {
     // ---> diverging
-    var intrinsics = getIntrinsics(realmRec[ShimSandbox]);
+    const sandbox = getSandbox(realmRec);
+    const intrinsics = getIntrinsics(sandbox.unsafeGlobal);
+    // <--- diverging
     realmRec[Intrinsics] = intrinsics;
     return intrinsics;
   }
 
-function CreateRealmRec(intrinsics) {
-    var _realmRec;
+  // <!-- proposal="11.1.1" -->
+  // <!-- deprecates es6num="8.2.1" -->
+  function CreateRealmRec(intrinsics, /* shim specific */ sandbox) {
+    const realmRec = {
+      // ES specs table-21
+      [Intrinsics]: {},
+      [GlobalObject]: undefined,
+      [GlobalEnv]: undefined,
+      // [TemplateMap]: [],
+      // [HostDefined]: undefined,
 
-    var realmRec = (_realmRec = {}, _defineProperty(_realmRec, Intrinsics, {}), _defineProperty(_realmRec, GlobalObject, undefined), _defineProperty(_realmRec, GlobalEnv, undefined), _defineProperty(_realmRec, EvalHook, undefined), _defineProperty(_realmRec, IsDirectEvalHook, undefined), _defineProperty(_realmRec, ImportHook, undefined), _defineProperty(_realmRec, ImportMetaHook, undefined), _defineProperty(_realmRec, ShimSandbox, createSandbox()), _realmRec);
+      // Realm specs table-2
+      [EvalHook]: undefined,
+      [IsDirectEvalHook]: undefined,
+      [ImportHook]: undefined,
+      [ImportMetaHook]: undefined,
+
+      // ---> diverging
+      [ShimSandbox]: sandbox
+      // <--- diverging
+    };
     if (intrinsics === undefined) {
       CreateIntrinsics(realmRec);
     } else {
@@ -740,9 +844,10 @@ function CreateRealmRec(intrinsics) {
     return realmRec;
   }
 
+  // <!-- proposal="1.2" -->
   function InvokeDirectEvalHook(realmRec, x) {
     // 1. Assert: realm is a Realm Record.
-    var fn = realmRec[EvalHook];
+    const fn = realmRec[EvalHook];
     if (fn === undefined) return x;
     assert(IsCallable(fn) === true);
     return fn.call(undefined, x);
@@ -751,52 +856,88 @@ function CreateRealmRec(intrinsics) {
   // <!-- es6num="18.2.1.1" -->
   function PerformEval(x, evalRealm, strictCaller, direct) {
     assert(direct === false ? strictCaller === false : true);
-    // realm spec segment begins
+    if (typeof x !== 'string') return x;
+    // ---> diverging
     if (direct === true) {
       x = InvokeDirectEvalHook(x, evalRealm);
     }
-    // realm spec segment ends
-    if (typeof x !== 'string') return x;
-    // ---> diverging
-    var sandbox = getSandbox(evalRealm);
-    return evaluate(x, sandbox);
+    return evalRealm[EvalHook](x);
   }
 
-var Realm = function () {
-    function Realm(options) {
-        _classCallCheck(this, Realm);
+  // <!-- proposal="11.3.1" -->
+  class Realm {
+    constructor(options) {
+      const O = this;
+      const parentRealm = getCurrentRealmRecord();
+      const opts = Object(options);
 
-        var O = this;
-        var parentRealm = getCurrentRealmRecord();
-        var opts = Object(options);
-        var importHook = opts.importHook;
-        if (importHook === "inherit") {
+      let importHook = opts.importHook;
+      if (importHook === 'inherit') {
         importHook = parentRealm[ImportHook];
-        } else if (importHook !== undefined && IsCallable(importHook) === false) throw new TypeError();
-        var importMetaHook = opts.importMetaHook;
-        if (importMetaHook === "inherit") {
+      } else if (importHook !== undefined && IsCallable(importHook) === false) {
+        throw new TypeError();
+      }
+
+      let importMetaHook = opts.importMetaHook;
+      if (importMetaHook === 'inherit') {
         importMetaHook = parentRealm[ImportMetaHook];
-        } else if (importMetaHook !== undefined && IsCallable(importMetaHook) === false) throw new TypeError();
-        var evalHook = opts.evalHook;
-        if (evalHook === "inherit") {
+      } else if (importMetaHook !== undefined && IsCallable(importMetaHook) === false) {
+        throw new TypeError();
+      }
+
+      let evalHook = opts.evalHook;
+      if (evalHook === 'inherit') {
         evalHook = parentRealm[EvalHook];
-        } else if (evalHook !== undefined && IsCallable(evalHook) === false) throw new TypeError();
-        var isDirectEvalHook = opts.isDirectEvalHook;
-        if (isDirectEvalHook === "inherit") {
+      } else if (evalHook !== undefined && IsCallable(evalHook) === false) {
+        throw new TypeError();
+      }
+
+      let isDirectEvalHook = opts.isDirectEvalHook;
+      if (isDirectEvalHook === 'inherit') {
         isDirectEvalHook = parentRealm[IsDirectEvalHook];
-        } else if (isDirectEvalHook !== undefined && IsCallable(isDirectEvalHook) === false) throw new TypeError();
-        var intrinsics = opts.intrinsics;
-        if (intrinsics === "inherit") {
+      } else if (isDirectEvalHook !== undefined && IsCallable(isDirectEvalHook) === false) {
+        throw new TypeError();
+      }
+
+      // ---> diverging
+      // Limitation: intrisics and sandbox must always match. We
+      // known this early during the constuction of the realm.
+      let intrinsics = opts.intrinsics;
+      let sandbox;
+      if (intrinsics === 'inherit') {
+        // When we inherit the intrinsics, we also must
+        // inherit the sandbox.
         intrinsics = parentRealm[Intrinsics];
-        } else if (intrinsics !== undefined) throw new TypeError();
-        var thisValue = opts.thisValue;
-        if (thisValue !== undefined && (typeof thisValue === "undefined" ? "undefined" : _typeof(thisValue)) !== "object") throw new TypeError();
-        var realmRec = CreateRealmRec(intrinsics);
+        sandbox = parentRealm[ShimSandbox];
+      } else if (intrinsics === undefined) {
+        // When intrinics are not specified, we
+        // need to create a sandbox.
+        sandbox = createSandbox();
+      } else {
+        throw new TypeError();
+      }
+      // <--- diverging
+
+      const thisValue = opts.thisValue;
+      if (thisValue !== undefined && typeof thisValue !== 'object') {
+        throw new TypeError();
+      }
+
+      const realmRec = CreateRealmRec(intrinsics, sandbox);
       O[RealmRecord] = realmRec;
+
       SetRealmGlobalObject(realmRec, undefined, thisValue);
+      // ---> diverging
+      // Limitation: the evaluators are tied to a global object and
+      // need to be created after the global object. It is process
+      // also updates the intrinsics.
+      createEvalEvaluator(realmRec);
+      createFunctionEvaluator(realmRec);
+      // <--- diverging
+
       if (importHook === undefined) {
         // new built-in function object as defined in <emu-xref href="#sec-realm-default-import-hook-functions"></emu-xref>
-            importHook = function importHook() /*referrer, specifier*/{
+        importHook = function(/*referrer, specifier*/) {
           throw new TypeError();
         };
       }
@@ -807,76 +948,63 @@ var Realm = function () {
       if (isDirectEvalHook !== undefined) {
         realmRec[IsDirectEvalHook] = isDirectEvalHook;
       }
-        var init = O.init;
+
+      const init = O.init;
       if (!IsCallable(init)) throw new TypeError();
       init.call(O);
-        // ---> diverging
-        setSandboxGlobalObject(realmRec[ShimSandbox], realmRec[GlobalObject], realmRec[GlobalEnv][GlobalThisValue]);
     }
 
-    _createClass(Realm, [{
-        key: "init",
-        value: function init() {
-            var O = this;
-            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+    init() {
+      const O = this;
+      if (typeof O !== 'object') throw new TypeError();
       if (!(RealmRecord in O)) throw new TypeError();
       SetDefaultGlobalBindings(O[RealmRecord]);
     }
-    }, {
-        key: "eval",
-        value: function _eval(x) {
-            var O = this;
-            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+
+    eval(x) {
+      const O = this;
+      if (typeof O !== 'object') throw new TypeError();
       if (!(RealmRecord in O)) throw new TypeError();
-            var evalRealm = O[RealmRecord];
+      const evalRealm = O[RealmRecord];
       // HostEnsureCanCompileStrings(the current Realm Record, _evalRealm_).
       return PerformEval(x, evalRealm, false, false);
     }
-    }, {
-        key: "stdlib",
-        get: function get() {
-            var O = this;
-            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+
+    get stdlib() {
+      const O = this;
+      if (typeof O !== 'object') throw new TypeError();
       if (!(RealmRecord in O)) throw new TypeError();
       // TODO: align with spec
-            var sandbox = getSandbox(O[RealmRecord]);
-            return getStdLib(sandbox);
-        }
-    }, {
-        key: "intrinsics",
-        get: function get() {
-            var O = this;
-            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+      const intrinsics = O[RealmRecord][Intrinsics];
+      return getStdLib(intrinsics);
+    }
+
+    get intrinsics() {
+      const O = this;
+      if (typeof O !== 'object') throw new TypeError();
       if (!(RealmRecord in O)) throw new TypeError();
       // TODO: align with spec
-            var sandbox = getSandbox(O[RealmRecord]);
-            return getIntrinsics(sandbox.confinedWindow);
-        }
-    }, {
-        key: "global",
-        get: function get() {
-            var O = this;
-            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+      const intrinsics = O[RealmRecord][Intrinsics];
+      return assign({}, intrinsics);
+    }
+
+    get global() {
+      const O = this;
+      if (typeof O !== 'object') throw new TypeError();
       if (!(RealmRecord in O)) throw new TypeError();
       return O[RealmRecord][GlobalObject];
     }
-    }, {
-        key: "thisValue",
-        get: function get() {
-            var O = this;
-            if ((typeof O === "undefined" ? "undefined" : _typeof(O)) !== 'object') throw new TypeError();
+
+    get thisValue() {
+      const O = this;
+      if (typeof O !== 'object') throw new TypeError();
       if (!(RealmRecord in O)) throw new TypeError();
-            var envRec = O[RealmRecord][GlobalEnv];
+      const envRec = O[RealmRecord][GlobalEnv];
       return envRec[GlobalThisValue];
     }
-    }]);
+  }
 
-    return Realm;
-}();
-
-Realm.toString = function () {
-    return 'function Realm() { [shim code] }';
-};
+  Realm.toString = () => 'function Realm() { [shim code] }';
 
   return Realm;
 
