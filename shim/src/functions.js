@@ -3,7 +3,7 @@
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/startSES.js
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/repairES5.js
 
-import { defineProperty, defineProperties, getPrototypeOf, setPrototypeOf } from '../utils/commons';
+import { defineProperty, defineProperties, getPrototypeOf, setPrototypeOf } from './commons';
 
 /**
  * The process to repair constructors:
@@ -13,15 +13,16 @@ import { defineProperty, defineProperties, getPrototypeOf, setPrototypeOf } from
  * 4. Replace its prototype property's constructor with itself
  * 5. Replace its [[Prototype]] slot with the noop constructor of Function
  */
-function repairFunction(realmRec, functionName, functionDecl) {
-  const { unsafeGlobal, unsafeEval, unsafeFunction } = realmRec;
+function repairFunction(sandbox, functionName, functionDecl) {
+  const { unsafeEval, unsafeFunction } = sandbox;
 
   const FunctionInstance = unsafeEval(`(${functionDecl}(){})`);
   const FunctionPrototype = getPrototypeOf(FunctionInstance);
 
-  const RealmFunction = unsafeFunction('return function(){}');
+  // Block evaluation of source when calling constructor on the prototype of functions.
+  const TamedFunction = unsafeFunction('throw new Error();');
 
-  defineProperties(RealmFunction, {
+  defineProperties(TamedFunction, {
     name: {
       value: functionName
     },
@@ -29,11 +30,11 @@ function repairFunction(realmRec, functionName, functionDecl) {
       value: FunctionPrototype
     }
   });
-  defineProperty(FunctionPrototype, 'constructor', { value: RealmFunction });
+  defineProperty(FunctionPrototype, 'constructor', { value: TamedFunction });
 
   // Prevent loop in case of Function.
-  if (RealmFunction !== unsafeGlobal.Function.prototype.constructor) {
-    setPrototypeOf(RealmFunction, unsafeGlobal.Function.prototype.constructor);
+  if (functionName !== 'Function') {
+    setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
   }
 }
 
@@ -43,16 +44,16 @@ function repairFunction(realmRec, functionName, functionDecl) {
  * safe replacements that preserve SES confinement. After this block is done,
  * the originals should no longer be reachable.
  */
-export function repairFunctions(realmRec) {
-  const { unsafeGlobal } = realmRec;
-  const hasAsyncIteration = typeof unsafeGlobal.Symbol.asyncIterator !== 'undefined';
+export function repairFunctions(sandbox) {
+  const { unsafeGlobal: g } = sandbox;
+  const hasAsyncIteration = typeof g.Symbol.asyncIterator !== 'undefined';
 
   // Here, the order of operation is important: Function needs to be
   // repaired first since the other constructors need it.
-  repairFunction(realmRec, 'Function', 'function');
-  repairFunction(realmRec, 'GeneratorFunction', 'function*');
-  repairFunction(realmRec, 'AsyncFunction', 'async function');
+  repairFunction(sandbox, 'Function', 'function');
+  repairFunction(sandbox, 'GeneratorFunction', 'function*');
+  repairFunction(sandbox, 'AsyncFunction', 'async function');
   if (hasAsyncIteration) {
-    repairFunction(realmRec, 'AsyncGeneratorFunction', 'async function*');
+    repairFunction(sandbox, 'AsyncGeneratorFunction', 'async function*');
   }
 }
