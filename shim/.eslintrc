@@ -1,12 +1,45 @@
 {
-    "extends": "eslint:recommended",
-    "parser": "babel-eslint",
-    "env": {
-        "es6": true,
-        "browser": true
-    },
-    "parserOptions": {
-        "ecmaVersion": 6,
-        "sourceType": "module"
-    }
+  "extends": ["airbnb-base", "prettier"],
+  "root": true,
+  "env": {
+    "amd": true,
+    "browser": true,
+    "es6": true,
+    "node": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2015,
+    "sourceType": "module"
+  },
+  "plugins": [
+    "prettier"
+  ],
+  "rules": {
+    "prettier/prettier": "error",
+    // Overriden
+    "import/named": "error",
+    "no-eval": "off",
+    "prefer-destructuring": "off",
+    // TODOs - Temporarily disable rules, fix this progressively
+    "no-param-reassign": "off",
+    "no-cond-assign": "off",
+    "func-names": "off",
+    "no-nested-ternary": "off",
+    "no-plusplus": "off",
+    "strict": "off",
+    "no-restricted-syntax": "off",
+    "import/no-mutable-exports": "off",
+    "guard-for-in": "off",
+    "import/prefer-default-export": "off",
+    "prefer-rest-params": "off",
+    "one-var": "off",
+    "prefer-spread": "off",
+    "no-lonely-if": "off",
+    "no-prototype-builtins": "off",
+    "no-continue": "off",
+    "no-shadow": "off",
+    // Rules up for discussion
+    "no-multi-assign": "off",
+    // TODOs - end
+  }
 }

@@ -1,9 +1,9 @@
 export function assert(condition) {
-    if (!condition) {
-        throw new Error();
-    }
+  if (!condition) {
+    throw new Error();
+  }
 }
 
 export function IsCallable(obj) {
-    return typeof obj === 'function';
+  return typeof obj === 'function';
 }
