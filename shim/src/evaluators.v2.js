@@ -16,7 +16,9 @@ export function setUnfrozenSet(names) {
  * the JIT optimizer to link to static references.
  */
 function createEvalEvaluatorFactory(sandbox) {
-  const { realmRec: { unsafeFunction } } = sandbox;
+  const {
+    realmRec: { unsafeFunction }
+  } = sandbox;
 
   // Function and eval are not in our standard lib. Only Function
   // is added here since eval needs to context switch and can't be
@@ -34,7 +36,9 @@ function createEvalEvaluatorFactory(sandbox) {
 
 class FreezingHandler {
   constructor(sandbox) {
-    const { realmRec: { unsafeGlobal } } = sandbox;
+    const {
+      realmRec: { unsafeGlobal }
+    } = sandbox;
     this.unsafeGlobal = unsafeGlobal;
   }
   setInternalEval() {
@@ -125,7 +129,9 @@ export function createEvalEvaluator(sandbox) {
  * the safety of evalEvaluator for confinement.
  */
 export function createFunctionEvaluator(sandbox) {
-  const { realmRec: { unsafeFunction } } = sandbox;
+  const {
+    realmRec: { unsafeFunction }
+  } = sandbox;
 
   const evaluator = function(...params) {
     const functionBody = params.pop() || '';
