@@ -1,76 +1,83 @@
-import { getIntrinsics } from "./intrinsics";
+import { getIntrinsics } from './intrinsics';
 
 export function getStdLib(sandbox) {
-    const intrinsics = getIntrinsics(sandbox);
+  const i = getIntrinsics(sandbox);
 
-    return {
-        // *** 18.1 Value Properties of the Global Object
+  return {
+    // *** 18.1 Value Properties of the Global Object
 
-        Infinity: { value: Infinity },
-        NaN: { value: NaN },
-        undefined: { value: undefined },
+    Infinity: { value: Infinity },
+    NaN: { value: NaN },
+    undefined: { value: undefined },
 
-        // *** 18.2 Function Properties of the Global Object
+    // *** 18.2 Function Properties of the Global Object
 
-        eval: { value: intrinsics.eval },
-        isFinite: { value: intrinsics.isFinite },
-        isNaN: { value: intrinsics.isNaN },
-        parseFloat: { value: intrinsics.parseFloat },
-        parseInt: { value: intrinsics.parseInt },
+    eval: { value: i.eval },
+    isFinite: { value: i.isFinite },
+    isNaN: { value: i.isNaN },
+    parseFloat: { value: i.parseFloat },
+    parseInt: { value: i.parseInt },
 
-        decodeURI: { value: intrinsics.decodeURI },
-        decodeURIComponent: { value: intrinsics.decodeURIComponent },
-        encodeURI: { value: intrinsics.encodeURI },
-        encodeURIComponent: { value: intrinsics.encodeURIComponent },
+    decodeURI: { value: i.decodeURI },
+    decodeURIComponent: { value: i.decodeURIComponent },
+    encodeURI: { value: i.encodeURI },
+    encodeURIComponent: { value: i.encodeURIComponent },
 
-        // *** 18.3 Constructor Properties of the Global Object
+    // *** 18.3 Constructor Properties of the Global Object
 
-        Array: { value: intrinsics.Array },
-        ArrayBuffer: { value: intrinsics.ArrayBuffer },
-        Boolean: { value: intrinsics.Boolean },
-        DataView: { value: intrinsics.DataView },
-        Date: { value: intrinsics.Date },
-        Error: { value: intrinsics.Error },
-        EvalError: { value: intrinsics.EvalError },
-        Float32Array: { value: intrinsics.Float32Array },
-        Float64Array: { value: intrinsics.Float64Array },
-        Function: { value: intrinsics.Function },
-        Int8Array: { value: intrinsics.Int8Array },
-        Int16Array: { value: intrinsics.Int16Array },
-        Int32Array: { value: intrinsics.Int32Array },
-        Map: { value: intrinsics.Map },
-        Number: { value: intrinsics.Number },
-        Object: { value: intrinsics.Object },
-        Promise: { value: intrinsics.Promise },
-        Proxy: { value: intrinsics.Proxy },
-        RangeError: { value: intrinsics.RangeError },
-        ReferenceError: { value: intrinsics.ReferenceError },
-        RegExp: { value: intrinsics.RegExp },
-        Set: { value: intrinsics.Set },
-        // Deprecated
-        // SharedArrayBuffer: intrinsics.SharedArrayBuffer,
-        String: { value: intrinsics.String },
-        Symbol: { value: intrinsics.Symbol },
-        SyntaxError: { value: intrinsics.SyntaxError },
-        TypeError: { value: intrinsics.TypeError },
-        Uint8Array: { value: intrinsics.Uint8Array },
-        Uint8ClampedArray: { value: intrinsics.Uint8ClampedArray },
-        Uint16Array: { value: intrinsics.Uint16Array },
-        Uint32Array: { value: intrinsics.Uint32Array },
-        URIError: { value: intrinsics.URIError },
-        WeakMap: { value: intrinsics.WeakMap },
-        WeakSet: { value: intrinsics.WeakSet },
+    Array: { value: i.Array },
+    ArrayBuffer: { value: i.ArrayBuffer },
+    Boolean: { value: i.Boolean },
+    DataView: { value: i.DataView },
+    Date: { value: i.Date },
+    Error: { value: i.Error },
+    EvalError: { value: i.EvalError },
+    Float32Array: { value: i.Float32Array },
+    Float64Array: { value: i.Float64Array },
+    Function: { value: i.Function },
+    Int8Array: { value: i.Int8Array },
+    Int16Array: { value: i.Int16Array },
+    Int32Array: { value: i.Int32Array },
+    Map: { value: i.Map },
+    Number: { value: i.Number },
+    Object: { value: i.Object },
+    Promise: { value: i.Promise },
+    Proxy: { value: i.Proxy },
+    RangeError: { value: i.RangeError },
+    ReferenceError: { value: i.ReferenceError },
+    RegExp: { value: i.RegExp },
+    Set: { value: i.Set },
+    // SharedArrayBuffer - Deprecated on Jan 5, 2018
+    String: { value: i.String },
+    Symbol: { value: i.Symbol },
+    SyntaxError: { value: i.SyntaxError },
+    TypeError: { value: i.TypeError },
+    Uint8Array: { value: i.Uint8Array },
+    Uint8ClampedArray: { value: i.Uint8ClampedArray },
+    Uint16Array: { value: i.Uint16Array },
+    Uint32Array: { value: i.Uint32Array },
+    URIError: { value: i.URIError },
+    WeakMap: { value: i.WeakMap },
+    WeakSet: { value: i.WeakSet },
 
-        // *** 18.4 Other Properties of the Global Object
+    // *** 18.4 Other Properties of the Global Object
 
-        Atomics: { value: intrinsics.Atomics },
-        JSON: { value: intrinsics.JSON },
-        Math: { value: intrinsics.Math },
-        Reflect: { value: intrinsics.Reflect },
+    Atomics: { value: i.Atomics },
+    JSON: { value: i.JSON },
+    Math: { value: i.Math },
+    Reflect: { value: i.Reflect },
 
-        // *** Annex B
+    // *** Annex B
 
-        escape: { value: intrinsics.escape },
-        unescape: { value: intrinsics.unescape }
-    };
+    escape: { value: i.escape },
+    unescape: { value: i.unescape },
+
+    // *** ECMA-402
+
+    Intl: { value: i.Intl },
+
+    // *** ESNext
+
+    Realm: { value: i.Realm }
+  };
 }
