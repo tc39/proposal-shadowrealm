@@ -2,59 +2,59 @@
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/startSES.js
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/repairES5.js
 
-import { getPrototypeOf, defineProperty, getOwnPropertyDescriptor } from './commons';
+import {
+  getPrototypeOf,
+  defineProperty,
+  defineProperties,
+  getOwnPropertyDescriptor
+} from './commons';
 
-// Fix legacy accessors to comply with strict mode and ES2016 semantics,
-// we need to redefine them while in strict mode.
-// https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
+/**
+ * Replace the legacy accessors of Object to comply with strict mode
+ * and ES2016 semantics, we do this by redefining them while in 'use strict'
+ * https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
+ */
+export function repairAccessors(sandbox) {
+  const { unsafeGlobal: g } = sandbox;
 
-export function repairAccessors(objProto) {
-
-    try {
-
-        defineProperty(objProto, '__defineGetter__', {
-            value: function (prop, func) {
-                return defineProperty(this, prop, {
-                    get: func,
-                    enumerable: true,
-                    configurable: true
-                });
-            }
+  defineProperties(g.Object.prototype, {
+    __defineGetter__: {
+      value(prop, func) {
+        return defineProperty(this, prop, {
+          get: func,
+          enumerable: true,
+          configurable: true
         });
-
-        defineProperty(objProto, '__defineSetter__', {
-            value: function (prop, func) {
-                return defineProperty(this, prop, {
-                    set: func,
-                    enumerable: true,
-                    configurable: true
-                });
-            }
+      }
+    },
+    __defineSetter__: {
+      value(prop, func) {
+        return defineProperty(this, prop, {
+          set: func,
+          enumerable: true,
+          configurable: true
         });
-
-        defineProperty(objProto, '__lookupGetter__', {
-            value: function (prop) {
-                let base = this;
-                let desc;
-                while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
-                    base = getPrototypeOf(base);
-                }
-                return desc && desc.get;
-            }
-        });
-
-        defineProperty(objProto, '__lookupSetter__', {
-            value: function (prop) {
-                let base = this;
-                let desc;
-                while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
-                    base = getPrototypeOf(base);
-                }
-                return desc && desc.set;
-            }
-        });
-
-    } catch (ignore) {
-        // Ignored
+      }
+    },
+    __lookupGetter__: {
+      value(prop) {
+        let base = this;
+        let desc;
+        while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
+          base = getPrototypeOf(base);
+        }
+        return desc && desc.get;
+      }
+    },
+    __lookupSetter__: {
+      value(prop) {
+        let base = this;
+        let desc;
+        while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
+          base = getPrototypeOf(base);
+        }
+        return desc && desc.set;
+      }
     }
+  });
 }
