@@ -1,10 +1,12 @@
-import { repairAccessors } from "./accessors";
+import { repairAccessors } from './accessors';
+import { repairFunctions } from './functions';
 
-// locking down the environment
+// Sanitizing ensures that the neither the legacy
+// accessors nor the function constructors can be
+// used to escape the confinement of the evaluators
+// and execure in the sandbox.
+
 export function sanitize(sandbox) {
-
-    const { confinedWindow: { Object: { prototype: objProto } } } = sandbox;
-
-    repairAccessors(objProto);
-    // TODO: other steps
+  repairAccessors(sandbox);
+  repairFunctions(sandbox);
 }
