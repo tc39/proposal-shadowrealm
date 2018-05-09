@@ -6,7 +6,7 @@
 // Mitigate proxy-related security issues
 // https://github.com/tc39/ecma262/issues/272
 
-import { freeze, getOwnPropertyDescriptors, getPrototypeOf, ownKeys } from '../utils/commons';
+import { freeze, getOwnPropertyDescriptors, getPrototypeOf, ownKeys } from './commons';
 
 // Objects that are deeply frozen
 const frozenSet = new WeakSet();
@@ -19,10 +19,6 @@ const frozenSet = new WeakSet();
  * traversal.
  */
 export function deepFreeze(node) {
-  if (frozenSet.has(node)) {
-    return;
-  }
-
   // Objects that we're attempting to freeze.
   const freezingSet = new Set();
 
@@ -57,7 +53,6 @@ export function deepFreeze(node) {
       }
     });
     freeze(obj);
-    frozenSet.add(obj);
   }
 
   // Process the freezingSet.
@@ -71,4 +66,5 @@ export function deepFreeze(node) {
 
   enqueue(node);
   dequeue();
+  freezingSet.forEach(frozenSet.add, frozenSet);
 }
