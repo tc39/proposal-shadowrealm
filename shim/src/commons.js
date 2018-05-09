@@ -21,4 +21,4 @@ export const {
   setPrototypeOf
 } = Reflect;
 
-
+export const objectHasOwnProperty = Object.prototype.hasOwnProperty;

@@ -1,4 +1,14 @@
-import { defineProperty, getOwnPropertyDescriptor, objectHasOwnProperty } from '../utils/commons';
+// Adapted from SES/Caja
+// Copyright (C) 2011 Google Inc.
+// https://github.com/google/caja/blob/master/src/com/google/caja/ses/startSES.js
+// https://github.com/google/caja/blob/master/src/com/google/caja/ses/repairES5.js
+
+import {
+  defineProperty,
+  getOwnPropertyDescriptor,
+  getOwnPropertyDescriptors,
+  objectHasOwnProperty
+} from './commons';
 
 /**
  * For a special set of properties (defined below), it ensures that the
@@ -19,9 +29,7 @@ import { defineProperty, getOwnPropertyDescriptor, objectHasOwnProperty } from '
  * simulate what we should have specified -- that assignments to derived
  * objects succeed if otherwise possible.
  */
-
-function tamperProof(obj, prop) {
-  const desc = getOwnPropertyDescriptor(obj, prop);
+function tamperProof(obj, prop, desc) {
   if ('value' in desc && desc.configurable) {
     const value = desc.value;
 
@@ -30,14 +38,14 @@ function tamperProof(obj, prop) {
       return value;
     }
 
+    // Re-attach the data property on the object so
+    // it can be found by the deep-freeze traversal process.
     getter.value = value;
 
     // eslint-disable-next-line no-inner-declarations
     function setter(newValue) {
       if (obj === this) {
-        throw new TypeError(
-          `Cannot assign to read only property '${prop}' of object '${obj.name}'`
-        );
+        throw new TypeError(`Cannot assign to read only property '${prop}' of object '${obj}'`);
       }
       if (objectHasOwnProperty.call(this, prop)) {
         this[prop] = newValue;
@@ -60,24 +68,34 @@ function tamperProof(obj, prop) {
   }
 }
 
+function tamperProofProperties(obj) {
+  const descs = getOwnPropertyDescriptors(obj);
+  for (const prop in descs) {
+    const desc = descs[prop];
+    tamperProof(obj, prop, desc);
+  }
+}
+
+function tamperProofProperty(obj, prop) {
+  const desc = getOwnPropertyDescriptor(obj, prop);
+  tamperProof(obj, prop, desc);
+}
+
 /**
- * These properties are subject to the override mistake.
- * We "repair" these data properties to getters
- * and setters.
+ * These properties are subject to the override mistake
+ * and must be converted before freezing.
  */
-export function repairDataProperties(realmRec) {
-  const { unsafeGlobal: _ } = realmRec;
+export function tamperProofDataProperties(intrinsics) {
+  const i = intrinsics;
+
+  [i.ObjectPrototype, i.ArrayPrototype, i.FunctionPrototype].forEach(tamperProofProperties);
 
   // Intentionally avoid loops and data structures.
-  tamperProof(_.Object.prototype, 'constructor');
-  tamperProof(_.Object.prototype, 'toLocaleString');
-  tamperProof(_.Object.prototype, 'toString');
-  tamperProof(_.Object.prototype, 'valueOf');
-  tamperProof(_.Error.prototype, 'message');
-  tamperProof(_.EvalError.prototype, 'message');
-  tamperProof(_.RangeError.prototype, 'message');
-  tamperProof(_.ReferenceError.prototype, 'message');
-  tamperProof(_.SyntaxError.prototype, 'message');
-  tamperProof(_.TypeError.prototype, 'message');
-  tamperProof(_.URIError.prototype, 'message');
+  tamperProofProperty(i.ErrorPrototype, 'message');
+  tamperProofProperty(i.EvalErrorPrototype, 'message');
+  tamperProofProperty(i.RangeErrorPrototype, 'message');
+  tamperProofProperty(i.ReferenceErrorPrototype, 'message');
+  tamperProofProperty(i.SyntaxErrorPrototype, 'message');
+  tamperProofProperty(i.TypeErrorPrototype, 'message');
+  tamperProofProperty(i.URIErrorPrototype, 'message');
 }
