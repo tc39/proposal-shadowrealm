@@ -7,7 +7,7 @@
 
 import { freeze, getOwnPropertyDescriptors, getPrototypeOf, ownKeys } from './commons';
 
-// Objects that are deeply frozen
+// Objects that are deeply frozen.
 const frozenSet = new WeakSet();
 
 /**
@@ -18,7 +18,7 @@ const frozenSet = new WeakSet();
  * traversal.
  */
 export function deepFreeze(node) {
-  // Objects that we're attempting to freeze.
+  // Objects that we have frozen in this round.
   const freezingSet = new Set();
 
   // If val is something we should be freezing but aren't yet,
@@ -41,6 +41,15 @@ export function deepFreeze(node) {
   }
 
   function doFreeze(obj) {
+    // Immediately freeze the object to ensure reactive
+    // objects such as proxies won't add properties
+    // during traversal, before freezing.
+
+    // Enqueued object are verified to be valid targets.
+    // Throws if this fails in strict mode.
+    freeze(obj);
+
+    enqueue(getPrototypeOf(obj));
     const descs = getOwnPropertyDescriptors(obj);
     ownKeys(descs).forEach(name => {
       const desc = descs[name];
@@ -51,19 +60,18 @@ export function deepFreeze(node) {
         enqueue(desc.set);
       }
     });
-    freeze(obj);
   }
 
-  // Process the freezingSet.
   function dequeue() {
     // New values added before forEach() has finished will be visited.
-    freezingSet.forEach(obj => {
-      doFreeze(obj);
-      enqueue(getPrototypeOf(obj));
-    });
+    freezingSet.forEach(doFreeze);
+  }
+
+  function commit() {
+    freezingSet.forEach(frozenSet.add, frozenSet);
   }
 
   enqueue(node);
   dequeue();
-  freezingSet.forEach(frozenSet.add, frozenSet);
+  commit();
 }
