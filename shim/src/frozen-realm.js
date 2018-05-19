@@ -82,7 +82,7 @@ const stdlib = [
  * This evaluator declares commonly used references as constants
  * to allow the JIT optimizer to link to static references.
  */
-function createEvalEvaluatorFactory(sandbox) {
+function getDirectEvalEvaluatorFactory(sandbox) {
   const { unsafeFunction } = sandbox;
 
   return unsafeFunction(`
@@ -117,7 +117,7 @@ class FrozenRealm extends Realm {
     }
 
     // Supply addional parameters without modifying the original object.
-    const opts = assign({ globalHook, createEvalEvaluatorFactory }, options);
+    const opts = assign({ globalHook, getDirectEvalEvaluatorFactory }, options);
     super(opts);
 
     //

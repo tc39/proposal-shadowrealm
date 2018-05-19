@@ -10,7 +10,10 @@ export function getStdLib(intrinsics) {
 
     // *** 18.2 Function Properties of the Global Object
 
-    eval: { value: i.eval },
+    // Make eval wrtitable to allow proxy to return a different
+    // value, and leave it non-unconfigurable to prevent userland
+    // from changing its descriptor and breaking an invariant.
+    eval: { value: i.eval, writable: true },
     isFinite: { value: i.isFinite },
     isNaN: { value: i.isNaN },
     parseFloat: { value: i.parseFloat },

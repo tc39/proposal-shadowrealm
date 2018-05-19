@@ -45,8 +45,9 @@ export function deepFreeze(node) {
     // objects such as proxies won't add properties
     // during traversal, before freezing.
 
-    // Enqueued object are verified to be valid targets.
-    // Throws if this fails in strict mode.
+    // Object are verified before being enqueued,
+    // therefore this is a valid candidate.
+    // Throws if this fails (strict mode).
     freeze(obj);
 
     enqueue(getPrototypeOf(obj));

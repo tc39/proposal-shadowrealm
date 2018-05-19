@@ -1,4 +1,3 @@
-import Realm from './realm';
 import { getPrototypeOf } from './commons';
 
 /**
@@ -9,8 +8,8 @@ import { getPrototypeOf } from './commons';
  * https://tc39.github.io/ecma262/#table-7
  * https://tc39.github.io/ecma262/#table-73
  */
-export function getIntrinsics(global) {
-  const g = global;
+export function getIntrinsics(sandbox) {
+  const { unsafeGlobal: g } = sandbox;
 
   // Anonymous intrinsics.
 
@@ -291,8 +290,7 @@ export function getIntrinsics(global) {
     Intl: g.Intl,
 
     // *** ESNext
-
-    Realm // intentionally passing around the Realm Constructor, which could be used as a side channel, but still!
+    Realm: g.Realm
   };
 
   return intrinsics;

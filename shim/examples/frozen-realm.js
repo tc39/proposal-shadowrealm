@@ -65,7 +65,7 @@ function deepFreeze(node, frozenSet) {
     return node;
 }
 
-class FrozenRealm extends RealmShim {
+class FrozenRealm extends Realm {
 
     constructor() {
         // intentionally not accepting options for now...

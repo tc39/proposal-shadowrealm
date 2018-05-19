@@ -20,7 +20,7 @@ function repairFunction(sandbox, functionName, functionDecl) {
   const FunctionPrototype = getPrototypeOf(FunctionInstance);
 
   // Block evaluation of source when calling constructor on the prototype of functions.
-  const TamedFunction = unsafeFunction('throw new Error();');
+  const TamedFunction = unsafeFunction('throw new Error("Not available");');
 
   defineProperties(TamedFunction, {
     name: {
@@ -32,10 +32,7 @@ function repairFunction(sandbox, functionName, functionDecl) {
   });
   defineProperty(FunctionPrototype, 'constructor', { value: TamedFunction });
 
-  // Prevent loop in case of Function.
-  if (functionName !== 'Function') {
-    setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
-  }
+  setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
 }
 
 /**

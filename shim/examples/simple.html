@@ -23,14 +23,23 @@
         </p>
 
         <script>
-        var r = new RealmShim();
+        var r1 = new Realm();
+        var r2 = new r1.global.Realm({ intrinsics: 'inherit' });
 
         // basic sanity check: they all should output true
         // for now extra () are needed as a signal that it should return something :/
-        console.log(1, r.eval('( JSON )'));
-        console.log(2, r.eval('( JSON )') !== JSON);
-        console.log(3, r.eval('( JSON )') === r.eval('( JSON )'));
-        console.log(4, r.eval('( JSON )') === r.eval('( eval("JSON") )'));
+        console.log(1, r1.eval('( JSON )'));
+        console.log(2, r1.eval('( JSON )') !== JSON);
+        console.log(3, r1.eval('( JSON )') === r1.eval('( JSON )'));
+        console.log(4, r1.eval('( JSON )') === r1.eval('( eval("JSON") )'));
+
+        console.log(5, r2.eval('( JSON )'));
+        console.log(6, r2.eval('( JSON )') !== JSON);
+        console.log(7, r2.eval('( JSON )') === r2.eval('( JSON )'));
+        console.log(8, r2.eval('( JSON )') === r2.eval('( eval("JSON") )'));
+
+        console.log(9, r2.eval('( JSON )') === r1.eval('( JSON )'));
+        console.log(10, r2.eval('( eval("JSON") )') === r1.eval('( eval("JSON") )'));
 
         document.getElementById('run').addEventListener('click', function () {
             var sourceText = document.getElementById('sourceText').value;
@@ -46,7 +55,7 @@
                 output = 'Error trying to serialize the result: ' + e;
                 output += '\nOriginal Object: ' + result;
             }
-            
+
             console.log(result);
             document.getElementById('output').value = output;
         });

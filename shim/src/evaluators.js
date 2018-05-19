@@ -1,13 +1,15 @@
 // Portions adapted from V8 - Copyright 2016 the V8 project authors.
 // https://github.com/v8/v8/blob/master/src/builtins/builtins-function.cc
 
-import { EvalHook, GlobalObject, Intrinsics, ShimSandbox } from './slots';
+import { GlobalObject, Intrinsics, ShimSandbox } from './symbols';
 import { defineProperties } from './commons';
 import { Handler } from './handler';
 
-export function createEvalEvaluatorFactory(sandbox) {
+export function getDirectEvalEvaluatorFactory(sandbox) {
   const { unsafeFunction } = sandbox;
 
+  // Create a function in sloppy mode that returns
+  // a function in strict mode.
   return unsafeFunction(`
     with (arguments[0]) {
       return function() {
@@ -18,7 +20,7 @@ export function createEvalEvaluatorFactory(sandbox) {
   `);
 }
 
-export function createEvalEvaluator(realmRec) {
+export function getDirectEvalEvaluator(realmRec) {
   const sandbox = realmRec[ShimSandbox];
   const globalObject = realmRec[GlobalObject];
   const intrinsics = realmRec[Intrinsics];
@@ -40,11 +42,19 @@ export function createEvalEvaluator(realmRec) {
     return result;
   }
 
+  // Ensure that the different eval instances of the different
+  // realms all answer properly when used with the instanceof
+  // operator to preserve indentity.
+  const FunctionPrototype = sandbox.unsafeFunction.prototype;
+
   // Mimic the native eval() function. New properties are
   // by default non-writable and non-configurable.
   defineProperties(evaluator, {
     name: {
       value: 'eval'
+    },
+    prototype: {
+      value: FunctionPrototype
     }
   });
 
@@ -52,15 +62,15 @@ export function createEvalEvaluator(realmRec) {
   // need to be frozen (only the objects reachable from it).
 
   // Once created for a realm, the reference must be updated everywhere.
-  realmRec[EvalHook] = globalObject.eval = intrinsics.eval = evaluator;
+  return evaluator;
 }
 
 /**
  * A safe version of the native Function which relies on
  * the safety of evalEvaluator for confinement.
  */
-export function createFunctionEvaluator(realmRec) {
-  const { unsafeFunction } = realmRec[ShimSandbox];
+export function getFunctionEvaluator(realmRec) {
+  const sandbox = realmRec[ShimSandbox];
   const globalObject = realmRec[GlobalObject];
   const intrinsics = realmRec[Intrinsics];
 
@@ -88,9 +98,9 @@ export function createFunctionEvaluator(realmRec) {
   }
 
   // Ensure that the different Function instances of the different
-  // sandboxes all answer properly when used with the instanceof
+  // realms all answer properly when used with the instanceof
   // operator to preserve indentity.
-  const FunctionPrototype = unsafeFunction.prototype;
+  const FunctionPrototype = sandbox.unsafeFunction.prototype;
 
   // Mimic the native signature. New properties are
   // by default non-writable and non-configurable.
@@ -107,5 +117,5 @@ export function createFunctionEvaluator(realmRec) {
   // need to be frozen (only the objects reachable from it).
 
   // Once created for a realm, the reference must be everywhere.
-  globalObject.Function = intrinsics.Function = evaluator;
+  return evaluator;
 }

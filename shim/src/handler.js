@@ -1,4 +1,7 @@
 export class Handler {
+  // Properties stored on the handler
+  // are not available from the proxy.
+
   constructor(sandbox) {
     const { unsafeGlobal } = sandbox;
     this.unsafeGlobal = unsafeGlobal;
@@ -18,7 +21,7 @@ export class Handler {
       }
       return target.eval;
     }
-    // Properties of global.
+    // Properties of the global.
     if (prop in target) {
       return target[prop];
     }

@@ -1,4 +1,4 @@
-import { createEvalEvaluatorFactory } from './evaluators';
+import { getDirectEvalEvaluatorFactory } from './evaluators';
 import { sanitize } from './sanitize';
 
 // The sandbox is shim-specific. It acts as the mechanism
@@ -7,7 +7,7 @@ import { sanitize } from './sanitize';
 // must be respected since the evaluators are imposing a
 // set of intrinsics, aka the "undeniables".
 
-function createContext() {
+function createBrowserContext() {
   const iframe = document.createElement('iframe');
 
   iframe.title = 'script';
@@ -21,8 +21,9 @@ function createContext() {
 
 export function createSandbox(context) {
   if (context === undefined) {
-    context = createContext();
+    context = createBrowserContext();
   }
+
   // The sandbox is entirely defined by these three objects.
   // Reusing the terminology from SES/Caja.
   const sandbox = {
@@ -30,9 +31,11 @@ export function createSandbox(context) {
     unsafeEval: context.eval,
     unsafeFunction: context.Function
   };
-  if (sandbox.evalEvaluatorFactory === undefined) {
-    sandbox.evalEvaluatorFactory = createEvalEvaluatorFactory(sandbox);
-  }
+
+  // Create the evaluator factory that will generate the evaluators
+  // for each compartment realm.
+  sandbox.evalEvaluatorFactory = getDirectEvalEvaluatorFactory(sandbox);
+
   sanitize(sandbox);
   return sandbox;
 }
