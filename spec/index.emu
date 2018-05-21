@@ -52,170 +52,73 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
                 <td>...</td>
             </tr>
             <tr>
-                <td>[[EvalHook]]</td>
+                <td>[[TransformTrap]]</td>
                 <td>A function object or *undefined*</td>
-                <td>The function that is used as the eval hook. If [[EvalHook]] is undefined, the hook invoker will carry on the default behavior.</td>
+                <td>The function that is used as the transform trap. If [[TransformTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
             </tr>
             <tr>
-                <td>[[IsDirectEvalHook]]</td>
+                <td>[[IsDirectEvalTrap]]</td>
                 <td>A function object or *undefined*</td>
-                <td>The function that is used as the direct eval check hook. If [[IsDirectEvalHook]] is undefined, the hook invoker will carry on the default behavior.</td>
+                <td>The function that is used as the direct eval check trap. If [[IsDirectEvalTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
             </tr>
             <tr>
-                <td>[[ImportHook]]</td>
+                <td>[[ImportTrap]]</td>
                 <td>A function object or *undefined*</td>
-                <td>The function that is used as the import hook. If [[ImportHook]] is undefined, the hook invoker will carry on the default behavior.</td>
+                <td>The function that is used as the import trap. If [[ImportTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
             </tr>
             <tr>
-                <td>[[ImportMetaHook]]</td>
+                <td>[[ImportMetaTrap]]</td>
                 <td>A function object or *undefined*</td>
-                <td>The function that is used as the import.meta hook. If [[ImportMetaHook]] is undefined, the hook invoker will carry on the default behavior.</td>
+                <td>The function that is used as the import.meta trap. If [[ImportMetaTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
             </tr>
         </tbody>
     </table>
   </emu-table>
 
-  <emu-clause id="sec-invokeisdirectevalhook" aoid="InvokeIsDirectEvalHook">
-    <h1>InvokeIsDirectEvalHook(_realmRec_, _func_)</h1>
-    <p>The abstract operation InvokeIsDirectEvalHook with arguments _realmRec_ and _func_ performs the following steps:</p>
+  <emu-clause id="sec-invokeisdirectevaltrap" aoid="InvokeIsDirectEvalTrap">
+    <h1>InvokeIsDirectEvalTrap( _trap_, _func_ )</h1>
+    <p>The abstract operation InvokeIsDirectEvalTrap with arguments _trap_ and _func_ performs the following steps:</p>
     <emu-alg>
-      1. Assert: realm is a Realm Record.
-      1. Let _fn_ be _realmRec_.[[IsDirectEvalHook]].
-      1. If _fn_ is *undefined*, return SameValue(_func_, %eval%).
-      1. Assert: IsCallable(_fn_) is *true*.
-      1. Let _result_ be ToBoolean( ? Call(_fn_, *undefined*, &laquo; _func_ &raquo;)).
+      1. Assert: IsCallable(_trap_) is *true*.
+      1. Let _result_ be ToBoolean( ? Call(_trap_, *undefined*, &laquo; _func_ &raquo;)).
       1. Return _result_.
     </emu-alg>
   </emu-clause>
 
-  <emu-clause id="sec-invokedirectevalhook" aoid="InvokeDirectEvalHook">
-    <h1>InvokeDirectEvalHook ( _realmRec_, _x_ )</h1>
+  <emu-clause id="sec-invoketransformtrap" aoid="InvokeTransformTrap">
+    <h1>InvokeTransformTrap ( _trap_, _sourceText_ )</h1>
 
-    <p>The abstract operation InvokeDirectEvalHook with arguments _realmRec_ and _x_ performs the following steps:</p>
+    <p>The abstract operation InvokeTransformTrap with arguments _trap_ and _sourceText_ performs the following steps:</p>
 
     <emu-alg>
-    1. Assert: realm is a Realm Record.
-    1. Let _fn_ be _realmRec_.[[EvalHook]].
-    1. If _fn_ is *undefined*, return _x_.
-    1. Assert: IsCallable(_fn_) is *true*.
-    1. Return ? Call(_fn_, *undefined*, « _x_ »).
+    1. Assert: IsCallable(_trap_) is *true*.
+    1. Let _newSourceText_ be ? Call(_trap_, *undefined*, « _sourceText_ »).
+    1. Return ? ToString(_newSourceText_).
     </emu-alg>
   </emu-clause>
 
-  <emu-clause id="sec-invokeimporthook" aoid="InvokeImportHook">
-    <h1>InvokeImportHook ( _realmRec_, _referencingScriptOrModule_, _specifierString_, _promiseCapability_ )</h1>
+  <emu-clause id="sec-invokeimporttrap" aoid="InvokeImportTrap">
+    <h1>InvokeImportTrap ( _trap_, _referencingScriptOrModule_, _specifierString_, _promiseCapability_ )</h1>
 
-    <p>The abstract operation InvokeImportHook with arguments _realmRec_, _referencingScriptOrModule_, _specifier_ and _promiseCapability_ performs the following steps:</p>
+    <p>The abstract operation InvokeImportTrap with arguments _trap_, _referencingScriptOrModule_, _specifier_ and _promiseCapability_ performs the following steps:</p>
 
     <emu-alg>
-    1. Assert: _realmRec_ is a Realm Record.
+    1. Assert: IsCallable(_trap_) is *true*.
     1. Assert: Type(_specifierString_) is String.
     1. Assert: _referencingScriptOrModule_ is a Script Record or Module Record (i.e. is not null).
     1. Assert: _resultCapability_ is a PromiseCapability Record.
-    1. Let _fn_ be _realmRec_.[[ImportHook]].
-    1. If _fn_ is *undefined*, then
-      1. Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, _specifierString_, _promiseCapability_).
-    1. Assert: IsCallable(_fn_) is *true*.
     1. If _referencingScriptOrModule_ is a Module Record, then
       1. Assert: ModuleEvaluation has already been invoked on _referencingScriptOrModule_ and successfully completed.
       1. Let _referrer_ be GetModuleNamespace(_referencingScriptOrModule_).
       1. IfAbruptRejectPromise(_referrer_, _promiseCapability_).
     1. Else,
       1. Let _referrer_ be *null*.
-    1. Let _value_ be Call(_fn_, *undefined*, « _referrer_, _specifier_ »).
+    1. Let _value_ be Call(_trap_, *undefined*, « _referrer_, _specifier_ »).
     1. IfAbruptRejectPromise(_value_, _promiseCapability_).
     1. Perform ! Call(_promiseCapability_.[[Resolve]], *undefined*, « _value_ »).
     </emu-alg>
   </emu-clause>
 
-</emu-clause>
-
-<!-- es6num="15.2.1.16.1" -->
-<emu-clause id="sec-parsemodule" aoid="ParseModule">
-    <h1>ParseModule ( _sourceText_, _realm_, _hostDefined_ )</h1>
-    <emu-alg>
-    1. ...
-    1. Let _exportEntries_ be ExportEntries of _body_.
-    1. <ins>Let _resolvedModules_ be a new empty List</ins>.
-    1. For each ExportEntry Record _ee_ in _exportEntries_, do
-        1. ...
-    1. Return Source Text Module Record {[[Realm]]: _realm_, [[Environment]]: *undefined*, [[HostDefined]]: _hostDefined_, [[Namespace]]: *undefined*, [[Evaluated]]: *false*, [[ECMAScriptCode]]: _body_, [[RequestedModules]]: _requestedModules_, [[ImportEntries]]: _importEntries_, [[LocalExportEntries]]: _localExportEntries_, [[StarExportEntries]]: _starExportEntries_, [[IndirectExportEntries]]: _indirectExportEntries_<ins>, [[ResolvedModules]]: _resolvedModules_</ins>}.
-    </emu-alg>
-</emu-clause>
-
-<emu-clause id="sec-resolvemodule" aoid="ResolveModule">
-    <h1>ResolveModule ( _referencingModule_, _specifier_ )</h1>
-    <p>The abstract operation ResolveModule with arguments _referencingModule_ and _specifier_ resolves the concrete Module Record subclass instance that corresponds to the ModuleSpecifier String, _specifier_, occurring within the context of the module represented by the Source Text Module Record _referencingModule_. ResolveModule performs the following steps:</p>
-    <emu-alg>
-    1. Assert: _referencingModule_ is a Source Text Module Record.
-    1. Assert: Type(_specifier_) is String.
-    1. Let _resolvedModules_ be _referencingModule_.[[ResolvedModules]].
-    1. Repeat for each Record {[[Key]], [[Value]]} _p_ that is an element of _requiredModule_,
-      1. If _p_.[[Key]] is is equal _specifier_, then
-        1. Return _p_.[[Value]].
-    1. Let _requiredModule_ be ? HostResolveImportedModule(_referencingModule_, _specifier_).
-    1. Append _requiredModule_ as the last element of _resolvedModules_.
-    1. Return _requiredModule_.
-</emu-clause>
-
-<!-- es6num="15.2.1.16.5" -->
-<emu-clause id="sec-moduleevaluation">
-    <h1>ModuleEvaluation( ) Concrete Method</h1>
-    <emu-alg>
-    1. ...
-    6. For each String _required_ that is an element of _module_.[[RequestedModules]], do
-        1. Let _requiredModule_ be ! <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _required_).
-        1. ...
-    1. ...
-    </emu-alg>
-</emu-clause>
-
-
-<!-- es6num="15.2.1.16.2" -->
-<emu-clause id="sec-getexportednames">
-    <h1>GetExportedNames( _exportStarSet_ ) Concrete Method</h1>
-    <emu-alg>
-        1. ...
-        14. Let _requestedModule_ be ? <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _e_.[[ModuleRequest]]).
-        1. ...
-    </emu-alg>
-</emu-clause>
-
-
-<!-- es6num="15.2.1.16.3" -->
-<emu-clause id="sec-resolveexport">
-    <h1>ResolveExport( _exportName_, _resolveSet_ ) Concrete Method</h1>
-    <emu-alg>
-    1. ...
-    4. For each ExportEntry Record _e_ in _module_.[[IndirectExportEntries]], do
-        1. If SameValue(_exportName_, _e_.[[ExportName]]) is *true*, then
-        1. Assert: _module_ imports a specific binding for this export.
-        1. Let _importedModule_ be ? <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _e_.[[ModuleRequest]]).
-        1. ...
-    1. ...
-    7. For each ExportEntry Record _e_ in _module_.[[StarExportEntries]], do
-        1. Let _importedModule_ be ? <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _e_.[[ModuleRequest]]).
-        ...
-    1. ...
-    </emu-alg>
-</emu-clause>
-
-<!-- es6num="15.2.1.16.4" -->
-<emu-clause id="sec-moduledeclarationinstantiation">
-    <h1>ModuleDeclarationInstantiation( ) Concrete Method</h1>
-    <emu-alg>
-    1. ...
-    8. For each String _required_ that is an element of _module_.[[RequestedModules]], do
-        1. NOTE: Before instantiating a module, all of the modules it requested must be available. An implementation may perform this test at any time prior to this point.
-        1. Let _requiredModule_ be ? <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _required_).
-        1. ...
-    1. ...
-    12. For each ImportEntry Record _in_ in _module_.[[ImportEntries]], do
-        1. Let _importedModule_ be ! <del>HostResolveImportedModule</del><ins>ResolveModule</ins>(_module_, _in_.[[ModuleRequest]]).
-        1. NOTE: The above call cannot fail because imported module requests are a subset of _module_.[[RequestedModules]], and these have been resolved earlier in this algorithm.
-        1. ...
-    1. ...
-    </emu-alg>
 </emu-clause>
 
 <!-- es6num="18.2.1.1" -->
@@ -224,58 +127,68 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
   <p>The abstract operation PerformEval with arguments _x_, _evalRealm_, _strictCaller_, and _direct_ performs the following steps:</p>
   <emu-alg>
     1. Assert: If _direct_ is *false*, then _strictCaller_ is also *false*.
-    1. <ins>If _direct_ is *true*, then</ins>
-      1. <ins>Let _x_ be ? InvokeDirectEvalHook(_x_, _evalRealm_).</ins>
     1. If Type(_x_) is not String, return _x_.
+    1. <ins>Let _callerContext_ be the second to top element of the execution context stack.</ins>.
+    1. <ins>Let _realmTraps_ be _callerContext_.[[RealmTraps]]</ins>.
+    1. <ins>If _realmTraps_ is a RealmTraps Record, then</ins>
+      1. <ins>Let _fn_ be _realmTraps_.[[TransformTrap]]</ins>.
+      1. <ins>Assert: IsCallable(_fn_) is *true*</ins>.
+      1. <ins>Let x be ? InvokeTransformTrap(_fn_, _x_ ).</ins>.
     1. ...
   </emu-alg>
 </emu-clause>
-
 
 <!-- es6num="12.3.4.1" -->
 <emu-clause id="sec-function-calls-runtime-semantics-evaluation">
   <h1>Runtime Semantics: Evaluation</h1>
   <emu-grammar>CallExpression : CoverCallExpressionAndAsyncArrowHead</emu-grammar>
   <emu-alg>
-    1. Let _expr_ be CoveredCallExpression of |CoverCallExpressionAndAsyncArrowHead|.
-    1. Let _memberExpr_ be the |MemberExpression| of _expr_.
-    1. Let _arguments_ be the |Arguments| of _expr_.
-    1. Let _ref_ be the result of evaluating _memberExpr_.
-    1. Let _func_ be ? GetValue(_ref_).
+    5. ...
     1. If Type(_ref_) is Reference and IsPropertyReference(_ref_) is *false* and GetReferencedName(_ref_) is `"eval"`, then
-      1. <ins>Let _evalRealm_ be the current Realm Record</ins>.
-      1. <ins>Let _isDirectEval_ be ? InvokeIsDirectEvalHook(_evalRealm_, _func_)</ins>.
+      1. <ins>Let _callerContext_ be the second to top element of the execution context stack.</ins>.
+      1. <ins>Let _realmTraps_ be _callerContext_.[[RealmTraps]]</ins>.
+      1. <ins>If _realmTraps_ is a RealmTraps Record, then</ins>
+        1. <ins>Let _trapFn_ be _realmTraps_.[[IsDirectEvalTrap]]</ins>.
+        1. <ins>Assert: IsCallable(_trapFn_) is *true*</ins>.
+        1. <ins>Let _isDirectEval_ be ? InvokeIsDirectEvalTrap(_trapFn_, _func_).</ins>.
+      1.  <ins>Else</ins>,
+        1. <ins>Let _isDirectEval_ be SameValue(_func_, %eval%)</ins>.
       1. If <ins>_isDirectEval_</ins><del>SameValue(_func_, %eval%)</del> is *true*, then
         1. Let _argList_ be ? ArgumentListEvaluation(_arguments_).
-        1. If _argList_ has no elements, return *undefined*.
-        1. Let _evalText_ be the first element of _argList_.
-        1. If the source code matching this |CallExpression| is strict mode code, let _strictCaller_ be *true*. Otherwise let _strictCaller_ be *false*.
-        1. <del>Let _evalRealm_ be the current Realm Record</del>.
-        1. Perform ? HostEnsureCanCompileStrings(_evalRealm_, _evalRealm_).
-        1. Return ? PerformEval(_evalText_, _evalRealm_, _strictCaller_, *true*).
+        1. ...
     1. ...
   </emu-alg>
   ...
 </emu-clause>
 
-<emu-clause id="sec-import-call-runtime-semantics-evaluation">
-  <h1>Runtime Semantics: Evaluation</h1>
+<!-- es6num="2.2.1" -->
+<!-- https://tc39.github.io/proposal-dynamic-import/#sec-import-calls -->
+<emu-clause id="sec-import-calls">
+  <h1><ins>Import Calls</ins></h1>
+
+  <emu-clause id="sec-import-call-runtime-semantics-evaluation">
+    <h1>Runtime Semantics: Evaluation</h1>
 
   <emu-grammar>ImportCall : `import` `(` AssignmentExpression `)`</emu-grammar>
   <emu-alg>
-  1. Let _referencingScriptOrModule_ be ! GetActiveScriptOrModule().
-  1. Assert: _referencingScriptOrModule_ is a Script Record or Module Record (i.e. is not *null*).
-  1. Let _argRef_ be the result of evaluating |AssignmentExpression|.
-  1. Let _specifier_ be ? GetValue(_argRef_).
-  1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
-  1. Let _specifierString_ be ToString(_specifier_).
-  1. IfAbruptRejectPromise(_specifierString_, _promiseCapability_).
-  1. <ins>Let _ctx_ be the running execution context</ins>.
-  1. <ins>Let _currentRealm_ be ctx's Realm</ins>.
-  1. <ins>Perform ! InvokeImportHook(_currentRealm_, _referencingScriptOrModule_, _specifierString_, _promiseCapability_)</ins>.
-  1. <del>Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, _specifierString_, _promiseCapability_)</del>.
-  1. Return _promiseCapability_.[[Promise]].
+    1. Let _referencingScriptOrModule_ be ! GetActiveScriptOrModule().
+    1. Assert: _referencingScriptOrModule_ is a Script Record or Module Record (i.e. is not *null*).
+    1. Let _argRef_ be the result of evaluating |AssignmentExpression|.
+    1. Let _specifier_ be ? GetValue(_argRef_).
+    1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
+    1. Let _specifierString_ be ToString(_specifier_).
+    1. IfAbruptRejectPromise(_specifierString_, _promiseCapability_).
+    1. <ins>Let _callerContext_ be the second to top element of the execution context stack.</ins>.
+    1. <ins>Let _realmTraps_ be _callerContext_.[[RealmTraps]]</ins>.
+    1. <ins>If _realmTraps_ is a RealmTraps Record, then</ins>
+      1. <ins>Let _fn_ be _realmTraps_.[[ImportTrap]]</ins>.
+      1. <ins>Assert: IsCallable(_fn_) is *true*</ins>.
+      1. <ins>Perform ! InvokeImportTrap(_fn_, _referencingScriptOrModule_, _specifierString_, _promiseCapability_ ).</ins>.
+    1. <ins>Else,</ins>
+      1. Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, _specifierString_, _promiseCapability_).
+    1. Return _promiseCapability_.[[Promise]].
   </emu-alg>
+  </emu-clause>
 </emu-clause>
 
 <emu-clause id="sec-realm-objects">
@@ -302,12 +215,12 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
   <emu-clause id="sec-realm-built-in-function-objects">
     <h1>Built-in Function Objects</h1>
 
-    <emu-clause id="sec-realm-default-import-hook-functions">
-      <h1>Realm Default Import Hook Functions</h1>
+    <emu-clause id="sec-realm-default-import-trap-functions">
+      <h1>Realm Default Import Trap Functions</h1>
 
-      <p>A Realm default import hook function is an anonymous built-in function.</p>
+      <p>A Realm default import trap function is an anonymous built-in function.</p>
 
-      <p>When a Realm default import hook function is called with arguments _referrer_ and _specifier_, the following steps are taken:</p>
+      <p>When a Realm default import trap function is called with arguments _realm_, _referrer_ and _specifier_, the following steps are taken:</p>
 
       <emu-alg>
         1. Throw a new *TypeError*.
@@ -342,22 +255,22 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
           1. If _options_ is not *undefined*, then
             1. Let _parentRealm_ be the current Realm Record.
             1. Let _opts_ be ? ToObject(_options_).
-            1. Let _importHook_ be ? Get(_opts_, "importHook").
-            1. If _importHook_ is equal `"inherit"`, then
-              1. Set _importHook_ to _parentRealm_.[[ImportHook]].
-            1. Else if _importHook_ is not *undefined* and IsCallable(_importHook_) is *false*, throw a TypeError exception.
-            1. Let _importMetaHook_ be ? Get(_opts_, "importMetaHook").
-            1. If _importMetaHook_ is equal `"inherit"`, then
-              1. Set _importMetaHook_ to _parentRealm_.[[ImportMetaHook]].
-            1. Else if _importMetaHook_ is not *undefined* and IsCallable(_importMetaHook_) is *false*, throw a TypeError exception.
-            1. Let _evalHook_ be ? Get(_opts_, "evalHook").
-            1. If _evalHook_ is equal `"inherit"`, then
-              1. Set _evalHook_ to _parentRealm_.[[EvalHook]].
-            1. Else if _evalHook_ is not *undefined* and IsCallable(_evalHook_) is *false*, throw a TypeError exception.
-            1. Let _isDirectEvalHook_ be ? Get(_opts_, "isDirectEvalHook").
-            1. If _isDirectEvalHook_ is equal `"inherit"`, then
-              1. Set _isDirectEvalHook_ to _parentRealm_.[[IsDirectEvalHook]].
-            1. Else if _isDirectEvalHook_ is not *undefined* and IsCallable(_isDirectEvalHook_) is *false*, throw a TypeError exception.
+            1. Let _importTrap_ be ? Get(_opts_, "import").
+            1. If _importTrap_ is equal `"inherit"`, then
+              1. Set _importTrap_ to _parentRealm_.[[ImportTrap]].
+            1. Else if _importTrap_ is not *undefined* and IsCallable(_importTrap_) is *false*, throw a TypeError exception.
+            1. Let _importMetaTrap_ be ? Get(_opts_, "importMeta").
+            1. If _importMetaTrap_ is equal `"inherit"`, then
+              1. Set _importMetaTrap_ to _parentRealm_.[[ImportMetaTrap]].
+            1. Else if _importMetaTrap_ is not *undefined* and IsCallable(_importMetaTrap_) is *false*, throw a TypeError exception.
+            1. Let _transformTrap_ be ? Get(_opts_, "transform").
+            1. If _transformTrap_ is equal `"inherit"`, then
+              1. Set _transformTrap_ to _parentRealm_.[[TransformTrap]].
+            1. Else if _transformTrap_ is not *undefined* and IsCallable(_transformTrap_) is *false*, throw a TypeError exception.
+            1. Let _isDirectEvalTrap_ be ? Get(_opts_, "isDirectEval").
+            1. If _isDirectEvalTrap_ is equal `"inherit"`, then
+              1. Set _isDirectEvalTrap_ to _parentRealm_.[[IsDirectEvalTrap]].
+            1. Else if _isDirectEvalTrap_ is not *undefined* and IsCallable(_isDirectEvalTrap_) is *false*, throw a TypeError exception.
             1. Let _intrinsics_ be ? Get(_opts_, "intrinsics").
             1. If _intrinsics_ is equal `"inherit"`, then
               1. Set _intrinsics_ to _parentRealm_.[[Intrinsics]].
@@ -367,13 +280,13 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
           1. Let _realmRec_ be CreateRealmRec(_intrinsics_).
           1. Set _O_.[[Realm]] to _realmRec_.
           1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, _thisValue_).
-          1. If _importHook_ is *undefined*, then
-            1. Let _importHook_ be a new built-in function object as defined in <emu-xref href="#sec-realm-default-import-hook-functions"></emu-xref>.
-          1. Set _realmRec_.[[ImportHook]] to _importHook_.
-          1. If _evalHook_ is not *undefined*, then
-            1. Set _realmRec_.[[EvalHook]] to _evalHook_.
-          1. If _isDirectEvalHook_ is not *undefined*, then
-            1. Set _realmRec_.[[IsDirectEvalHook]] to _isDirectEvalHook_.
+          1. If _importTrap_ is *undefined*, then
+            1. Let _importTrap_ be a new built-in function object as defined in <emu-xref href="#sec-realm-default-import-trap-functions"></emu-xref>.
+          1. Set _realmRec_.[[ImportTrap]] to _importTrap_.
+          1. If _transformTrap_ is not *undefined*, then
+            1. Set _realmRec_.[[TransformTrap]] to _transformTrap_.
+          1. If _isDirectEvalTrap_ is not *undefined*, then
+            1. Set _realmRec_.[[IsDirectEvalTrap]] to _isDirectEvalTrap_.
           1. Let _init_ be ? GetMethod(_O_, *"init"*).
           1. If IsCallable(_init_) is not *true*, throw a *TypeError* exception.
           1. Perform ? Call(_init_, _O_).
@@ -523,6 +436,26 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
                       <td>Realm Record</td>
                       <td>The Realm Record for the initial execution context.</td>
                   </tr>
+                  <tr>
+                    <td>[[TransformTrap]]</td>
+                    <td>A function object or *undefined*</td>
+                    <td>The function that is used as the transform trap. If [[TransformTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
+                </tr>
+                <tr>
+                    <td>[[IsDirectEvalTrap]]</td>
+                    <td>A function object or *undefined*</td>
+                    <td>The function that is used as the direct eval check trap. If [[IsDirectEvalTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
+                </tr>
+                <tr>
+                    <td>[[ImportTrap]]</td>
+                    <td>A function object or *undefined*</td>
+                    <td>The function that is used as the import trap. If [[ImportTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
+                </tr>
+                <tr>
+                    <td>[[ImportMetaTrap]]</td>
+                    <td>A function object or *undefined*</td>
+                    <td>The function that is used as the import.meta trap. If [[ImportMetaTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
+                </tr>
               </tbody>
           </table>
       </emu-table>
