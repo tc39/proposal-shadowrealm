@@ -22,7 +22,7 @@ You can view the spec rendered as [HTML](https://rawgit.com/caridy/proposal-real
 
 * worked on this during ES2015 time frame, so never went through stages process
 * got punted to later (rightly so!)
-* goal of this proposal: resume work on this, reassert committee interest via advancing to stage 1
+* goal of this proposal: resume work on this, reassert committee interest via advancing to stage 2
 * original idea from @dherman: [What are Realms?](https://gist.github.com/dherman/7568885)
 
 ## Intuitions
@@ -51,7 +51,7 @@ let realm = new Realm();
 let outerGlobal = window;
 let innerGlobal = realm.global;
 
-let f = realm.evalScript("(function() { return 17 })");
+let f = realm.evaluate("(function() { return 17 })");
 
 f() === 17 // true
 
@@ -83,48 +83,62 @@ class FakeWindow extends Realm {
 }
 ```
 
-### Example: language hooks
+### Example: parameterized evaluator
+
+#### Transform Trap
+
+The `transform` trap provides a way to preprocess any sourceText value before it is evaluated, and it applies to direct and indirect evaluation alike. E.g.:
 
 ```js
 const r = new Realm({
-  evalHook(sourceText) {
-    return compile(sourceText);
+  transform(sourceText) {
+    return remapXToY(sourceText);
   },
-  importHook(referrerNamespace, specifier) {
-    ...
-  }
 });
-const result = r.eval('eval("1")'); // calls compile('1'), and evaluate the returned value
-const ns = r.eval('import("foo")'); // where referrerNamespace is null, and specifier is "foo"
+r.global.y = 1;
+const a = r.evaluate(`let x = 2; eval("x")`);      // yields 1 after remapping `x` to the global `y`.
+const b = r.evaluate(`let x = 3; (0, eval)("x")`); // yields 1 after remapping `x` to the global `y`.
 ```
 
-### Example: custom direct evaluation
+For mode details about how to implement a JS dialects with Realms, check the following gist:
+
+ * https://gist.github.com/dherman/9146568 (outdated API, but the same principle applies).
+
+### Example: controlling direct evaluation
+
+The `isDirectEval` trap provides a way to control when certain invocation to an `eval` identifier qualifies as direct eval. This is important if you plan to replace the `eval` intrinsic to provide your own evaluation mechanism:
 
 ```js
 const r = new Realm({
-  isDirectEvalHook(func) {
+  isDirectEval(func) {
     return func === r.customEval;
   },
 });
-r.customEval = function (sourceText) {
-  return 3;
+function customEval(sourceText) {
+  return compile(sourceText);
 }
+r.global.eval = customEval; // providing a custom evaluation mechanism
 const source = `
   let x = 1;
   (function foo() {
     let x = 2;
-    eval('x');      // yields 2
-    (0,eval)('x');  // yields 3
+    eval('x');      // yields 2 if `compile` doesn't alter the code 
+    (0,eval)('x');  // yields 1 if `compile` doesn't alter the code
   })();
 `;
-r.eval(source);
+r.evaluate(source);
 ```
 
-These example demonstrate how to fully customize the direct and indirect evaluations.
+#### Import Trap
 
-### Example: JS dialects with ES6 Realms
-
- * https://gist.github.com/dherman/9146568
+```js
+const r = new Realm({
+  import(referrerNamespace, specifier) {
+    return getPromiseForNamespaceObjFor(specifier); // invokes your own mechanism to resolve to a namespace
+  }
+});
+const ns = r.evaluate('import("foo")'); // where referrerNamespace is null, and specifier is "foo"
+```
 
 ## Shim
 

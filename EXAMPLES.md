@@ -61,7 +61,7 @@ globalOne.eval('console.log(1)'); // yield a log message: "1"
 globalTwo.eval('console.log(1)'); // throw an error: console is undefined
 ```
 
-To solve this, you can set up the global of the realm to allow use of non-intrinsics, e.g.:
+To solve this, you can add a new global binding in the realm that implements the `console` API, e.g.:
 
 ```js
 globalTwo.console = globalOne.console;
@@ -75,11 +75,7 @@ way up into the globalOne object by using the prototype chain of the new global 
 globalTwo.eval('console.log.constructor("return this")()') === globalOne; // yield true
 ```
 
-This can be prevented by:
-
-* CSP `unsafe-eval` mechanical switch
-* Guaranteeing that all code evaluated in the realm is running in `"strict mode"`.
-* Providing a shim for `console` instead of providing access to the real one.
+Instead, you can provide a fully functional `console` API that closes over to the outer realm's console object. This way you don't leak authority to the newly created Realm.
 
 ## node's vm objects vs realms
 

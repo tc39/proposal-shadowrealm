@@ -112,6 +112,7 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
       1. Let _referrer_ be GetModuleNamespace(_referencingScriptOrModule_).
       1. IfAbruptRejectPromise(_referrer_, _promiseCapability_).
     1. Else,
+      1. Note: Top Level Script referrer is denoted as *null*.
       1. Let _referrer_ be *null*.
     1. Let _value_ be Call(_trap_, *undefined*, « _referrer_, _specifier_ »).
     1. IfAbruptRejectPromise(_value_, _promiseCapability_).
@@ -128,12 +129,9 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
   <emu-alg>
     1. Assert: If _direct_ is *false*, then _strictCaller_ is also *false*.
     1. If Type(_x_) is not String, return _x_.
-    1. <ins>Let _callerContext_ be the second to top element of the execution context stack.</ins>.
-    1. <ins>Let _realmTraps_ be _callerContext_.[[RealmTraps]]</ins>.
-    1. <ins>If _realmTraps_ is a RealmTraps Record, then</ins>
-      1. <ins>Let _fn_ be _realmTraps_.[[TransformTrap]]</ins>.
-      1. <ins>Assert: IsCallable(_fn_) is *true*</ins>.
-      1. <ins>Let x be ? InvokeTransformTrap(_fn_, _x_ ).</ins>.
+    1. <ins>Let _fn_ be _evalRealm_.[[TransformTrap]]</ins>.
+    1. <ins>If IsCallable(_fn_) is *true*, then</ins>
+      1. <ins>Let _x_ be ? InvokeTransformTrap(_fn_, _x_).</ins>.
     1. ...
   </emu-alg>
 </emu-clause>
@@ -143,20 +141,29 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
   <h1>Runtime Semantics: Evaluation</h1>
   <emu-grammar>CallExpression : CoverCallExpressionAndAsyncArrowHead</emu-grammar>
   <emu-alg>
-    5. ...
+    1. Let _expr_ be CoveredCallExpression of CoverCallExpressionAndAsyncArrowHead.
+    1. Let _memberExpr_ be the MemberExpression of _expr_.
+    1. Let _arguments_ be the Arguments of _expr_.
+    1. Let _ref_ be the result of evaluating _memberExpr_.
+    1. Let _func_ be ? GetValue(_ref_).
     1. If Type(_ref_) is Reference and IsPropertyReference(_ref_) is *false* and GetReferencedName(_ref_) is `"eval"`, then
-      1. <ins>Let _callerContext_ be the second to top element of the execution context stack.</ins>.
-      1. <ins>Let _realmTraps_ be _callerContext_.[[RealmTraps]]</ins>.
-      1. <ins>If _realmTraps_ is a RealmTraps Record, then</ins>
-        1. <ins>Let _trapFn_ be _realmTraps_.[[IsDirectEvalTrap]]</ins>.
-        1. <ins>Assert: IsCallable(_trapFn_) is *true*</ins>.
+      1. <ins>Let _evalRealm_ be the current Realm Record.</ins>.
+      1. <ins>Let _trapFn_ be _evalRealm_.[[IsDirectEvalTrap]]</ins>.
+      1. <ins>If IsCallable(_trapFn_) is *true*, then</ins>
         1. <ins>Let _isDirectEval_ be ? InvokeIsDirectEvalTrap(_trapFn_, _func_).</ins>.
       1.  <ins>Else</ins>,
         1. <ins>Let _isDirectEval_ be SameValue(_func_, %eval%)</ins>.
       1. If <ins>_isDirectEval_</ins><del>SameValue(_func_, %eval%)</del> is *true*, then
         1. Let _argList_ be ? ArgumentListEvaluation(_arguments_).
-        1. ...
-    1. ...
+        1. If _argList_ has no elements, return undefined.
+        1. Let _evalText_ be the first element of _argList_.
+        1. If the source code matching this CallExpression is strict mode code, let _strictCaller_ be *true*. Otherwise let strictCaller be *false*.
+        1. <del>Let evalRealm be the current Realm Record</del>.
+        1. Perform ? HostEnsureCanCompileStrings(_evalRealm_, _evalRealm_).
+        1. Return ? PerformEval(_evalText_, _evalRealm_, _strictCaller_, *true*).
+    1. Let _thisCall_ be this CallExpression.
+    1. Let _tailCall_ be IsInTailPosition(_thisCall_).
+    1. Return ? EvaluateCall(_func_, _ref_, _arguments_, _tailCall_).
   </emu-alg>
   ...
 </emu-clause>
@@ -178,11 +185,9 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
     1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
     1. Let _specifierString_ be ToString(_specifier_).
     1. IfAbruptRejectPromise(_specifierString_, _promiseCapability_).
-    1. <ins>Let _callerContext_ be the second to top element of the execution context stack.</ins>.
-    1. <ins>Let _realmTraps_ be _callerContext_.[[RealmTraps]]</ins>.
-    1. <ins>If _realmTraps_ is a RealmTraps Record, then</ins>
-      1. <ins>Let _fn_ be _realmTraps_.[[ImportTrap]]</ins>.
-      1. <ins>Assert: IsCallable(_fn_) is *true*</ins>.
+    1. <ins>Let _evalRealm_ be the current Realm Record.</ins>.
+    1. <ins>Let _fn_ be _evalRealm_.[[ImportTrap]]</ins>.
+    1. <ins>If IsCallable(_fn_) is *true*, then</ins>
       1. <ins>Perform ! InvokeImportTrap(_fn_, _referencingScriptOrModule_, _specifierString_, _promiseCapability_ ).</ins>.
     1. <ins>Else,</ins>
       1. Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, _specifierString_, _promiseCapability_).
@@ -259,7 +264,7 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
             1. If _importTrap_ is equal `"inherit"`, then
               1. Set _importTrap_ to _parentRealm_.[[ImportTrap]].
             1. Else if _importTrap_ is not *undefined* and IsCallable(_importTrap_) is *false*, throw a TypeError exception.
-            1. Let _importMetaTrap_ be ? Get(_opts_, "importMeta").
+            1. Let _importMetaTrap_ be ? Get(_opts_, "meta").
             1. If _importMetaTrap_ is equal `"inherit"`, then
               1. Set _importMetaTrap_ to _parentRealm_.[[ImportMetaTrap]].
             1. Else if _importMetaTrap_ is not *undefined* and IsCallable(_importMetaTrap_) is *false*, throw a TypeError exception.
@@ -322,7 +327,7 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
       </emu-clause>
 
       <emu-clause id="sec-realm.prototype.eval">
-          <h1>Realm.prototype.eval ( _x_ )</h1>
+          <h1>Realm.prototype.evaluate ( _sourceText_ )</h1>
 
           Synchronously execute a top-level script. The _x_ is interpreted as a Script and evaluated with this bound to the realm's global object.
 
@@ -330,9 +335,14 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
           1. Let _O_ be *this* value.
           1. If Type(_O_) is not Object, throw a *TypeError* exception.
           1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-          1. Let _evalRealm_ be _O_.[[Realm]].
-          1. Perform ? HostEnsureCanCompileStrings(the current Realm Record, _evalRealm_).
-          1. Return ? PerformEval(_x_, _evalRealm_, *false*, *false*).
+          1. If Type(_sourceText_) is not String, throw a *TypeError* exception.
+          1. Let _realm_ be _O_.[[Realm]].
+          1. Let _hostDefined_ be _realm_.[[HostDefined]].
+          1. Let _s_ be ParseScript(_sourceText_, _realm_, _hostDefined_).
+          1. If _s_ is a List of errors, then
+            1. Perform HostReportErrors(_s_).
+            1. Return NormalCompletion(*undefined*).
+          1. Return ? ScriptEvaluation(_s_).
           </emu-alg>
 
           <emu-note>
@@ -436,26 +446,6 @@ location: https://rawgit.com/caridy/proposal-realms/master/index.html
                       <td>Realm Record</td>
                       <td>The Realm Record for the initial execution context.</td>
                   </tr>
-                  <tr>
-                    <td>[[TransformTrap]]</td>
-                    <td>A function object or *undefined*</td>
-                    <td>The function that is used as the transform trap. If [[TransformTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
-                </tr>
-                <tr>
-                    <td>[[IsDirectEvalTrap]]</td>
-                    <td>A function object or *undefined*</td>
-                    <td>The function that is used as the direct eval check trap. If [[IsDirectEvalTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
-                </tr>
-                <tr>
-                    <td>[[ImportTrap]]</td>
-                    <td>A function object or *undefined*</td>
-                    <td>The function that is used as the import trap. If [[ImportTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
-                </tr>
-                <tr>
-                    <td>[[ImportMetaTrap]]</td>
-                    <td>A function object or *undefined*</td>
-                    <td>The function that is used as the import.meta trap. If [[ImportMetaTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
-                </tr>
               </tbody>
           </table>
       </emu-table>
