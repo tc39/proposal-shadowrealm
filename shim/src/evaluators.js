@@ -49,7 +49,7 @@ export function getDirectEvalEvaluator(realmRec) {
   const { unsafeFunction } = sandbox;
   setPrototypeOf(evaluator, unsafeFunction.prototype.constructor);
 
-  // Once created for a realm, the reference must be updated everywhere.
+  evaluator.toString = () => 'function eval() { [shim code] }';
   return evaluator;
 }
 
@@ -94,6 +94,6 @@ export function getFunctionEvaluator(realmRec) {
   desc.value = unsafeFunction.prototype;
   defineProperty(evaluator, 'prototype', desc);
 
-  // Once created for a realm, the reference must be everywhere.
+  evaluator.toString = () => 'function Function() { [shim code] }';
   return evaluator;
 }
