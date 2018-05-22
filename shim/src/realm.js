@@ -2,10 +2,13 @@ import { createSandbox } from './sandbox';
 import { getDirectEvalEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getIntrinsics } from './intrinsics';
-import { assert, IsCallable } from './utils';
+import { IsCallable } from './utils';
 import { assign, create, defineProperties } from './commons';
 
-import { RealmRecord, Intrinsics, GlobalObject, DirectEvalEvaluator, ShimSandbox } from './symbols';
+import { Intrinsics, GlobalObject, DirectEvalEvaluator, ShimSandbox } from './symbols';
+
+const Realm2RealmRec = new WeakMap();
+const Realm2Sandbox = new WeakMap();
 
 function getCurrentContext() {
   // eslint-disable-next-line no-new-func
@@ -32,12 +35,12 @@ function createRealmFacade(sandbox) {
 
   unsafeGlobal.Realm = unsafeFunction(
     'base',
-    'ShimSandbox',
+    'Realm2Sandbox',
     'sandbox',
     `
 
 function Realm(options) {
-  this[ShimSandbox] = sandbox;
+  Realm2Sandbox.set(this, sandbox);
   base.call(this, options);
 }
 
@@ -71,13 +74,12 @@ Realm.toString = () => base.toString();
 return Realm;
 
   `
-  )(Realm, ShimSandbox, sandbox);
+  )(Realm, Realm2Sandbox, sandbox);
 }
 
 function setGlobaObject(realmRec) {
   const intrinsics = realmRec[Intrinsics];
   const globalObj = create(intrinsics.ObjectPrototype);
-  globalObj[RealmRecord] = realmRec;
   realmRec[GlobalObject] = globalObj;
 }
 
@@ -117,8 +119,8 @@ export default function Realm(options) {
     // In "inherit" mode, we create a compartment realm and inherit
     // the sandbox since we share the intrinsics. We create a new
     // set to allow us to define eval() anf Function() for the realm.
-    if (ShimSandbox in O) {
-      sandbox = O[ShimSandbox];
+    if (Realm2Sandbox.has(O)) {
+      sandbox = Realm2Sandbox.get(O);
     } else {
       sandbox = currentSandbox;
     }
@@ -139,9 +141,9 @@ export default function Realm(options) {
     [DirectEvalEvaluator]: undefined
   };
 
-  setGlobaObject(realmRec);
+  Realm2RealmRec.set(O, realmRec);
 
-  O[RealmRecord] = realmRec;
+  setGlobaObject(realmRec);
 
   const init = O.init;
   if (!IsCallable(init)) throw new TypeError();
@@ -153,17 +155,19 @@ defineProperties(Realm.prototype, {
     value() {
       const O = this;
       if (typeof O !== 'object') throw new TypeError();
-      if (!(RealmRecord in O)) throw new TypeError();
-      createEvaluators(O[RealmRecord]);
-      setDefaultBindings(O[RealmRecord]);
+      if (!Realm2RealmRec.has(O)) throw new TypeError();
+      const realmRec = Realm2RealmRec.get(O);
+      createEvaluators(realmRec);
+      setDefaultBindings(realmRec);
     }
   },
   intrinsics: {
     get() {
       const O = this;
       if (typeof O !== 'object') throw new TypeError();
-      if (!(RealmRecord in O)) throw new TypeError();
-      const intrinsics = O[RealmRecord][Intrinsics];
+      if (!Realm2RealmRec.has(O)) throw new TypeError();
+      const realmRec = Realm2RealmRec.get(O);
+      const intrinsics = realmRec[Intrinsics];
       // The object returned has its prototype
       // match the ObjectPrototype of the realm.
       const obj = create(intrinsics.ObjectPrototype);
@@ -174,16 +178,17 @@ defineProperties(Realm.prototype, {
     get() {
       const O = this;
       if (typeof O !== 'object') throw new TypeError();
-      if (!(RealmRecord in O)) throw new TypeError();
-      return O[RealmRecord][GlobalObject];
+      if (!Realm2RealmRec.has(O)) throw new TypeError();
+      const realmRec = Realm2RealmRec.get(O);
+      return realmRec[GlobalObject];
     }
   },
   evaluate: {
     value(x) {
       const O = this;
       if (typeof O !== 'object') throw new TypeError();
-      if (!(RealmRecord in O)) throw new TypeError();
-      const realmRec = O[RealmRecord];
+      if (!Realm2RealmRec.has(O)) throw new TypeError();
+      const realmRec = Realm2RealmRec.get(O);
       const evaluator = realmRec[DirectEvalEvaluator];
       return evaluator(x);
     }
