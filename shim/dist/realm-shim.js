@@ -1,19 +1,14 @@
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
-  (global.RealmShim = factory());
+  (global.Realm = factory());
 }(this, (function () { 'use strict';
 
   const RealmRecord = Symbol('Realm Slot');
   const Intrinsics = Symbol('Intrinsics Slot');
   const GlobalObject = Symbol('GlobalObject Slot');
-  const GlobalThisValue = Symbol('GlobalThisValue Slot');
-  const GlobalEnv = Symbol('GlobalEnv Slot');
-  const EvalHook = Symbol('EvalHook Slot');
-  const IsDirectEvalHook = Symbol('IsDirectEvalHook Slot');
-  const ImportHook = Symbol('ImportHook Slot');
-  const ImportMetaHook = Symbol('ImportMetaHook Slot');
-  const ShimSandbox = Symbol('Sandbox');
+  const DirectEvalEvaluator = Symbol('DirectEvalEvaluator Slot');
+  const ShimSandbox = Symbol('Shim Sandbox');
 
   // Declare shorthand functions. Sharing these declarations accross modules
   // improves both consitency and minification. Unused declarations are dropped
@@ -39,6 +34,9 @@
   } = Reflect;
 
   class Handler {
+    // Properties stored on the handler
+    // are not available from the proxy.
+
     constructor(sandbox) {
       const { unsafeGlobal } = sandbox;
       this.unsafeGlobal = unsafeGlobal;
@@ -58,7 +56,7 @@
         }
         return target.eval;
       }
-      // Properties of global.
+      // Properties of the global.
       if (prop in target) {
         return target[prop];
       }
@@ -85,9 +83,11 @@
 
   // Portions adapted from V8 - Copyright 2016 the V8 project authors.
 
-  function createEvalEvaluatorFactory(sandbox) {
+  function getDirectEvalEvaluatorFactory(sandbox) {
     const { unsafeFunction } = sandbox;
 
+    // Create a function in sloppy mode that returns
+    // a function in strict mode.
     return unsafeFunction(`
     with (arguments[0]) {
       return function() {
@@ -98,10 +98,8 @@
   `);
   }
 
-  function createEvalEvaluator(realmRec) {
-    const sandbox = realmRec[ShimSandbox];
-    const globalObject = realmRec[GlobalObject];
-    const intrinsics = realmRec[Intrinsics];
+  function getDirectEvalEvaluator(realmRec) {
+    const { [ShimSandbox]:sandbox, [GlobalObject]:globalObject, [Intrinsics]:intrinsics } = realmRec;
 
     // This proxy has several functions:
     // 1. works with the sentinel to alternate between direct eval and confined eval.
@@ -112,39 +110,35 @@
 
     const scopedEvaluator = sandbox.evalEvaluatorFactory(proxy);
 
-    function evaluator(src) {
-      handler.isInternalEvaluation = true;
-      // Ensure that "this" resolves to the secure global.
-      const result = scopedEvaluator.call(globalObject, src);
-      handler.isInternalEvaluation = false;
-      return result;
-    }
-
-    // Mimic the native eval() function. New properties are
-    // by default non-writable and non-configurable.
-    defineProperties(evaluator, {
-      name: {
-        value: 'eval'
+    // Create an eval without a [[Construct]] behavior such that the
+    // invocation "new eval()" throws TypeError: eval is not a constructor".
+    const evaluator = {
+      eval(src) {
+        handler.isInternalEvaluation = true;
+        // Ensure that "this" resolves to the secure global.
+        const result = scopedEvaluator.call(globalObject, src);
+        handler.isInternalEvaluation = false;
+        return result;
       }
-    });
+    }.eval;
 
-    // This instance is realm-specific, and therefore doesn't
-    // need to be frozen (only the objects reachable from it).
+    // Ensure that eval from any compartment in a root realm is an
+    // instance of Function in any compartment of the same root ralm.
+    const { unsafeFunction } = sandbox;
+    setPrototypeOf(evaluator, unsafeFunction.prototype.constructor);
 
     // Once created for a realm, the reference must be updated everywhere.
-    realmRec[EvalHook] = globalObject.eval = intrinsics.eval = evaluator;
+    return evaluator;
   }
 
   /**
    * A safe version of the native Function which relies on
    * the safety of evalEvaluator for confinement.
    */
-  function createFunctionEvaluator(realmRec) {
-    const { unsafeFunction } = realmRec[ShimSandbox];
-    const globalObject = realmRec[GlobalObject];
-    const intrinsics = realmRec[Intrinsics];
+  function getFunctionEvaluator(realmRec) {
+    const { [ShimSandbox]:sandbox, [GlobalObject]:globalObject, [Intrinsics]:intrinsics } = realmRec;
 
-    function evaluator(...params) {
+    const evaluator = function Function(...params) {
       const functionBody = params.pop() || '';
       let functionParams = params.join(',');
 
@@ -165,29 +159,21 @@
       const src = `(function(${functionParams}){\n${functionBody}\n})`;
 
       return intrinsics.eval(src);
-    }
+    };
 
-    // Ensure that the different Function instances of the different
-    // sandboxes all answer properly when used with the instanceof
-    // operator to preserve indentity.
-    const FunctionPrototype = unsafeFunction.prototype;
+    // Ensure that Function from any compartment in a root realm can be used
+    // with instance checks in any compartment of the same root realm.
+    const { unsafeFunction } = sandbox;
+    setPrototypeOf(evaluator, unsafeFunction.prototype.constructor);
 
-    // Mimic the native signature. New properties are
-    // by default non-writable and non-configurable.
-    defineProperties(evaluator, {
-      name: {
-        value: 'Function'
-      },
-      prototype: {
-        value: FunctionPrototype
-      }
-    });
-
-    // This instance is namespace-specific, and therefore doesn't
-    // need to be frozen (only the objects reachable from it).
+    // Ensure that any function created in any compartment in a root realm is an
+    // instance of Function in any compartment of the same root ralm.
+    const desc = getOwnPropertyDescriptor(evaluator, 'prototype');
+    desc.value = unsafeFunction.prototype;
+    defineProperty(evaluator, 'prototype', desc);
 
     // Once created for a realm, the reference must be everywhere.
-    globalObject.Function = intrinsics.Function = evaluator;
+    return evaluator;
   }
 
   // Adapted from SES/Caja - Copyright (C) 2011 Google Inc.
@@ -259,7 +245,7 @@
     const FunctionPrototype = getPrototypeOf(FunctionInstance);
 
     // Block evaluation of source when calling constructor on the prototype of functions.
-    const TamedFunction = unsafeFunction('throw new Error();');
+    const TamedFunction = unsafeFunction('throw new Error("Not available");');
 
     defineProperties(TamedFunction, {
       name: {
@@ -271,10 +257,8 @@
     });
     defineProperty(FunctionPrototype, 'constructor', { value: TamedFunction });
 
-    // Prevent loop in case of Function.
-    if (functionName !== 'Function') {
-      setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
-    }
+    // Ensures that all functions meet "instanceof Function" in a realm.
+    setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
   }
 
   /**
@@ -285,13 +269,14 @@
    */
   function repairFunctions(sandbox) {
     const { unsafeGlobal: g } = sandbox;
-    const hasAsyncIteration = typeof g.Symbol.asyncIterator !== 'undefined';
 
     // Here, the order of operation is important: Function needs to be
     // repaired first since the other constructors need it.
     repairFunction(sandbox, 'Function', 'function');
     repairFunction(sandbox, 'GeneratorFunction', 'function*');
     repairFunction(sandbox, 'AsyncFunction', 'async function');
+
+    const hasAsyncIteration = typeof g.Symbol.asyncIterator !== 'undefined';
     if (hasAsyncIteration) {
       repairFunction(sandbox, 'AsyncGeneratorFunction', 'async function*');
     }
@@ -313,7 +298,7 @@
   // must be respected since the evaluators are imposing a
   // set of intrinsics, aka the "undeniables".
 
-  function createContext() {
+  function createBrowserContext() {
     const iframe = document.createElement('iframe');
 
     iframe.title = 'script';
@@ -327,8 +312,9 @@
 
   function createSandbox(context) {
     if (context === undefined) {
-      context = createContext();
+      context = createBrowserContext();
     }
+
     // The sandbox is entirely defined by these three objects.
     // Reusing the terminology from SES/Caja.
     const sandbox = {
@@ -336,9 +322,11 @@
       unsafeEval: context.eval,
       unsafeFunction: context.Function
     };
-    if (sandbox.evalEvaluatorFactory === undefined) {
-      sandbox.evalEvaluatorFactory = createEvalEvaluatorFactory(sandbox);
-    }
+
+    // Create the evaluator factory that will generate the evaluators
+    // for each compartment realm.
+    sandbox.evalEvaluatorFactory = getDirectEvalEvaluatorFactory(sandbox);
+
     sanitize(sandbox);
     return sandbox;
   }
@@ -355,7 +343,10 @@
 
       // *** 18.2 Function Properties of the Global Object
 
-      eval: { value: i.eval },
+      // Make eval wrtitable to allow proxy to return a different
+      // value, and leave it non-unconfigurable to prevent userland
+      // from changing its descriptor and breaking an invariant.
+      eval: { value: i.eval, writable: true },
       isFinite: { value: i.isFinite },
       isNaN: { value: i.isNaN },
       parseFloat: { value: i.parseFloat },
@@ -433,8 +424,8 @@
    * https://tc39.github.io/ecma262/#table-7
    * https://tc39.github.io/ecma262/#table-73
    */
-  function getIntrinsics(global) {
-    const g = global;
+  function getIntrinsics(sandbox) {
+    const { unsafeGlobal: g } = sandbox;
 
     // Anonymous intrinsics.
 
@@ -715,294 +706,177 @@
       Intl: g.Intl,
 
       // *** ESNext
-
-      Realm // intentionally passing around the Realm Constructor, which could be used as a side channel, but still!
+      Realm: g.Realm
     };
 
     return intrinsics;
   }
 
-  function assert(condition) {
-    if (!condition) {
-      throw new Error();
-    }
-  }
-
-  function IsCallable(obj) {
-    return typeof obj === 'function';
-  }
-
-  // shim specific
-  function getSandbox(realmRec) {
-    const sandbox = realmRec[ShimSandbox];
-    assert(typeof sandbox === 'object');
-    return sandbox;
-  }
-
-  // shim specific
-  function getExecutionContext() {
+  function getCurrentContext() {
     // eslint-disable-next-line no-new-func
     return new Function('return this')();
   }
 
-  // shim specific
-  function getCurrentRealmRecord() {
-    const context = getExecutionContext();
-    let realmRec = context[RealmRecord];
-    if (realmRec === undefined) {
-      // If there is no realm slot, then we are outside of a realm shim,
-      // and we emulate what the current realm record should be. This is
-      // a root realm and we define all fields based on the context.
-      const sandbox = createSandbox(context);
-      realmRec = {
-        [Intrinsics]: getIntrinsics(sandbox.unsafeGlobal),
-        [GlobalObject]: sandbox.unsafeGlobal,
-        [EvalHook]: sandbox.unsafeEval,
-        [ShimSandbox]: sandbox
-      };
-      // Setup the RealmRecord for the next execution.
-      context[RealmRecord] = realmRec;
-    }
-    return realmRec;
+  function getCurrentSandbox() {
+    const context = getCurrentContext();
+    const sandbox = createSandbox(context);
+    return sandbox;
   }
 
-  // <!-- es6num="8.1.2.5" -->
-  function NewGlobalEnvironment(G, thisValue) {
-    // diverging from spec to accomodate the iframe as the lexical environment
-    // using a class for better debugability
-    class EnvironmentRecord {
-      constructor(/*globalObject*/) {
-        this[GlobalThisValue] = thisValue;
-      }
+  function createRealmFacade(sandbox) {
+    const { unsafeFunction, unsafeGlobal } = sandbox;
+
+    // Rebuild a Realm class using inrinsics from the sandbox,
+    // to prevent the Realm parts from breaking identity
+    // continuity. This avoids loading the Ream shim in
+    // every root realm.
+
+    // This process is simplified becuase all methods
+    // and properties on a realm instance already return
+    // values based on the intrinsics of the realm.
+
+    unsafeGlobal.Realm = unsafeFunction('base', 'ShimSandbox', 'sandbox', `
+
+function Realm(options) {
+  this[ShimSandbox] = sandbox;
+  base.call(this, options);
+}
+
+const descs = Object.getOwnPropertyDescriptors(base.prototype);
+
+Object.defineProperties(Realm.prototype, {
+  intrinsics: {
+    get() {
+      return descs.intrinsics.get.call(this);
     }
-    return new EnvironmentRecord(G);
+  },
+  global: {
+    get() {
+      return descs.global.get.call(this);
+    }
+  },
+  eval: {
+    value(x) {
+      return descs.eval.value.call(this, x);
+    }
+  }
+});
+
+Realm.toString = () => base.toString();
+
+return Realm;
+
+  `)(Realm, ShimSandbox, sandbox);
+
   }
 
-  // <!-- es6num="8.2.3" -->
-  function SetRealmGlobalObject(realmRec, globalObj, thisValue) {
-    if (globalObj === undefined) {
-      const intrinsics = realmRec[Intrinsics];
-      globalObj = create(intrinsics.ObjectPrototype);
-    }
-    assert(typeof globalObj === 'object');
-    if (thisValue === undefined) thisValue = globalObj;
+  function setGlobaObject(realmRec) {
+    const intrinsics = realmRec[Intrinsics];
+    const globalObj = create(intrinsics.ObjectPrototype);
+    globalObj[RealmRecord] = realmRec;
     realmRec[GlobalObject] = globalObj;
-    const newGlobalEnv = NewGlobalEnvironment(globalObj, thisValue);
-    realmRec[GlobalEnv] = newGlobalEnv;
-    return realmRec;
   }
 
-  // <!-- es6num="8.2.4" -->
-  function SetDefaultGlobalBindings(realmRec) {
-    const global = realmRec[GlobalObject];
-    // For each property of the Global Object specified in clause 18, do
-    // ---> diverging
+  function createEvaluators(realmRec) {
+
+    // Divergence from specifications: the evaluators are tied to
+    // a global and they are tied to a realm and to the intrinsics
+    // of that realm.
+    const directEvalEvaluator = getDirectEvalEvaluator(realmRec);
+    const FunctionEvaluator = getFunctionEvaluator(realmRec);
+
+    // No need to store Function.
+    realmRec[DirectEvalEvaluator] = directEvalEvaluator;
+
+    // Limitation: export a direct evaluator.
+    const intrinsics = realmRec[Intrinsics];
+    intrinsics.eval = directEvalEvaluator;
+    intrinsics.Function = FunctionEvaluator;
+  }
+
+  function setDefaultBindings(realmRec) {
     const intrinsics = realmRec[Intrinsics];
     const descs = getStdLib(intrinsics);
-    defineProperties(global, descs);
-    // <--- diverging
-    return global;
+    defineProperties(realmRec[GlobalObject], descs);
   }
 
-  // <!-- es6num="8.2.2" -->
-  function CreateIntrinsics(realmRec) {
-    // ---> diverging
-    const sandbox = getSandbox(realmRec);
-    const intrinsics = getIntrinsics(sandbox.unsafeGlobal);
-    // <--- diverging
-    realmRec[Intrinsics] = intrinsics;
-    return intrinsics;
-  }
+  // The current sandbox is the sandbox where the
+  // Realm shim is being parsed and executed.
+  const currentSandbox = getCurrentSandbox();
 
-  // <!-- proposal="11.1.1" -->
-  // <!-- deprecates es6num="8.2.1" -->
-  function CreateRealmRec(intrinsics, /* shim specific */ sandbox) {
-    const realmRec = {
-      // ES specs table-21
-      [Intrinsics]: {},
-      [GlobalObject]: undefined,
-      [GlobalEnv]: undefined,
-      // [TemplateMap]: [],
-      // [HostDefined]: undefined,
+  function Realm(options) {
+    const O = this;
+    const opts = Object(options);
 
-      // Realm specs table-2
-      [EvalHook]: undefined,
-      [IsDirectEvalHook]: undefined,
-      [ImportHook]: undefined,
-      [ImportMetaHook]: undefined,
-
-      // ---> diverging
-      [ShimSandbox]: sandbox
-      // <--- diverging
-    };
-    if (intrinsics === undefined) {
-      CreateIntrinsics(realmRec);
-    } else {
-      // 1. Assert: In this case, _intrinsics_ must be a Record with field names listed in column one of Table 7.
-      realmRec[Intrinsics] = intrinsics;
-    }
-    return realmRec;
-  }
-
-  // <!-- proposal="1.2" -->
-  function InvokeDirectEvalHook(realmRec, x) {
-    // 1. Assert: realm is a Realm Record.
-    const fn = realmRec[EvalHook];
-    if (fn === undefined) return x;
-    assert(IsCallable(fn) === true);
-    return fn.call(undefined, x);
-  }
-
-  // <!-- es6num="18.2.1.1" -->
-  function PerformEval(x, evalRealm, strictCaller, direct) {
-    assert(direct === false ? strictCaller === false : true);
-    if (typeof x !== 'string') return x;
-    // ---> diverging
-    if (direct === true) {
-      x = InvokeDirectEvalHook(x, evalRealm);
-    }
-    return evalRealm[EvalHook](x);
-  }
-
-  // <!-- proposal="11.3.1" -->
-  class Realm {
-    constructor(options) {
-      const O = this;
-      const parentRealm = getCurrentRealmRecord();
-      const opts = Object(options);
-
-      let importHook = opts.importHook;
-      if (importHook === 'inherit') {
-        importHook = parentRealm[ImportHook];
-      } else if (importHook !== undefined && IsCallable(importHook) === false) {
-        throw new TypeError();
-      }
-
-      let importMetaHook = opts.importMetaHook;
-      if (importMetaHook === 'inherit') {
-        importMetaHook = parentRealm[ImportMetaHook];
-      } else if (importMetaHook !== undefined && IsCallable(importMetaHook) === false) {
-        throw new TypeError();
-      }
-
-      let evalHook = opts.evalHook;
-      if (evalHook === 'inherit') {
-        evalHook = parentRealm[EvalHook];
-      } else if (evalHook !== undefined && IsCallable(evalHook) === false) {
-        throw new TypeError();
-      }
-
-      let isDirectEvalHook = opts.isDirectEvalHook;
-      if (isDirectEvalHook === 'inherit') {
-        isDirectEvalHook = parentRealm[IsDirectEvalHook];
-      } else if (isDirectEvalHook !== undefined && IsCallable(isDirectEvalHook) === false) {
-        throw new TypeError();
-      }
-
-      // ---> diverging
-      // Limitation: intrisics and sandbox must always match. We
-      // known this early during the constuction of the realm.
-      let intrinsics = opts.intrinsics;
-      let sandbox;
-      if (intrinsics === 'inherit') {
-        // When we inherit the intrinsics, we also must
-        // inherit the sandbox.
-        intrinsics = parentRealm[Intrinsics];
-        sandbox = parentRealm[ShimSandbox];
-      } else if (intrinsics === undefined) {
-        // When intrinics are not specified, we
-        // need to create a sandbox.
-        sandbox = createSandbox();
+    let sandbox;
+    let intrinsics = opts.intrinsics;
+    if (intrinsics === 'inherit') {
+      // In "inherit" mode, we create a compartment realm and inherit
+      // the sandbox since we share the intrinsics. We create a new
+      // set to allow us to define eval() anf Function() for the realm.
+      if (ShimSandbox in O) {
+        sandbox = O[ShimSandbox];
       } else {
-        throw new TypeError();
-      }
-      // <--- diverging
-
-      const thisValue = opts.thisValue;
-      if (thisValue !== undefined && typeof thisValue !== 'object') {
-        throw new TypeError();
+        sandbox = currentSandbox;
       }
 
-      const realmRec = CreateRealmRec(intrinsics, sandbox);
-      O[RealmRecord] = realmRec;
+    } else if (intrinsics === undefined) {
+      // When intrinics are not provided, we create a root realm
+      // using the fresh set of new intrinics from a new sandbox.
+      sandbox = createSandbox();
+      createRealmFacade(sandbox);
 
-      SetRealmGlobalObject(realmRec, undefined, thisValue);
-      // ---> diverging
-      // Limitation: the evaluators are tied to a global object and
-      // need to be created after the global object. It is process
-      // also updates the intrinsics.
-      createEvalEvaluator(realmRec);
-      createFunctionEvaluator(realmRec);
-      // <--- diverging
-
-      if (importHook === undefined) {
-        // new built-in function object as defined in <emu-xref href="#sec-realm-default-import-hook-functions"></emu-xref>
-        importHook = function(/*referrer, specifier*/) {
-          throw new TypeError();
-        };
-      }
-      realmRec[ImportHook] = importHook;
-      if (evalHook !== undefined) {
-        realmRec[EvalHook] = evalHook;
-      }
-      if (isDirectEvalHook !== undefined) {
-        realmRec[IsDirectEvalHook] = isDirectEvalHook;
-      }
-
-      const init = O.init;
-      if (!IsCallable(init)) throw new TypeError();
-      init.call(O);
+    } else {
+      throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
     }
+    intrinsics = getIntrinsics(sandbox);
 
-    init() {
-      const O = this;
-      if (typeof O !== 'object') throw new TypeError();
-      if (!(RealmRecord in O)) throw new TypeError();
-      SetDefaultGlobalBindings(O[RealmRecord]);
-    }
+    const realmRec = {
+      [ShimSandbox]: sandbox,
+      [Intrinsics]: intrinsics,
+      [GlobalObject]: undefined,
+      [DirectEvalEvaluator]: undefined
+    };
 
-    eval(x) {
-      const O = this;
-      if (typeof O !== 'object') throw new TypeError();
-      if (!(RealmRecord in O)) throw new TypeError();
-      const evalRealm = O[RealmRecord];
-      // HostEnsureCanCompileStrings(the current Realm Record, _evalRealm_).
-      return PerformEval(x, evalRealm, false, false);
-    }
+    setGlobaObject(realmRec);
+    createEvaluators(realmRec);
+    setDefaultBindings(realmRec);
 
-    get stdlib() {
-      const O = this;
-      if (typeof O !== 'object') throw new TypeError();
-      if (!(RealmRecord in O)) throw new TypeError();
-      // TODO: align with spec
-      const intrinsics = O[RealmRecord][Intrinsics];
-      return getStdLib(intrinsics);
-    }
-
-    get intrinsics() {
-      const O = this;
-      if (typeof O !== 'object') throw new TypeError();
-      if (!(RealmRecord in O)) throw new TypeError();
-      // TODO: align with spec
-      const intrinsics = O[RealmRecord][Intrinsics];
-      return assign({}, intrinsics);
-    }
-
-    get global() {
-      const O = this;
-      if (typeof O !== 'object') throw new TypeError();
-      if (!(RealmRecord in O)) throw new TypeError();
-      return O[RealmRecord][GlobalObject];
-    }
-
-    get thisValue() {
-      const O = this;
-      if (typeof O !== 'object') throw new TypeError();
-      if (!(RealmRecord in O)) throw new TypeError();
-      const envRec = O[RealmRecord][GlobalEnv];
-      return envRec[GlobalThisValue];
-    }
+    O[RealmRecord] = realmRec;
   }
+
+  defineProperties(Realm.prototype, {
+    intrinsics: {
+      get() {
+        const O = this;
+        if (typeof O !== 'object') throw new TypeError();
+        if (!(RealmRecord in O)) throw new TypeError();
+        const intrinsics = O[RealmRecord][Intrinsics];
+        // The object returned has its prototype
+        // match the ObjectPrototype of the realm.
+        const obj = create(intrinsics.ObjectPrototype);
+        return assign(obj, intrinsics);
+      }
+    },
+    global: {
+      get() {
+        const O = this;
+        if (typeof O !== 'object') throw new TypeError();
+        if (!(RealmRecord in O)) throw new TypeError();
+        return O[RealmRecord][GlobalObject];
+      }
+    },
+    eval: {
+      value(x) {
+        const O = this;
+        if (typeof O !== 'object') throw new TypeError();
+        if (!(RealmRecord in O)) throw new TypeError();
+        const realmRec = O[RealmRecord];
+        const evaluator = realmRec[DirectEvalEvaluator];
+        return evaluator(x);
+      }
+    }
+  });
 
   Realm.toString = () => 'function Realm() { [shim code] }';
 
