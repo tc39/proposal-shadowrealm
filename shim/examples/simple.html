@@ -23,27 +23,46 @@
         </p>
 
         <script>
-        var r1 = new Realm();
-        var r2 = new r1.global.Realm({ intrinsics: 'inherit' });
 
         // basic sanity check: they all should output true
-        // for now extra () are needed as a signal that it should return something :/
-        console.log(1, r1.eval('( JSON )'));
-        console.log(2, r1.eval('( JSON )') !== JSON);
-        console.log(3, r1.eval('( JSON )') === r1.eval('( JSON )'));
-        console.log(4, r1.eval('( JSON )') === r1.eval('( eval("JSON") )'));
 
-        console.log(5, r2.eval('( JSON )'));
-        console.log(6, r2.eval('( JSON )') !== JSON);
-        console.log(7, r2.eval('( JSON )') === r2.eval('( JSON )'));
-        console.log(8, r2.eval('( JSON )') === r2.eval('( eval("JSON") )'));
+        // Root realm
+        const r1 = new Realm();
 
-        console.log(9, r2.eval('( JSON )') === r1.eval('( JSON )'));
-        console.log(10, r2.eval('( eval("JSON") )') === r1.eval('( eval("JSON") )'));
+        console.log(1.1, r1.eval('( JSON )'));
+        console.log(1.2, r1.eval('( JSON )') !== JSON);
+        console.log(1.3, r1.eval('( JSON )') === r1.eval('( JSON )'));
+        console.log(1.4, r1.eval('( JSON )') === r1.eval('( eval("JSON") )'));
+        console.log(1.5, r1.eval('( eval instanceof Function )'));
 
+        // Root realm vs root realm
+        const r2 = new Realm();
+
+        console.log(2.1, r2.eval('( JSON )'));
+        console.log(2.2, r2.eval('( JSON )') !== JSON);
+        console.log(2.3, r2.eval('( JSON )') === r2.eval('( JSON )'));
+        console.log(2.4, r2.eval('( JSON )') === r2.eval('( eval("JSON") )'));
+        console.log(2.5, r2.eval('( eval instanceof Function )'));
+
+        console.log(2.6, r2.eval('( JSON )') !== r1.eval('( JSON )'));
+        console.log(2.7, r2.eval('( eval("JSON") )') !== r1.eval('( eval("JSON") )'));
+
+        // Compartment realm vs root realm
+        const r3 = new r1.global.Realm({ intrinsics: 'inherit' });
+
+        console.log(3.1, r3.eval('( JSON )'));
+        console.log(3.2, r3.eval('( JSON )') !== JSON);
+        console.log(3.3, r3.eval('( JSON )') === r3.eval('( JSON )'));
+        console.log(3.4, r3.eval('( JSON )') === r3.eval('( eval("JSON") )'));
+        console.log(3.5, r1.eval('( eval instanceof Function )'));
+
+        console.log(3.6, r3.eval('( JSON )') === r1.eval('( JSON )'));
+        console.log(3.7, r3.eval('( eval("JSON") )') === r1.eval('( eval("JSON") )'));
+
+        const r = new Realm();
         document.getElementById('run').addEventListener('click', function () {
-            var sourceText = document.getElementById('sourceText').value;
-            var result, output;
+            const sourceText = document.getElementById('sourceText').value;
+            let result, output;
             try {
                 result = r.eval(sourceText);
             } catch (e) {

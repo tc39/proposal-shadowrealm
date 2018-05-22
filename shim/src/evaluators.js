@@ -2,7 +2,7 @@
 // https://github.com/v8/v8/blob/master/src/builtins/builtins-function.cc
 
 import { GlobalObject, Intrinsics, ShimSandbox } from './symbols';
-import { defineProperties } from './commons';
+import { defineProperty, getOwnPropertyDescriptor, setPrototypeOf } from './commons';
 import { Handler } from './handler';
 
 export function getDirectEvalEvaluatorFactory(sandbox) {
@@ -21,9 +21,7 @@ export function getDirectEvalEvaluatorFactory(sandbox) {
 }
 
 export function getDirectEvalEvaluator(realmRec) {
-  const sandbox = realmRec[ShimSandbox];
-  const globalObject = realmRec[GlobalObject];
-  const intrinsics = realmRec[Intrinsics];
+  const { [ShimSandbox]:sandbox, [GlobalObject]:globalObject, [Intrinsics]:intrinsics } = realmRec;
 
   // This proxy has several functions:
   // 1. works with the sentinel to alternate between direct eval and confined eval.
@@ -34,32 +32,22 @@ export function getDirectEvalEvaluator(realmRec) {
 
   const scopedEvaluator = sandbox.evalEvaluatorFactory(proxy);
 
-  function evaluator(src) {
-    handler.isInternalEvaluation = true;
-    // Ensure that "this" resolves to the secure global.
-    const result = scopedEvaluator.call(globalObject, src);
-    handler.isInternalEvaluation = false;
-    return result;
-  }
-
-  // Ensure that the different eval instances of the different
-  // realms all answer properly when used with the instanceof
-  // operator to preserve indentity.
-  const FunctionPrototype = sandbox.unsafeFunction.prototype;
-
-  // Mimic the native eval() function. New properties are
-  // by default non-writable and non-configurable.
-  defineProperties(evaluator, {
-    name: {
-      value: 'eval'
-    },
-    prototype: {
-      value: FunctionPrototype
+  // Create an eval without a [[Construct]] behavior such that the
+  // invocation "new eval()" throws TypeError: eval is not a constructor".
+  const evaluator = {
+    eval(src) {
+      handler.isInternalEvaluation = true;
+      // Ensure that "this" resolves to the secure global.
+      const result = scopedEvaluator.call(globalObject, src);
+      handler.isInternalEvaluation = false;
+      return result;
     }
-  });
+  }.eval;
 
-  // This instance is realm-specific, and therefore doesn't
-  // need to be frozen (only the objects reachable from it).
+  // Ensure that eval from any compartment in a root realm is an
+  // instance of Function in any compartment of the same root ralm.
+  const { unsafeFunction } = sandbox;
+  setPrototypeOf(evaluator, unsafeFunction.prototype.constructor);
 
   // Once created for a realm, the reference must be updated everywhere.
   return evaluator;
@@ -70,11 +58,9 @@ export function getDirectEvalEvaluator(realmRec) {
  * the safety of evalEvaluator for confinement.
  */
 export function getFunctionEvaluator(realmRec) {
-  const sandbox = realmRec[ShimSandbox];
-  const globalObject = realmRec[GlobalObject];
-  const intrinsics = realmRec[Intrinsics];
+  const { [ShimSandbox]:sandbox, [GlobalObject]:globalObject, [Intrinsics]:intrinsics } = realmRec;
 
-  function evaluator(...params) {
+  const evaluator = function Function(...params) {
     const functionBody = params.pop() || '';
     let functionParams = params.join(',');
 
@@ -97,24 +83,16 @@ export function getFunctionEvaluator(realmRec) {
     return intrinsics.eval(src);
   }
 
-  // Ensure that the different Function instances of the different
-  // realms all answer properly when used with the instanceof
-  // operator to preserve indentity.
-  const FunctionPrototype = sandbox.unsafeFunction.prototype;
+  // Ensure that Function from any compartment in a root realm can be used
+  // with instance checks in any compartment of the same root realm.
+  const { unsafeFunction } = sandbox;
+  setPrototypeOf(evaluator, unsafeFunction.prototype.constructor);
 
-  // Mimic the native signature. New properties are
-  // by default non-writable and non-configurable.
-  defineProperties(evaluator, {
-    name: {
-      value: 'Function'
-    },
-    prototype: {
-      value: FunctionPrototype
-    }
-  });
-
-  // This instance is namespace-specific, and therefore doesn't
-  // need to be frozen (only the objects reachable from it).
+  // Ensure that any function created in any compartment in a root realm is an
+  // instance of Function in any compartment of the same root ralm.
+  const desc = getOwnPropertyDescriptor(evaluator, 'prototype');
+  desc.value = unsafeFunction.prototype
+  defineProperty(evaluator, 'prototype', desc);
 
   // Once created for a realm, the reference must be everywhere.
   return evaluator;
