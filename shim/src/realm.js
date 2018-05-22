@@ -46,6 +46,11 @@ function Realm(options) {
 const descs = Object.getOwnPropertyDescriptors(base.prototype);
 
 Object.defineProperties(Realm.prototype, {
+  init: {
+    value() {
+      return descs.init.value.call(this);
+    }
+  },
   intrinsics: {
     get() {
       return descs.intrinsics.get.call(this);
@@ -140,13 +145,24 @@ export default function Realm(options) {
   };
 
   setGlobaObject(realmRec);
-  createEvaluators(realmRec);
-  setDefaultBindings(realmRec);
 
   O[RealmRecord] = realmRec;
+
+  let init = O.init;
+  if (!IsCallable(init)) throw new TypeError();
+  init.call(O);
 }
 
 defineProperties(Realm.prototype, {
+  init: {
+    value() {
+      let O = this;
+      if (typeof O !== 'object') throw new TypeError();
+      if (!(RealmRecord in O)) throw new TypeError();
+      createEvaluators(O[RealmRecord]);
+      setDefaultBindings(O[RealmRecord]);
+    }
+  },
   intrinsics: {
     get() {
       const O = this;
