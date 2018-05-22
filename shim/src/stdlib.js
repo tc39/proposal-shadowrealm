@@ -48,7 +48,7 @@ export function getStdLib(intrinsics) {
     ReferenceError: { value: i.ReferenceError },
     RegExp: { value: i.RegExp },
     Set: { value: i.Set },
-    // SharedArrayBuffer - Deprecated on Jan 5, 2018
+    // SharedArrayBuffer // Deprecated on Jan 5, 2018
     String: { value: i.String },
     Symbol: { value: i.Symbol },
     SyntaxError: { value: i.SyntaxError },
@@ -63,7 +63,7 @@ export function getStdLib(intrinsics) {
 
     // *** 18.4 Other Properties of the Global Object
 
-    Atomics: { value: i.Atomics },
+    // Atomics: { value: i.Atomics }, // Deprecated on Jan 5, 2018
     JSON: { value: i.JSON },
     Math: { value: i.Math },
     Reflect: { value: i.Reflect },

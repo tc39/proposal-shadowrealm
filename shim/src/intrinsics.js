@@ -92,7 +92,7 @@ export function getIntrinsics(sandbox) {
     // %AsyncIteratorPrototype%
     AsyncIteratorPrototype,
     // %Atomics%
-    Atomics: g.Atomics,
+    // Atomics: g.Atomics, // Deprecated on Jan 5, 2018
     // %Boolean%
     Boolean: g.Boolean,
     // %BooleanPrototype%
@@ -222,9 +222,9 @@ export function getIntrinsics(sandbox) {
     // %SetPrototype%
     SetPrototype: g.Set.prototype,
     // %SharedArrayBuffer%
-    // SharedArrayBuffer - Deprecated on Jan 5, 2018
+    // SharedArrayBuffer // Deprecated on Jan 5, 2018
     // %SharedArrayBufferPrototype%
-    // SharedArrayBufferPrototype - Deprecated on Jan 5, 2018
+    // SharedArrayBufferPrototype // Deprecated on Jan 5, 2018
     // %String%
     String: g.String,
     // %StringIteratorPrototype%
