@@ -5,13 +5,7 @@ import { getIntrinsics } from './intrinsics';
 import { assert, IsCallable } from './utils';
 import { assign, create, defineProperties } from './commons';
 
-import {
-  RealmRecord,
-  Intrinsics,
-  GlobalObject,
-  DirectEvalEvaluator,
-  ShimSandbox
-} from './symbols';
+import { RealmRecord, Intrinsics, GlobalObject, DirectEvalEvaluator, ShimSandbox } from './symbols';
 
 function getCurrentContext() {
   // eslint-disable-next-line no-new-func
@@ -19,7 +13,7 @@ function getCurrentContext() {
 }
 
 function getCurrentSandbox() {
-  const context = getCurrentContext()
+  const context = getCurrentContext();
   const sandbox = createSandbox(context);
   return sandbox;
 }
@@ -36,7 +30,11 @@ function createRealmFacade(sandbox) {
   // and properties on a realm instance already return
   // values based on the intrinsics of the realm.
 
-  unsafeGlobal.Realm = unsafeFunction('base', 'ShimSandbox', 'sandbox', `
+  unsafeGlobal.Realm = unsafeFunction(
+    'base',
+    'ShimSandbox',
+    'sandbox',
+    `
 
 function Realm(options) {
   this[ShimSandbox] = sandbox;
@@ -72,8 +70,8 @@ Realm.toString = () => base.toString();
 
 return Realm;
 
-  `)(Realm, ShimSandbox, sandbox);
-
+  `
+  )(Realm, ShimSandbox, sandbox);
 }
 
 function setGlobaObject(realmRec) {
@@ -84,7 +82,6 @@ function setGlobaObject(realmRec) {
 }
 
 function createEvaluators(realmRec) {
-
   // Divergence from specifications: the evaluators are tied to
   // a global and they are tied to a realm and to the intrinsics
   // of that realm.
@@ -101,7 +98,7 @@ function createEvaluators(realmRec) {
 }
 
 function setDefaultBindings(realmRec) {
-  const intrinsics = realmRec[Intrinsics]
+  const intrinsics = realmRec[Intrinsics];
   const descs = getStdLib(intrinsics);
   defineProperties(realmRec[GlobalObject], descs);
 }
@@ -121,17 +118,15 @@ export default function Realm(options) {
     // the sandbox since we share the intrinsics. We create a new
     // set to allow us to define eval() anf Function() for the realm.
     if (ShimSandbox in O) {
-      sandbox = O[ShimSandbox]
+      sandbox = O[ShimSandbox];
     } else {
       sandbox = currentSandbox;
     }
-
   } else if (intrinsics === undefined) {
     // When intrinics are not provided, we create a root realm
     // using the fresh set of new intrinics from a new sandbox.
     sandbox = createSandbox();
     createRealmFacade(sandbox);
-
   } else {
     throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
   }
@@ -148,7 +143,7 @@ export default function Realm(options) {
 
   O[RealmRecord] = realmRec;
 
-  let init = O.init;
+  const init = O.init;
   if (!IsCallable(init)) throw new TypeError();
   init.call(O);
 }
@@ -156,7 +151,7 @@ export default function Realm(options) {
 defineProperties(Realm.prototype, {
   init: {
     value() {
-      let O = this;
+      const O = this;
       if (typeof O !== 'object') throw new TypeError();
       if (!(RealmRecord in O)) throw new TypeError();
       createEvaluators(O[RealmRecord]);
@@ -189,7 +184,7 @@ defineProperties(Realm.prototype, {
       if (typeof O !== 'object') throw new TypeError();
       if (!(RealmRecord in O)) throw new TypeError();
       const realmRec = O[RealmRecord];
-      const evaluator = realmRec[DirectEvalEvaluator]
+      const evaluator = realmRec[DirectEvalEvaluator];
       return evaluator(x);
     }
   }

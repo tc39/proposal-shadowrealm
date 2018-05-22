@@ -21,7 +21,7 @@ export function getDirectEvalEvaluatorFactory(sandbox) {
 }
 
 export function getDirectEvalEvaluator(realmRec) {
-  const { [ShimSandbox]:sandbox, [GlobalObject]:globalObject, [Intrinsics]:intrinsics } = realmRec;
+  const { [ShimSandbox]: sandbox, [GlobalObject]: globalObject } = realmRec;
 
   // This proxy has several functions:
   // 1. works with the sentinel to alternate between direct eval and confined eval.
@@ -58,7 +58,7 @@ export function getDirectEvalEvaluator(realmRec) {
  * the safety of evalEvaluator for confinement.
  */
 export function getFunctionEvaluator(realmRec) {
-  const { [ShimSandbox]:sandbox, [GlobalObject]:globalObject, [Intrinsics]:intrinsics } = realmRec;
+  const { [ShimSandbox]: sandbox, [Intrinsics]: intrinsics } = realmRec;
 
   const evaluator = function Function(...params) {
     const functionBody = params.pop() || '';
@@ -81,7 +81,7 @@ export function getFunctionEvaluator(realmRec) {
     const src = `(function(${functionParams}){\n${functionBody}\n})`;
 
     return intrinsics.eval(src);
-  }
+  };
 
   // Ensure that Function from any compartment in a root realm can be used
   // with instance checks in any compartment of the same root realm.
@@ -91,7 +91,7 @@ export function getFunctionEvaluator(realmRec) {
   // Ensure that any function created in any compartment in a root realm is an
   // instance of Function in any compartment of the same root ralm.
   const desc = getOwnPropertyDescriptor(evaluator, 'prototype');
-  desc.value = unsafeFunction.prototype
+  desc.value = unsafeFunction.prototype;
   defineProperty(evaluator, 'prototype', desc);
 
   // Once created for a realm, the reference must be everywhere.
