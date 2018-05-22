@@ -46,19 +46,32 @@ You can view the spec rendered as [HTML](https://rawgit.com/caridy/proposal-real
 ### Example: simple realm
 
 ```js
-let realm = new Realm();
+let g = window; // outer global
+let r = new Realm(); // root realm
 
-let outerGlobal = window;
-let innerGlobal = realm.global;
-
-let f = realm.evaluate("(function() { return 17 })");
+let f = r.evaluate("(function() { return 17 })");
 
 f() === 17 // true
 
-Reflect.getPrototypeOf(f) === outerGlobal.Function.prototype // false
-Reflect.getPrototypeOf(f) === innerGlobal.Function.prototype // true
+Reflect.getPrototypeOf(f) === g.Function.prototype // false
+Reflect.getPrototypeOf(f) === r.global.Function.prototype // true
 ```
 
+### Example: simple compartment
+
+```js
+let g = window; // outer global
+let r1 = new Realm(); // root realm
+let r2 = new r1.global.Realm({ intrinsics: "inherit" }); // realm compartment
+
+let f = r1.evaluate("(function() { return 17 })");
+
+f() === 17 // true
+
+Reflect.getPrototypeOf(f) === g.Function.prototype // false
+Reflect.getPrototypeOf(f) === r1.global.Function.prototype // true
+Reflect.getPrototypeOf(f) === r2.global.Function.prototype // true
+```
 ### Example: simple subclass
 
 ```js
@@ -122,7 +135,7 @@ const source = `
   let x = 1;
   (function foo() {
     let x = 2;
-    eval('x');      // yields 2 if `compile` doesn't alter the code 
+    eval('x');      // yields 2 if `compile` doesn't alter the code
     (0,eval)('x');  // yields 1 if `compile` doesn't alter the code
   })();
 `;
