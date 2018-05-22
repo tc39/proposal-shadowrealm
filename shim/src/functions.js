@@ -32,6 +32,7 @@ function repairFunction(sandbox, functionName, functionDecl) {
   });
   defineProperty(FunctionPrototype, 'constructor', { value: TamedFunction });
 
+  // Ensures that all functions meet "instanceof Function" in a realm.
   setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
 }
 
@@ -43,13 +44,14 @@ function repairFunction(sandbox, functionName, functionDecl) {
  */
 export function repairFunctions(sandbox) {
   const { unsafeGlobal: g } = sandbox;
-  const hasAsyncIteration = typeof g.Symbol.asyncIterator !== 'undefined';
 
   // Here, the order of operation is important: Function needs to be
   // repaired first since the other constructors need it.
   repairFunction(sandbox, 'Function', 'function');
   repairFunction(sandbox, 'GeneratorFunction', 'function*');
   repairFunction(sandbox, 'AsyncFunction', 'async function');
+
+  const hasAsyncIteration = typeof g.Symbol.asyncIterator !== 'undefined';
   if (hasAsyncIteration) {
     repairFunction(sandbox, 'AsyncGeneratorFunction', 'async function*');
   }
