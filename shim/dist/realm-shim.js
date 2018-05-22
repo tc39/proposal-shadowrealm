@@ -380,7 +380,7 @@
       ReferenceError: { value: i.ReferenceError },
       RegExp: { value: i.RegExp },
       Set: { value: i.Set },
-      // SharedArrayBuffer - Deprecated on Jan 5, 2018
+      // SharedArrayBuffer // Deprecated on Jan 5, 2018
       String: { value: i.String },
       Symbol: { value: i.Symbol },
       SyntaxError: { value: i.SyntaxError },
@@ -395,7 +395,7 @@
 
       // *** 18.4 Other Properties of the Global Object
 
-      Atomics: { value: i.Atomics },
+      // Atomics: { value: i.Atomics }, // Deprecated on Jan 5, 2018
       JSON: { value: i.JSON },
       Math: { value: i.Math },
       Reflect: { value: i.Reflect },
@@ -507,7 +507,7 @@
       // %AsyncIteratorPrototype%
       AsyncIteratorPrototype,
       // %Atomics%
-      Atomics: g.Atomics,
+      // Atomics: g.Atomics, // Deprecated on Jan 5, 2018
       // %Boolean%
       Boolean: g.Boolean,
       // %BooleanPrototype%
@@ -637,9 +637,9 @@
       // %SetPrototype%
       SetPrototype: g.Set.prototype,
       // %SharedArrayBuffer%
-      // SharedArrayBuffer - Deprecated on Jan 5, 2018
+      // SharedArrayBuffer // Deprecated on Jan 5, 2018
       // %SharedArrayBufferPrototype%
-      // SharedArrayBufferPrototype - Deprecated on Jan 5, 2018
+      // SharedArrayBufferPrototype // Deprecated on Jan 5, 2018
       // %String%
       String: g.String,
       // %StringIteratorPrototype%
