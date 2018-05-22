@@ -130,11 +130,11 @@ emu-note > div.note-contents {
   flex-shrink: 1;
 }
 
-emu-note > div.note-contents > p:first-child {
+emu-note > div.note-contents > p:first-of-type {
   margin-top: 0;
 }
 
-emu-note > div.note-contents > p:last-child {
+emu-note > div.note-contents > p:last-of-type {
   margin-bottom: 0;
 }
 
@@ -433,6 +433,9 @@ ins.block, del.block,
 emu-production > ins, emu-production > del,
 emu-grammar > ins, emu-grammar > del {
   display: block;
+}
+emu-rhs > ins, emu-rhs > del { 
+  display: inline;
 }
 
 tr.ins > td > ins {
@@ -897,4 +900,10 @@ li.menu-search-result-term:before {
 #references-pane table tr td:first-child {
   text-align: right;
   padding-right: 5px;
+}
+
+@media print {
+  #menu-toggle {
+    display: none; 
+  }
 }
