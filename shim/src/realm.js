@@ -56,9 +56,9 @@ Object.defineProperties(Realm.prototype, {
       return descs.global.get.call(this);
     }
   },
-  eval: {
+  evaluate: {
     value(x) {
-      return descs.eval.value.call(this, x);
+      return descs.evaluate.value.call(this, x);
     }
   }
 });
@@ -167,7 +167,7 @@ defineProperties(Realm.prototype, {
       return O[RealmRecord][GlobalObject];
     }
   },
-  eval: {
+  evaluate: {
     value(x) {
       const O = this;
       if (typeof O !== 'object') throw new TypeError();
