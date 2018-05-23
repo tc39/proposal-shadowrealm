@@ -10,7 +10,7 @@ export function getStdLib(intrinsics) {
 
     // *** 18.2 Function Properties of the Global Object
 
-    // Make eval wrtitable to allow proxy to return a different
+    // Make eval writable to allow proxy to return a different
     // value, and leave it non-unconfigurable to prevent userland
     // from changing its descriptor and breaking an invariant.
     eval: { value: i.eval, writable: true },

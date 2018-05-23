@@ -5,7 +5,7 @@ import { getIntrinsics } from './intrinsics';
 import { tamperProofDataProperties } from './tamper-proof';
 import { deepFreeze } from './deep-freeze';
 import { IsCallable } from './utils';
-import { assign, create, defineProperties, getPrototypeOf, ownKeys } from './commons';
+import { assign, create, defineProperties, getPrototypeOf } from './commons';
 import {
   Intrinsics,
   GlobalObject,
@@ -53,19 +53,19 @@ const descs = Object.getOwnPropertyDescriptors(BaseRealm.prototype);
 class Realm {
   constructor(options) {
     // Invoke the BaseRealm constructor with Realm as the prototype.
-    return Reflect.construct(BaseRealm, [options], Realm);
+    return Reflect.construct(BaseRealm, arguments, Realm);
   }
   init() {
-    descs.init.value.call(this);
+    descs.init.value.apply(this);
   }
-  intrinsics() {
-    return descs.intrinsics.get.call(this);
+  get intrinsics() {
+    return descs.intrinsics.get.apply(this);
   }
-  global() {
-    return descs.global.get.call(this);
+  get global() {
+    return descs.global.get.apply(this);
   }
   evaluate(x) {
-    return descs.evaluate.value.call(this, x);
+    return descs.evaluate.value.apply(this, arguments);
   }
 }
 
@@ -80,10 +80,8 @@ return Realm;
   RealmProto2Sandbox.set(Realm.prototype, sandbox);
 }
 
-function setGlobaObject(realmRec) {
-  const intrinsics = realmRec[Intrinsics];
-  const globalObj = create(intrinsics.ObjectPrototype);
-  realmRec[GlobalObject] = globalObj;
+function getGlobaObject(intrinsics) {
+  return create(intrinsics.ObjectPrototype);
 }
 
 function createEvaluators(realmRec) {
@@ -99,7 +97,7 @@ function createEvaluators(realmRec) {
   // Limitation: export a direct evaluator.
   const intrinsics = realmRec[Intrinsics];
   intrinsics.eval = directEvalEvaluator;
-  intrinsics.Function = FunctionEvaluator;
+  intrinsics.Function = functionEvaluator;
 }
 
 function setDefaultBindings(realmRec) {
@@ -111,16 +109,15 @@ function setDefaultBindings(realmRec) {
 export default class Realm {
   constructor(options) {
     const O = this;
-    const opts = Object(options);
+    options = Object(options); // Todo: sanitize
 
     let sandbox;
-    let intrinsics = opts.intrinsics;
-    if (intrinsics === 'inherit') {
+    if (options.intrinsics === 'inherit') {
       // In "inherit" mode, we create a compartment realm and inherit
       // the sandbox since we share the intrinsics. We create a new
       // set to allow us to define eval() anf Function() for the realm.
       sandbox = RealmProto2Sandbox.get(getPrototypeOf(this));
-    } else if (intrinsics === undefined) {
+    } else if (options.intrinsics === undefined) {
       // When intrinics are not provided, we create a root realm
       // using the fresh set of new intrinics from a new sandbox.
       sandbox = createSandbox();
@@ -128,17 +125,16 @@ export default class Realm {
     } else {
       throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
     }
-    intrinsics = getIntrinsics(sandbox);
+    const intrinsics = getIntrinsics(sandbox);
+    const globalObj = getGlobaObject(intrinsics);
 
     const realmRec = {
       [ShimSandbox]: sandbox,
       [Intrinsics]: intrinsics,
-      [GlobalObject]: undefined,
+      [GlobalObject]: globalObj,
       [DirectEvalEvaluator]: undefined
     };
     Realm2RealmRec.set(O, realmRec);
-
-    setGlobaObject(realmRec);
 
     const init = O.init;
     if (!IsCallable(init)) throw new TypeError();

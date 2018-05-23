@@ -9,10 +9,7 @@ function buildOptimizer(constants) {
   if (!Array.isArray(constants)) {
     return '';
   }
-
-  if (constants.contains('eval')) {
-    throw new TypeError();
-  }
+  if (constants.contains('eval')) throw new Error();
 
   return `const {${constants.join(',')}} = arguments[0];`;
 }
