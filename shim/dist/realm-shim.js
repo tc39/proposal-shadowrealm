@@ -7,6 +7,7 @@
   const Intrinsics = Symbol('Intrinsics Slot');
   const GlobalObject = Symbol('GlobalObject Slot');
   const DirectEvalEvaluator = Symbol('DirectEvalEvaluator Slot');
+  const FunctionEvaluator = Symbol('FunctionEvaluator Slot');
   const ShimSandbox = Symbol('Shim Sandbox');
 
   // Declare shorthand functions. Sharing these declarations accross modules
@@ -31,6 +32,8 @@
     ownKeys,
     setPrototypeOf
   } = Reflect;
+
+  const objectHasOwnProperty = Object.prototype.hasOwnProperty;
 
   class Handler {
     // Properties stored on the handler
@@ -82,13 +85,28 @@
 
   // Portions adapted from V8 - Copyright 2016 the V8 project authors.
 
-  function getDirectEvalEvaluatorFactory(sandbox) {
+  function buildOptimizer(constants) {
+    if (!Array.isArray(constants)) {
+      return '';
+    }
+
+    if (constants.contains('eval')) {
+      throw new TypeError();
+    }
+
+    return `const {${constants.join(',')}} = arguments[0];`;
+  }
+
+  function getDirectEvalEvaluatorFactory(sandbox, constants) {
     const { unsafeFunction } = sandbox;
+
+    const optimizer = buildOptimizer(constants);
 
     // Create a function in sloppy mode that returns
     // a function in strict mode.
     return unsafeFunction(`
     with (arguments[0]) {
+      ${optimizer}
       return function() {
         'use strict';
         return eval(arguments[0]);
@@ -711,6 +729,170 @@
     return intrinsics;
   }
 
+  // Adapted from SES/Caja
+
+  /**
+   * For a special set of properties (defined below), it ensures that the
+   * effect of freezing does not suppress the ability to override these
+   * properties on derived objects by simple assignment.
+   *
+   * Because of lack of sufficient foresight at the time, ES5 unfortunately
+   * specified that a simple assignment to a non-existent property must fail if
+   * it would override a non-writable data property of the same name. (In
+   * retrospect, this was a mistake, but it is now too late and we must live
+   * with the consequences.) As a result, simply freezing an object to make it
+   * tamper proof has the unfortunate side effect of breaking previously correct
+   * code that is considered to have followed JS best practices, if this
+   * previous code used assignment to override.
+   *
+   * To work around this mistake, deepFreeze(), prior to freezing, replaces
+   * selected configurable own data properties with accessor properties which
+   * simulate what we should have specified -- that assignments to derived
+   * objects succeed if otherwise possible.
+   */
+  function tamperProof(obj, prop, desc) {
+    if ('value' in desc && desc.configurable) {
+      const value = desc.value;
+
+      // eslint-disable-next-line no-inner-declarations
+      function getter() {
+        return value;
+      }
+
+      // Re-attach the data property on the object so
+      // it can be found by the deep-freeze traversal process.
+      getter.value = value;
+
+      // eslint-disable-next-line no-inner-declarations
+      function setter(newValue) {
+        if (obj === this) {
+          throw new TypeError(`Cannot assign to read only property '${prop}' of object '${obj}'`);
+        }
+        if (objectHasOwnProperty.call(this, prop)) {
+          this[prop] = newValue;
+        } else {
+          defineProperty(this, prop, {
+            value: newValue,
+            writable: true,
+            enumerable: desc.enumerable,
+            configurable: desc.configurable
+          });
+        }
+      }
+
+      defineProperty(obj, prop, {
+        get: getter,
+        set: setter,
+        enumerable: desc.enumerable,
+        configurable: desc.configurable
+      });
+    }
+  }
+
+  function tamperProofProperties(obj) {
+    const descs = getOwnPropertyDescriptors(obj);
+    for (const prop in descs) {
+      const desc = descs[prop];
+      tamperProof(obj, prop, desc);
+    }
+  }
+
+  function tamperProofProperty(obj, prop) {
+    const desc = getOwnPropertyDescriptor(obj, prop);
+    tamperProof(obj, prop, desc);
+  }
+
+  /**
+   * These properties are subject to the override mistake
+   * and must be converted before freezing.
+   */
+  function tamperProofDataProperties(intrinsics) {
+    const i = intrinsics;
+
+    [i.ObjectPrototype, i.ArrayPrototype, i.FunctionPrototype].forEach(tamperProofProperties);
+
+    // Intentionally avoid loops and data structures.
+    tamperProofProperty(i.ErrorPrototype, 'message');
+    tamperProofProperty(i.EvalErrorPrototype, 'message');
+    tamperProofProperty(i.RangeErrorPrototype, 'message');
+    tamperProofProperty(i.ReferenceErrorPrototype, 'message');
+    tamperProofProperty(i.SyntaxErrorPrototype, 'message');
+    tamperProofProperty(i.TypeErrorPrototype, 'message');
+    tamperProofProperty(i.URIErrorPrototype, 'message');
+  }
+
+  // Adapted from SES/Caja - Copyright (C) 2011 Google Inc.
+
+  // Objects that are deeply frozen.
+  const frozenSet = new WeakSet();
+
+  /**
+   * "deepFreeze()" acts like "Object.freeze()", except that:
+   *
+   * To deepFreeze an object is to freeze it and all objects transitively
+   * reachable from it via transitive reflective property and prototype
+   * traversal.
+   */
+  function deepFreeze(node) {
+    // Objects that we have frozen in this round.
+    const freezingSet = new Set();
+
+    // If val is something we should be freezing but aren't yet,
+    // add it to freezingSet.
+    function enqueue(val) {
+      if (Object(val) !== val) {
+        // ignore primitives
+        return;
+      }
+      const type = typeof val;
+      if (type !== 'object' && type !== 'function') {
+        // future proof: break until someone figures out what it should do
+        throw new TypeError(`Unexpected typeof: ${type}`);
+      }
+      if (frozenSet.has(val) || freezingSet.has(val)) {
+        // Ignore if already frozen or freezing
+        return;
+      }
+      freezingSet.add(val);
+    }
+
+    function doFreeze(obj) {
+      // Immediately freeze the object to ensure reactive
+      // objects such as proxies won't add properties
+      // during traversal, before they get frozen.
+
+      // Object are verified before being enqueued,
+      // therefore this is a valid candidate.
+      // Throws if this fails (strict mode).
+      freeze(obj);
+
+      enqueue(getPrototypeOf(obj));
+      const descs = getOwnPropertyDescriptors(obj);
+      ownKeys(descs).forEach(name => {
+        const desc = descs[name];
+        if ('value' in desc) {
+          enqueue(desc.value);
+        } else {
+          enqueue(desc.get);
+          enqueue(desc.set);
+        }
+      });
+    }
+
+    function dequeue() {
+      // New values added before forEach() has finished will be visited.
+      freezingSet.forEach(doFreeze);
+    }
+
+    function commit() {
+      freezingSet.forEach(frozenSet.add, frozenSet);
+    }
+
+    enqueue(node);
+    dequeue();
+    commit();
+  }
+
   function IsCallable(obj) {
     return typeof obj === 'function';
   }
@@ -792,10 +974,10 @@ return Realm;
     // a global and they are tied to a realm and to the intrinsics
     // of that realm.
     const directEvalEvaluator = getDirectEvalEvaluator(realmRec);
-    const FunctionEvaluator = getFunctionEvaluator(realmRec);
+    const functionEvaluator = getFunctionEvaluator(realmRec);
 
-    // No need to store Function.
     realmRec[DirectEvalEvaluator] = directEvalEvaluator;
+    realmRec[FunctionEvaluator] = functionEvaluator;
 
     // Limitation: export a direct evaluator.
     const intrinsics = realmRec[Intrinsics];
@@ -879,13 +1061,28 @@ return Realm;
       const evaluator = realmRec[DirectEvalEvaluator];
       return evaluator(x);
     }
-  }
+    // This is a temporary addition, currenly being evaluated.
+    freeze() {
+      const O = this;
+      if (typeof O !== 'object') throw new TypeError();
+      if (!Realm2RealmRec.has(O)) throw new TypeError();
+      const realmRec = Realm2RealmRec.get(O);
 
-  Realm.toString = () => 'function Realm() { [shim code] }';
+      // Copy the intrinsics into a plain object to avoid
+      // freezing the object itself.
+      const obj = create(null);
+      const intrinsics = realmRec[Intrinsics];
+      assign(obj, intrinsics);
+      tamperProofDataProperties(obj);
+      deepFreeze(obj);
+    }
+  }
 
   // The current sandbox is the sandbox where the
   // Realm shim is being parsed and executed.
   RealmProto2Sandbox.set(Realm.prototype, getCurrentSandbox());
+
+  Realm.toString = () => 'function Realm() { [shim code] }';
 
   return Realm;
 
