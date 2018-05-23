@@ -43,7 +43,7 @@ export function deepFreeze(node) {
   function doFreeze(obj) {
     // Immediately freeze the object to ensure reactive
     // objects such as proxies won't add properties
-    // during traversal, before freezing.
+    // during traversal, before they get frozen.
 
     // Object are verified before being enqueued,
     // therefore this is a valid candidate.

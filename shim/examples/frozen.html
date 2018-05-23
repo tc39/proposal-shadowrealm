@@ -1,55 +1,20 @@
 <html>
-    <header>
-        <script src="../dist/realm-shim.js"></script>
-        <script src="./frozen-realm.js"></script>
-    </header>
-    <body>
-        <h1>Frozen Realm Shim</h1>
-        <p>
-            This demo show allow you to evaluate code inside a frozen Realm:
-        </p>
-
-        Input:<br />
-        <textarea id="sourceText" rows="20" style="width: 50%;">
-
-        </textarea><br />
-        <button id="run">Evaluate</button><br />
-        Output:<br />
-        <textarea id="output" disabled="disabled" rows="20" style="width: 50%;">
-
-        </textarea>
-
-        <p>
-            <small>Note: you can look in the console to inspect the original output of the evaluation.</small>
-        </p>
-
-        <script>
-        const r = new FrozenRealm();
-
-        // basic sanity check: they all should output true or error
-        // for now extra () are needed as a signal that it should return something :/
-        console.log(1, r.eval(`let r; try { [].__proto__.slice = function () {} } catch(e) { r = e; }; r;`));
-        console.log(2, r.eval(`typeof Array.prototype.foo === 'function';`));
-        console.log(3, r.eval(`let r; try { Map.prototype.set = function () {} } catch(e) { r = e; }; r;`));
-
-        document.getElementById('run').addEventListener('click', function () {
-            var sourceText = document.getElementById('sourceText').value;
-            var result, output;
-            try {
-                result = r.eval(sourceText);
-            } catch (e) {
-                result = 'Error: ' + e;
-            }
-            try {
-                output = typeof result === 'function' ? result.toString() : JSON.stringify(result);
-            } catch (e) {
-                output = 'Error trying to serialize the result: ' + e;
-                output += '\nOriginal Object: ' + result;
-            }
-            
-            console.log(result);
-            document.getElementById('output').value = output;
-        });
-        </script>
-    </body>
+  <header>
+    <script src="../dist/realm-shim.js"></script>
+  </header>
+  <body>
+    <h1>Frozen Realm Shim</h1>
+    <p>
+      This demo show allow you to evaluate code inside a frozen Realm:
+    </p>
+    Input:<br />
+    <textarea id="sourceText" rows="20" cols="80"></textarea><br />
+    <button id="run">Evaluate</button><br />
+    Output:<br />
+    <textarea id="output" disabled="disabled" rows="20" cols="80"></textarea>
+    <p>
+      <small>Note: you can look in the console to inspect the original output of the evaluation.</small>
+    </p>
+    <script src="frozen.js"></script>
+  </body>
 </html>

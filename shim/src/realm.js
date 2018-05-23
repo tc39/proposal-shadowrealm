@@ -2,11 +2,17 @@ import { createSandbox } from './sandbox';
 import { getDirectEvalEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getIntrinsics } from './intrinsics';
+import { tamperProofDataProperties } from './tamper-proof';
+import { deepFreeze } from './deep-freeze';
 import { IsCallable } from './utils';
-
-import { assign, create, defineProperties, getPrototypeOf } from './commons';
-
-import { Intrinsics, GlobalObject, DirectEvalEvaluator, ShimSandbox } from './symbols';
+import { assign, create, defineProperties, getPrototypeOf, ownKeys } from './commons';
+import {
+  Intrinsics,
+  GlobalObject,
+  DirectEvalEvaluator,
+  FunctionEvaluator,
+  ShimSandbox
+} from './symbols';
 
 const Realm2RealmRec = new WeakMap();
 const RealmProto2Sandbox = new WeakMap();
@@ -85,10 +91,10 @@ function createEvaluators(realmRec) {
   // a global and they are tied to a realm and to the intrinsics
   // of that realm.
   const directEvalEvaluator = getDirectEvalEvaluator(realmRec);
-  const FunctionEvaluator = getFunctionEvaluator(realmRec);
+  const functionEvaluator = getFunctionEvaluator(realmRec);
 
-  // No need to store Function.
   realmRec[DirectEvalEvaluator] = directEvalEvaluator;
+  realmRec[FunctionEvaluator] = functionEvaluator;
 
   // Limitation: export a direct evaluator.
   const intrinsics = realmRec[Intrinsics];
@@ -172,10 +178,25 @@ export default class Realm {
     const evaluator = realmRec[DirectEvalEvaluator];
     return evaluator(x);
   }
-}
+  // This is a temporary addition, currenly being evaluated.
+  freeze() {
+    const O = this;
+    if (typeof O !== 'object') throw new TypeError();
+    if (!Realm2RealmRec.has(O)) throw new TypeError();
+    const realmRec = Realm2RealmRec.get(O);
 
-Realm.toString = () => 'function Realm() { [shim code] }';
+    // Copy the intrinsics into a plain object to avoid
+    // freezing the object itself.
+    const obj = create(null);
+    const intrinsics = realmRec[Intrinsics];
+    assign(obj, intrinsics);
+    tamperProofDataProperties(obj);
+    deepFreeze(obj);
+  }
+}
 
 // The current sandbox is the sandbox where the
 // Realm shim is being parsed and executed.
 RealmProto2Sandbox.set(Realm.prototype, getCurrentSandbox());
+
+Realm.toString = () => 'function Realm() { [shim code] }';

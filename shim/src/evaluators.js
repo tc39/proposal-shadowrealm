@@ -5,13 +5,28 @@ import { GlobalObject, Intrinsics, ShimSandbox } from './symbols';
 import { defineProperty, getOwnPropertyDescriptor, setPrototypeOf } from './commons';
 import { Handler } from './handler';
 
-export function getDirectEvalEvaluatorFactory(sandbox) {
+function buildOptimizer(constants) {
+  if (!Array.isArray(constants)) {
+    return '';
+  }
+
+  if (constants.contains('eval')) {
+    throw new TypeError();
+  }
+
+  return `const {${constants.join(',')}} = arguments[0];`;
+}
+
+export function getDirectEvalEvaluatorFactory(sandbox, constants) {
   const { unsafeFunction } = sandbox;
+
+  const optimizer = buildOptimizer(constants);
 
   // Create a function in sloppy mode that returns
   // a function in strict mode.
   return unsafeFunction(`
     with (arguments[0]) {
+      ${optimizer}
       return function() {
         'use strict';
         return eval(arguments[0]);
