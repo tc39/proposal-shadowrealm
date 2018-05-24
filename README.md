@@ -14,7 +14,7 @@
 
 ### Spec Text
 
-You can view the spec rendered as [HTML](https://rawgit.com/caridy/proposal-realms/master/index.html).
+You can view the spec rendered as [HTML](https://rawgit.com/tc39/proposal-realms/master/index.html).
 
 # Realms
 
@@ -157,7 +157,7 @@ const ns = r.evaluate('import("foo")'); // where referrerNamespace is null, and 
 
 A shim implementation of the Realm API can be found [here](shim/README.md).
 
-And you can play around with the current version of the shim [here](https://rawgit.com/tc39/proposal-realms/master/shim/examples/frozen.html).
+And you can play around with the current version of the shim in a Realm [here](https://rawgit.com/tc39/proposal-realms/master/shim/examples/simple.html) and in Frozen Realm [here](https://rawgit.com/tc39/proposal-realms/master/shim/examples/frozen.html).
 
 To use the shim in a webpage:
 ```html
