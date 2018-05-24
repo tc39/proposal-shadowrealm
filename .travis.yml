@@ -9,6 +9,8 @@ sudo: false
 
 script:
   - yarn lint-shim
+  - yarn build-shim
+  - yarn test-shim
 
 branches:
   only:
