@@ -5,8 +5,8 @@ import { getIntrinsics } from './intrinsics';
 import { tamperProofDataProperties } from './tamper-proof';
 import { deepFreeze } from './deep-freeze';
 import { IsCallable } from './utils';
-import { assign, create, defineProperties, getPrototypeOf } from './commons';
-import { Intrinsics, GlobalObject, DirectEvalEvaluator, ContextRec } from './symbols';
+import { assign, create, defineProperty, defineProperties, getPrototypeOf } from './commons';
+import { Intrinsics, GlobalObject, IsDirectEvalTrap, ContextRec } from './symbols';
 
 const Realm2RealmRec = new WeakMap();
 const RealmProto2ContextRec = new WeakMap();
@@ -27,6 +27,7 @@ function createRealmFacade(contextRec, BaseRealm) {
   // and properties on a realm instance already return
   // values using the intrinsics of the realm's context.
 
+  // Invoke the BaseRealm constructor with Realm as the prototype.
   const Realm = contextFunction(
     'BaseRealm',
     `
@@ -35,7 +36,6 @@ const descs = Object.getOwnPropertyDescriptors(BaseRealm.prototype);
 
 class Realm {
   constructor(options) {
-    // Invoke the BaseRealm constructor with Realm as the prototype.
     return Reflect.construct(BaseRealm, arguments, Realm);
   }
   init() {
@@ -52,7 +52,12 @@ class Realm {
   }
 }
 
-Realm.toString = () => 'function Realm() { [shim code] }';
+Object.defineProperty(Realm.prototype, Symbol.toStringTag, {
+  value: 'function Realm() { [shim code] }',
+  writable: false,
+  enumerable: false,
+  configurable: true
+});
 
 return Realm;
 
@@ -79,7 +84,7 @@ function createEvaluators(realmRec) {
   intrinsics.eval = directEvalEvaluator;
   intrinsics.Function = functionEvaluator;
 
-  realmRec[DirectEvalEvaluator] = directEvalEvaluator;
+  realmRec[IsDirectEvalTrap] = directEvalEvaluator;
 }
 
 function setDefaultBindings(realmRec) {
@@ -114,7 +119,7 @@ export default class Realm {
       [ContextRec]: contextRec,
       [Intrinsics]: intrinsics,
       [GlobalObject]: globalObj,
-      [DirectEvalEvaluator]: undefined
+      [IsDirectEvalTrap]: undefined
     };
     Realm2RealmRec.set(O, realmRec);
 
@@ -153,7 +158,7 @@ export default class Realm {
     if (typeof O !== 'object') throw new TypeError();
     if (!Realm2RealmRec.has(O)) throw new TypeError();
     const realmRec = Realm2RealmRec.get(O);
-    const evaluator = realmRec[DirectEvalEvaluator];
+    const evaluator = realmRec[IsDirectEvalTrap];
     return evaluator(x);
   }
   // This is a temporary addition, currenly being evaluated.
@@ -175,4 +180,9 @@ export default class Realm {
 
 RealmProto2ContextRec.set(Realm.prototype, getCurrentContextRec());
 
-Realm.toString = () => 'function Realm() { [shim code] }';
+defineProperty(Realm.prototype, Symbol.toStringTag, {
+  value: 'function Realm() { [shim code] }',
+  writable: false,
+  enumerable: false,
+  configurable: true
+});

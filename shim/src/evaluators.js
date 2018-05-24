@@ -58,10 +58,15 @@ export function getDirectEvalEvaluator(realmRec) {
 
   // Ensure that eval from any compartment in a root realm is an
   // instance of Function in any compartment of the same root ralm.
-  const { contextFunction } = contextRec;
+  const { contextGlobal, contextFunction } = contextRec;
   setPrototypeOf(evaluator, contextFunction.prototype.constructor);
 
-  evaluator.toString = () => 'function eval() { [shim code] }';
+  defineProperty(evaluator.prototype, contextGlobal.Symbol.toStringTag, {
+    value: 'function eval() { [shim code] }',
+    writable: false,
+    enumerable: false,
+    configurable: true
+  });
   return evaluator;
 }
 
@@ -97,7 +102,7 @@ export function getFunctionEvaluator(realmRec) {
 
   // Ensure that Function from any compartment in a root realm can be used
   // with instance checks in any compartment of the same root realm.
-  const { contextFunction } = contextRec;
+  const { contextGlobal, contextFunction } = contextRec;
   setPrototypeOf(evaluator, contextFunction.prototype.constructor);
 
   // Ensure that any function created in any compartment in a root realm is an
@@ -106,6 +111,13 @@ export function getFunctionEvaluator(realmRec) {
   desc.value = contextFunction.prototype;
   defineProperty(evaluator, 'prototype', desc);
 
-  evaluator.toString = () => 'function Function() { [shim code] }';
+  // Provide a custom output without overwriting the Function.prototype.toString
+  // which is called by some libraries.
+  defineProperty(evaluator.prototype, contextGlobal.Symbol.toStringTag, {
+    value: 'function Function() { [shim code] }',
+    writable: false,
+    enumerable: false,
+    configurable: true
+  });
   return evaluator;
 }
