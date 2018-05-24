@@ -1,5 +1,7 @@
 # ECMAScript spec proposal for Realms API
 
+[![Build Status](https://travis-ci.com/tc39/proposal-realms.svg?branch=master)](https://travis-ci.com/tc39/proposal-realms)
+
 ## Status
 
 ### Current Stage
