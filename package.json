@@ -32,10 +32,10 @@
         "url": "https://github.com/tc39/proposal-realms/issues"
     },
     "homepage": "https://github.com/tc39/proposal-realms#readme",
-    "dependencies": {},
     "devDependencies": {
         "babel-eslint": "^6.1.2",
         "babel-minify": "^0.4.3",
+        "babel-preset-es2016": "^6.24.1",
         "cross-env": "^3.2.4",
         "ecmarkup": "latest",
         "eslint": "^4.19.1",
