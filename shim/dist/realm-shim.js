@@ -7,8 +7,7 @@
   const Intrinsics = Symbol('Intrinsics Slot');
   const GlobalObject = Symbol('GlobalObject Slot');
   const DirectEvalEvaluator = Symbol('DirectEvalEvaluator Slot');
-  const FunctionEvaluator = Symbol('FunctionEvaluator Slot');
-  const ShimSandbox = Symbol('Shim Sandbox');
+  const ContextRec = Symbol('Shim Context');
 
   // Declare shorthand functions. Sharing these declarations accross modules
   // improves both consitency and minification. Unused declarations are dropped
@@ -39,9 +38,9 @@
     // Properties stored on the handler
     // are not available from the proxy.
 
-    constructor(sandbox) {
-      const { unsafeGlobal } = sandbox;
-      this.unsafeGlobal = unsafeGlobal;
+    constructor(contextRec) {
+      const { contextGlobal } = contextRec;
+      this.contextGlobal = contextGlobal;
 
       // this flag allow us to determine if the eval() call is a controlled
       // eval done by the realm's code or if it is user-land invocation, so
@@ -54,7 +53,7 @@
       if (prop === 'eval') {
         if (this.isInternalEvaluation) {
           this.isInternalEvaluation = false;
-          return this.unsafeGlobal.eval;
+          return this.contextGlobal.eval;
         }
         return target.eval;
       }
@@ -76,7 +75,7 @@
       if (prop in target) {
         return true;
       }
-      if (prop in this.unsafeGlobal) {
+      if (prop in this.contextGlobal) {
         return true;
       }
       return false;
@@ -94,14 +93,14 @@
     return `const {${constants.join(',')}} = arguments[0];`;
   }
 
-  function getDirectEvalEvaluatorFactory(sandbox, constants) {
-    const { unsafeFunction } = sandbox;
+  function getDirectEvalEvaluatorFactory(contextRec, constants) {
+    const { contextFunction } = contextRec;
 
     const optimizer = buildOptimizer(constants);
 
     // Create a function in sloppy mode that returns
     // a function in strict mode.
-    return unsafeFunction(`
+    return contextFunction(`
     with (arguments[0]) {
       ${optimizer}
       return function() {
@@ -113,16 +112,16 @@
   }
 
   function getDirectEvalEvaluator(realmRec) {
-    const { [ShimSandbox]: sandbox, [GlobalObject]: globalObject } = realmRec;
+    const { [ContextRec]: contextRec, [GlobalObject]: globalObject } = realmRec;
 
     // This proxy has several functions:
     // 1. works with the sentinel to alternate between direct eval and confined eval.
     // 2. shadows all properties of the hidden global by declaring them as undefined.
     // 3. resolves all existing properties of the sandboxed global.
-    const handler = new Handler(sandbox);
+    const handler = new Handler(contextRec);
     const proxy = new Proxy(globalObject, handler);
 
-    const scopedEvaluator = sandbox.evalEvaluatorFactory(proxy);
+    const scopedEvaluator = contextRec.evalEvaluatorFactory(proxy);
 
     // Create an eval without a [[Construct]] behavior such that the
     // invocation "new eval()" throws TypeError: eval is not a constructor".
@@ -138,8 +137,8 @@
 
     // Ensure that eval from any compartment in a root realm is an
     // instance of Function in any compartment of the same root ralm.
-    const { unsafeFunction } = sandbox;
-    setPrototypeOf(evaluator, unsafeFunction.prototype.constructor);
+    const { contextFunction } = contextRec;
+    setPrototypeOf(evaluator, contextFunction.prototype.constructor);
 
     evaluator.toString = () => 'function eval() { [shim code] }';
     return evaluator;
@@ -150,7 +149,7 @@
    * the safety of evalEvaluator for confinement.
    */
   function getFunctionEvaluator(realmRec) {
-    const { [ShimSandbox]: sandbox, [Intrinsics]: intrinsics } = realmRec;
+    const { [ContextRec]: contextRec, [Intrinsics]: intrinsics } = realmRec;
 
     const evaluator = function Function(...params) {
       const functionBody = params.pop() || '';
@@ -177,13 +176,13 @@
 
     // Ensure that Function from any compartment in a root realm can be used
     // with instance checks in any compartment of the same root realm.
-    const { unsafeFunction } = sandbox;
-    setPrototypeOf(evaluator, unsafeFunction.prototype.constructor);
+    const { contextFunction } = contextRec;
+    setPrototypeOf(evaluator, contextFunction.prototype.constructor);
 
     // Ensure that any function created in any compartment in a root realm is an
     // instance of Function in any compartment of the same root ralm.
     const desc = getOwnPropertyDescriptor(evaluator, 'prototype');
-    desc.value = unsafeFunction.prototype;
+    desc.value = contextFunction.prototype;
     defineProperty(evaluator, 'prototype', desc);
 
     evaluator.toString = () => 'function Function() { [shim code] }';
@@ -197,8 +196,8 @@
    * and ES2016 semantics, we do this by redefining them while in 'use strict'
    * https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
    */
-  function repairAccessors(sandbox) {
-    const { unsafeGlobal: g } = sandbox;
+  function repairAccessors(contextRec) {
+    const { contextGlobal: g } = contextRec;
 
     defineProperties(g.Object.prototype, {
       __defineGetter__: {
@@ -252,14 +251,14 @@
    * 4. Replace its prototype property's constructor with itself
    * 5. Replace its [[Prototype]] slot with the noop constructor of Function
    */
-  function repairFunction(sandbox, functionName, functionDecl) {
-    const { unsafeEval, unsafeFunction } = sandbox;
+  function repairFunction(contextRec, functionName, functionDecl) {
+    const { contextEval, contextFunction } = contextRec;
 
-    const FunctionInstance = unsafeEval(`(${functionDecl}(){})`);
+    const FunctionInstance = contextEval(`(${functionDecl}(){})`);
     const FunctionPrototype = getPrototypeOf(FunctionInstance);
 
     // Block evaluation of source when calling constructor on the prototype of functions.
-    const TamedFunction = unsafeFunction('throw new Error("Not available");');
+    const TamedFunction = contextFunction('throw new Error("Not available");');
 
     defineProperties(TamedFunction, {
       name: {
@@ -272,7 +271,7 @@
     defineProperty(FunctionPrototype, 'constructor', { value: TamedFunction });
 
     // Ensures that all functions meet "instanceof Function" in a realm.
-    setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
+    setPrototypeOf(TamedFunction, contextFunction.prototype.constructor);
   }
 
   /**
@@ -281,68 +280,88 @@
    * safe replacements that preserve SES confinement. After this block is done,
    * the originals should no longer be reachable.
    */
-  function repairFunctions(sandbox) {
-    const { unsafeGlobal: g } = sandbox;
+  function repairFunctions(contextRec) {
+    const { contextGlobal: g } = contextRec;
 
     // Here, the order of operation is important: Function needs to be
     // repaired first since the other constructors need it.
-    repairFunction(sandbox, 'Function', 'function');
-    repairFunction(sandbox, 'GeneratorFunction', 'function*');
-    repairFunction(sandbox, 'AsyncFunction', 'async function');
+    repairFunction(contextRec, 'Function', 'function');
+    repairFunction(contextRec, 'GeneratorFunction', 'function*');
+    repairFunction(contextRec, 'AsyncFunction', 'async function');
 
     const hasAsyncIteration = typeof g.Symbol.asyncIterator !== 'undefined';
     if (hasAsyncIteration) {
-      repairFunction(sandbox, 'AsyncGeneratorFunction', 'async function*');
+      repairFunction(contextRec, 'AsyncGeneratorFunction', 'async function*');
     }
   }
 
   // Sanitizing ensures that neither the legacy
   // accessors nor the function constructors can be
   // used to escape the confinement of the evaluators
-  // to execute in the sandbox.
+  // to execute in the context.
 
-  function sanitize(sandbox) {
-    repairAccessors(sandbox);
-    repairFunctions(sandbox);
+  function sanitize(contextRec) {
+    repairAccessors(contextRec);
+    repairFunctions(contextRec);
   }
 
-  // The sandbox is shim-specific. It acts as the mechanism
+  // Detection used in RollupJS.
+  const isNode = typeof exports === 'object' && typeof module !== 'undefined';
+  const vm = isNode ? require('vm') : undefined;
+
+  const contextRecSrc = '({ global: this, eval, Function })';
+
+  // The contextRec is shim-specific. It acts as the mechanism
   // to obtain a fresh set of intrinsics together with their
   // associated eval and Function evaluators. This association
   // must be respected since the evaluators are imposing a
   // set of intrinsics, aka the "undeniables".
 
-  function createBrowserContext() {
-    const iframe = document.createElement('iframe');
-
-    iframe.title = 'script';
-    iframe.style.display = 'none';
-    iframe.setAttribute('aria-hidden', true);
-
-    document.body.appendChild(iframe);
-
-    return iframe.contentWindow;
+  function createNodeContext() {
+    const context = vm.runInNewContext(contextRecSrc);
+    return context;
   }
 
-  function createSandbox(context) {
+  function createBrowserContext() {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+
+    document.body.appendChild(iframe);
+    const context = iframe.contentWindow.eval(contextRecSrc);
+
+    return context;
+  }
+
+  const createContext = isNode ? createNodeContext : createBrowserContext;
+
+  function createContextRec(context) {
     if (context === undefined) {
-      context = createBrowserContext();
+      context = createContext();
     }
 
-    // The sandbox is entirely defined by these three objects.
-    // Reusing the terminology from SES/Caja.
-    const sandbox = {
-      unsafeGlobal: context,
-      unsafeEval: context.eval,
-      unsafeFunction: context.Function
+    const contextRec = {
+      contextGlobal: context.global,
+      contextEval: context.eval,
+      contextFunction: context.Function
     };
 
     // Create the evaluator factory that will generate the evaluators
     // for each compartment realm.
-    sandbox.evalEvaluatorFactory = getDirectEvalEvaluatorFactory(sandbox);
+    contextRec.evalEvaluatorFactory = getDirectEvalEvaluatorFactory(contextRec);
 
-    sanitize(sandbox);
-    return sandbox;
+    sanitize(contextRec);
+    return contextRec;
+  }
+
+  // The current context is the context where the
+  // Realm shim is being parsed and executed.
+  function getCurrentContext() {
+    return (0, eval)(contextRecSrc);
+  }
+
+  function getCurrentContextRec() {
+    const context = getCurrentContext();
+    return createContextRec(context);
   }
 
   function getStdLib(intrinsics) {
@@ -438,8 +457,8 @@
    * https://tc39.github.io/ecma262/#table-7
    * https://tc39.github.io/ecma262/#table-73
    */
-  function getIntrinsics(sandbox) {
-    const { unsafeGlobal: g } = sandbox;
+  function getIntrinsics(contextRec) {
+    const { contextGlobal: g } = contextRec;
 
     // Anonymous intrinsics.
 
@@ -895,36 +914,25 @@
   }
 
   const Realm2RealmRec = new WeakMap();
-  const RealmProto2Sandbox = new WeakMap();
+  const RealmProto2ContextRec = new WeakMap();
 
-  function getCurrentContext() {
-    // eslint-disable-next-line no-new-func
-    return new Function('return this')();
-  }
-
-  function getCurrentSandbox() {
-    const context = getCurrentContext();
-    const sandbox = createSandbox(context);
-    return sandbox;
-  }
-
-  function createRealmFacade(sandbox, BaseRealm) {
-    const { unsafeFunction, unsafeGlobal } = sandbox;
+  function createRealmFacade(contextRec, BaseRealm) {
+    const { contextFunction, contextGlobal } = contextRec;
 
     // The BaseRealm is the Realm class created by
     // the shim. It's only valid for the context where
     // it was parsed.
 
     // The Realm facade is a lightwwight class built in the
-    // context a different sandbox, that provide a fully
+    // context a different context, that provide a fully
     // functional Realm class using the intrisics
-    // of that sandbox.
+    // of that context.
 
     // This process is simplified becuase all methods
     // and properties on a realm instance already return
-    // values using the intrinsics of the realm's sandbox.
+    // values using the intrinsics of the realm's context.
 
-    const Realm = unsafeFunction(
+    const Realm = contextFunction(
       'BaseRealm',
       `
 
@@ -956,8 +964,8 @@ return Realm;
   `
     )(BaseRealm);
 
-    unsafeGlobal.Realm = Realm;
-    RealmProto2Sandbox.set(Realm.prototype, sandbox);
+    contextGlobal.Realm = Realm;
+    RealmProto2ContextRec.set(Realm.prototype, contextRec);
   }
 
   function getGlobaObject(intrinsics) {
@@ -971,13 +979,12 @@ return Realm;
     const directEvalEvaluator = getDirectEvalEvaluator(realmRec);
     const functionEvaluator = getFunctionEvaluator(realmRec);
 
-    realmRec[DirectEvalEvaluator] = directEvalEvaluator;
-    realmRec[FunctionEvaluator] = functionEvaluator;
-
     // Limitation: export a direct evaluator.
     const intrinsics = realmRec[Intrinsics];
     intrinsics.eval = directEvalEvaluator;
     intrinsics.Function = functionEvaluator;
+
+    realmRec[DirectEvalEvaluator] = directEvalEvaluator;
   }
 
   function setDefaultBindings(realmRec) {
@@ -991,25 +998,25 @@ return Realm;
       const O = this;
       options = Object(options); // Todo: sanitize
 
-      let sandbox;
+      let contextRec;
       if (options.intrinsics === 'inherit') {
         // In "inherit" mode, we create a compartment realm and inherit
-        // the sandbox since we share the intrinsics. We create a new
+        // the context since we share the intrinsics. We create a new
         // set to allow us to define eval() anf Function() for the realm.
-        sandbox = RealmProto2Sandbox.get(getPrototypeOf(this));
+        contextRec = RealmProto2ContextRec.get(getPrototypeOf(this));
       } else if (options.intrinsics === undefined) {
         // When intrinics are not provided, we create a root realm
-        // using the fresh set of new intrinics from a new sandbox.
-        sandbox = createSandbox();
-        createRealmFacade(sandbox, Realm);
+        // using the fresh set of new intrinics from a new context.
+        contextRec = createContextRec();
+        createRealmFacade(contextRec, Realm);
       } else {
         throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
       }
-      const intrinsics = getIntrinsics(sandbox);
+      const intrinsics = getIntrinsics(contextRec);
       const globalObj = getGlobaObject(intrinsics);
 
       const realmRec = {
-        [ShimSandbox]: sandbox,
+        [ContextRec]: contextRec,
         [Intrinsics]: intrinsics,
         [GlobalObject]: globalObj,
         [DirectEvalEvaluator]: undefined
@@ -1071,9 +1078,7 @@ return Realm;
     }
   }
 
-  // The current sandbox is the sandbox where the
-  // Realm shim is being parsed and executed.
-  RealmProto2Sandbox.set(Realm.prototype, getCurrentSandbox());
+  RealmProto2ContextRec.set(Realm.prototype, getCurrentContextRec());
 
   Realm.toString = () => 'function Realm() { [shim code] }';
 
