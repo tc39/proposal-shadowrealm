@@ -6,15 +6,19 @@
     "scripts": {
         "build": "ecmarkup spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
         "watch": "ecmarkup --watch spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
-        "build-shim-dev": "cross-env NODE_ENV=development rollup -c shim/rollup.config.js --watch",
+        "build-shim": "yarn build-shim-dev && yarn build-shim-prod",
+        "build-shim-watch": "yarn run build-shim-dev --watch",
+        "build-shim-dev": "cross-env NODE_ENV=development rollup -c shim/rollup.config.js",
         "build-shim-prod": "cross-env NODE_ENV=production rollup -c shim/rollup.config.js",
-        "lint-shim": "eslint ./shim/src",
-        "prettier-shim": "prettier --config ./shim/.prettierrc --write ./shim/src/**/*.js"
+        "lint-shim": "eslint ./shim/src/*.js ./shim/test/*.js",
+        "prettier-shim": "prettier --config ./shim/.prettierrc --write ./shim/src/*.js ./shim/test/*.js",
+        "test-shim": "tape ./shim/test/**/*.js"
     },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/tc39/proposal-realms.git"
     },
+    "main": "shim/src/main.js",
     "keywords": [
         "realms",
         "ES8",
@@ -47,6 +51,7 @@
         "prettier": "^1.12.1",
         "rollup": "^0.58.2",
         "rollup-plugin-babel-minify": "^4.0.0",
-        "rollup-watch": "^3.2.2"
+        "rollup-watch": "^3.2.2",
+        "tape": "^4.9.0"
     }
 }
