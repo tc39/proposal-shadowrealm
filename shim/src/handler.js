@@ -2,9 +2,9 @@ export class Handler {
   // Properties stored on the handler
   // are not available from the proxy.
 
-  constructor(sandbox) {
-    const { unsafeGlobal } = sandbox;
-    this.unsafeGlobal = unsafeGlobal;
+  constructor(contextRec) {
+    const { contextGlobal } = contextRec;
+    this.contextGlobal = contextGlobal;
 
     // this flag allow us to determine if the eval() call is a controlled
     // eval done by the realm's code or if it is user-land invocation, so
@@ -17,7 +17,7 @@ export class Handler {
     if (prop === 'eval') {
       if (this.isInternalEvaluation) {
         this.isInternalEvaluation = false;
-        return this.unsafeGlobal.eval;
+        return this.contextGlobal.eval;
       }
       return target.eval;
     }
@@ -39,7 +39,7 @@ export class Handler {
     if (prop in target) {
       return true;
     }
-    if (prop in this.unsafeGlobal) {
+    if (prop in this.contextGlobal) {
       return true;
     }
     return false;

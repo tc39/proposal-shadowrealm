@@ -8,8 +8,8 @@ import { getPrototypeOf } from './commons';
  * https://tc39.github.io/ecma262/#table-7
  * https://tc39.github.io/ecma262/#table-73
  */
-export function getIntrinsics(sandbox) {
-  const { unsafeGlobal: g } = sandbox;
+export function getIntrinsics(contextRec) {
+  const { contextGlobal: g } = contextRec;
 
   // Anonymous intrinsics.
 

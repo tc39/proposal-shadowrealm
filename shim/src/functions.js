@@ -13,14 +13,14 @@ import { defineProperty, defineProperties, getPrototypeOf, setPrototypeOf } from
  * 4. Replace its prototype property's constructor with itself
  * 5. Replace its [[Prototype]] slot with the noop constructor of Function
  */
-function repairFunction(sandbox, functionName, functionDecl) {
-  const { unsafeEval, unsafeFunction } = sandbox;
+function repairFunction(contextRec, functionName, functionDecl) {
+  const { contextEval, contextFunction } = contextRec;
 
-  const FunctionInstance = unsafeEval(`(${functionDecl}(){})`);
+  const FunctionInstance = contextEval(`(${functionDecl}(){})`);
   const FunctionPrototype = getPrototypeOf(FunctionInstance);
 
   // Block evaluation of source when calling constructor on the prototype of functions.
-  const TamedFunction = unsafeFunction('throw new Error("Not available");');
+  const TamedFunction = contextFunction('throw new Error("Not available");');
 
   defineProperties(TamedFunction, {
     name: {
@@ -33,7 +33,7 @@ function repairFunction(sandbox, functionName, functionDecl) {
   defineProperty(FunctionPrototype, 'constructor', { value: TamedFunction });
 
   // Ensures that all functions meet "instanceof Function" in a realm.
-  setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
+  setPrototypeOf(TamedFunction, contextFunction.prototype.constructor);
 }
 
 /**
@@ -42,17 +42,17 @@ function repairFunction(sandbox, functionName, functionDecl) {
  * safe replacements that preserve SES confinement. After this block is done,
  * the originals should no longer be reachable.
  */
-export function repairFunctions(sandbox) {
-  const { unsafeGlobal: g } = sandbox;
+export function repairFunctions(contextRec) {
+  const { contextGlobal: g } = contextRec;
 
   // Here, the order of operation is important: Function needs to be
   // repaired first since the other constructors need it.
-  repairFunction(sandbox, 'Function', 'function');
-  repairFunction(sandbox, 'GeneratorFunction', 'function*');
-  repairFunction(sandbox, 'AsyncFunction', 'async function');
+  repairFunction(contextRec, 'Function', 'function');
+  repairFunction(contextRec, 'GeneratorFunction', 'function*');
+  repairFunction(contextRec, 'AsyncFunction', 'async function');
 
   const hasAsyncIteration = typeof g.Symbol.asyncIterator !== 'undefined';
   if (hasAsyncIteration) {
-    repairFunction(sandbox, 'AsyncGeneratorFunction', 'async function*');
+    repairFunction(contextRec, 'AsyncGeneratorFunction', 'async function*');
   }
 }

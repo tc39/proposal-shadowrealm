@@ -157,7 +157,23 @@ const ns = r.evaluate('import("foo")'); // where referrerNamespace is null, and 
 
 A shim implementation of the Realm API can be found [here](shim/README.md).
 
-And you can play around with the Shim [here](https://rawgit.com/caridy/proposal-realms/master/shim/examples/simple.html).
+And you can play around with the current version of the shim [here](https://rawgit.com/tc39/proposal-realms/master/shim/examples/frozen.html).
+
+To use the shim in a webpage:
+```html
+  <script src="../dist/realm-shim.min.js"></script>
+  <script>
+    const r = new Realm();
+    [...]
+  </script>
+```
+
+To use the shim in node:
+```js
+  const Realm = require('./realm-shim.min.js');
+  const r = new Realm();
+  [...]
+```
 
 ## Contributing
 

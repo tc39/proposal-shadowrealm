@@ -1,4 +1,4 @@
-import { createSandbox } from './sandbox';
+import { createContextRec, getCurrentContextRec } from './context';
 import { getDirectEvalEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getIntrinsics } from './intrinsics';
@@ -6,45 +6,28 @@ import { tamperProofDataProperties } from './tamper-proof';
 import { deepFreeze } from './deep-freeze';
 import { IsCallable } from './utils';
 import { assign, create, defineProperties, getPrototypeOf } from './commons';
-import {
-  Intrinsics,
-  GlobalObject,
-  DirectEvalEvaluator,
-  FunctionEvaluator,
-  ShimSandbox
-} from './symbols';
+import { Intrinsics, GlobalObject, DirectEvalEvaluator, ContextRec } from './symbols';
 
 const Realm2RealmRec = new WeakMap();
-const RealmProto2Sandbox = new WeakMap();
+const RealmProto2ContextRec = new WeakMap();
 
-function getCurrentContext() {
-  // eslint-disable-next-line no-new-func
-  return new Function('return this')();
-}
-
-function getCurrentSandbox() {
-  const context = getCurrentContext();
-  const sandbox = createSandbox(context);
-  return sandbox;
-}
-
-function createRealmFacade(sandbox, BaseRealm) {
-  const { unsafeFunction, unsafeGlobal } = sandbox;
+function createRealmFacade(contextRec, BaseRealm) {
+  const { contextFunction, contextGlobal } = contextRec;
 
   // The BaseRealm is the Realm class created by
   // the shim. It's only valid for the context where
   // it was parsed.
 
   // The Realm facade is a lightwwight class built in the
-  // context a different sandbox, that provide a fully
+  // context a different context, that provide a fully
   // functional Realm class using the intrisics
-  // of that sandbox.
+  // of that context.
 
   // This process is simplified becuase all methods
   // and properties on a realm instance already return
-  // values using the intrinsics of the realm's sandbox.
+  // values using the intrinsics of the realm's context.
 
-  const Realm = unsafeFunction(
+  const Realm = contextFunction(
     'BaseRealm',
     `
 
@@ -76,8 +59,8 @@ return Realm;
   `
   )(BaseRealm);
 
-  unsafeGlobal.Realm = Realm;
-  RealmProto2Sandbox.set(Realm.prototype, sandbox);
+  contextGlobal.Realm = Realm;
+  RealmProto2ContextRec.set(Realm.prototype, contextRec);
 }
 
 function getGlobaObject(intrinsics) {
@@ -91,13 +74,12 @@ function createEvaluators(realmRec) {
   const directEvalEvaluator = getDirectEvalEvaluator(realmRec);
   const functionEvaluator = getFunctionEvaluator(realmRec);
 
-  realmRec[DirectEvalEvaluator] = directEvalEvaluator;
-  realmRec[FunctionEvaluator] = functionEvaluator;
-
   // Limitation: export a direct evaluator.
   const intrinsics = realmRec[Intrinsics];
   intrinsics.eval = directEvalEvaluator;
   intrinsics.Function = functionEvaluator;
+
+  realmRec[DirectEvalEvaluator] = directEvalEvaluator;
 }
 
 function setDefaultBindings(realmRec) {
@@ -111,25 +93,25 @@ export default class Realm {
     const O = this;
     options = Object(options); // Todo: sanitize
 
-    let sandbox;
+    let contextRec;
     if (options.intrinsics === 'inherit') {
       // In "inherit" mode, we create a compartment realm and inherit
-      // the sandbox since we share the intrinsics. We create a new
+      // the context since we share the intrinsics. We create a new
       // set to allow us to define eval() anf Function() for the realm.
-      sandbox = RealmProto2Sandbox.get(getPrototypeOf(this));
+      contextRec = RealmProto2ContextRec.get(getPrototypeOf(this));
     } else if (options.intrinsics === undefined) {
       // When intrinics are not provided, we create a root realm
-      // using the fresh set of new intrinics from a new sandbox.
-      sandbox = createSandbox();
-      createRealmFacade(sandbox, Realm);
+      // using the fresh set of new intrinics from a new context.
+      contextRec = createContextRec();
+      createRealmFacade(contextRec, Realm);
     } else {
       throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
     }
-    const intrinsics = getIntrinsics(sandbox);
+    const intrinsics = getIntrinsics(contextRec);
     const globalObj = getGlobaObject(intrinsics);
 
     const realmRec = {
-      [ShimSandbox]: sandbox,
+      [ContextRec]: contextRec,
       [Intrinsics]: intrinsics,
       [GlobalObject]: globalObj,
       [DirectEvalEvaluator]: undefined
@@ -191,8 +173,6 @@ export default class Realm {
   }
 }
 
-// The current sandbox is the sandbox where the
-// Realm shim is being parsed and executed.
-RealmProto2Sandbox.set(Realm.prototype, getCurrentSandbox());
+RealmProto2ContextRec.set(Realm.prototype, getCurrentContextRec());
 
 Realm.toString = () => 'function Realm() { [shim code] }';
