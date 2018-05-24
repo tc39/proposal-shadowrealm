@@ -6,7 +6,7 @@
 
   const Intrinsics = Symbol('Intrinsics Slot');
   const GlobalObject = Symbol('GlobalObject Slot');
-  const DirectEvalEvaluator = Symbol('DirectEvalEvaluator Slot');
+  const IsDirectEvalTrap = Symbol('IsDirectEvalTrap Slot');
   const ContextRec = Symbol('Shim Context');
 
   // Declare shorthand functions. Sharing these declarations accross modules
@@ -137,10 +137,15 @@
 
     // Ensure that eval from any compartment in a root realm is an
     // instance of Function in any compartment of the same root ralm.
-    const { contextFunction } = contextRec;
+    const { contextGlobal, contextFunction } = contextRec;
     setPrototypeOf(evaluator, contextFunction.prototype.constructor);
 
-    evaluator.toString = () => 'function eval() { [shim code] }';
+    defineProperty(evaluator.prototype, contextGlobal.Symbol.toStringTag, {
+      value: 'function eval() { [shim code] }',
+      writable: false,
+      enumerable: false,
+      configurable: true
+    });
     return evaluator;
   }
 
@@ -176,7 +181,7 @@
 
     // Ensure that Function from any compartment in a root realm can be used
     // with instance checks in any compartment of the same root realm.
-    const { contextFunction } = contextRec;
+    const { contextGlobal, contextFunction } = contextRec;
     setPrototypeOf(evaluator, contextFunction.prototype.constructor);
 
     // Ensure that any function created in any compartment in a root realm is an
@@ -185,7 +190,14 @@
     desc.value = contextFunction.prototype;
     defineProperty(evaluator, 'prototype', desc);
 
-    evaluator.toString = () => 'function Function() { [shim code] }';
+    // Provide a custom output without overwriting the Function.prototype.toString
+    // which is called by some libraries.
+    defineProperty(evaluator.prototype, contextGlobal.Symbol.toStringTag, {
+      value: 'function Function() { [shim code] }',
+      writable: false,
+      enumerable: false,
+      configurable: true
+    });
     return evaluator;
   }
 
@@ -932,6 +944,7 @@
     // and properties on a realm instance already return
     // values using the intrinsics of the realm's context.
 
+    // Invoke the BaseRealm constructor with Realm as the prototype.
     const Realm = contextFunction(
       'BaseRealm',
       `
@@ -940,7 +953,6 @@ const descs = Object.getOwnPropertyDescriptors(BaseRealm.prototype);
 
 class Realm {
   constructor(options) {
-    // Invoke the BaseRealm constructor with Realm as the prototype.
     return Reflect.construct(BaseRealm, arguments, Realm);
   }
   init() {
@@ -957,7 +969,12 @@ class Realm {
   }
 }
 
-Realm.toString = () => 'function Realm() { [shim code] }';
+Object.defineProperty(Realm.prototype, Symbol.toStringTag, {
+  value: 'function Realm() { [shim code] }',
+  writable: false,
+  enumerable: false,
+  configurable: true
+});
 
 return Realm;
 
@@ -984,7 +1001,7 @@ return Realm;
     intrinsics.eval = directEvalEvaluator;
     intrinsics.Function = functionEvaluator;
 
-    realmRec[DirectEvalEvaluator] = directEvalEvaluator;
+    realmRec[IsDirectEvalTrap] = directEvalEvaluator;
   }
 
   function setDefaultBindings(realmRec) {
@@ -1019,7 +1036,7 @@ return Realm;
         [ContextRec]: contextRec,
         [Intrinsics]: intrinsics,
         [GlobalObject]: globalObj,
-        [DirectEvalEvaluator]: undefined
+        [IsDirectEvalTrap]: undefined
       };
       Realm2RealmRec.set(O, realmRec);
 
@@ -1058,7 +1075,7 @@ return Realm;
       if (typeof O !== 'object') throw new TypeError();
       if (!Realm2RealmRec.has(O)) throw new TypeError();
       const realmRec = Realm2RealmRec.get(O);
-      const evaluator = realmRec[DirectEvalEvaluator];
+      const evaluator = realmRec[IsDirectEvalTrap];
       return evaluator(x);
     }
     // This is a temporary addition, currenly being evaluated.
@@ -1080,7 +1097,12 @@ return Realm;
 
   RealmProto2ContextRec.set(Realm.prototype, getCurrentContextRec());
 
-  Realm.toString = () => 'function Realm() { [shim code] }';
+  defineProperty(Realm.prototype, Symbol.toStringTag, {
+    value: 'function Realm() { [shim code] }',
+    writable: false,
+    enumerable: false,
+    configurable: true
+  });
 
   return Realm;
 
