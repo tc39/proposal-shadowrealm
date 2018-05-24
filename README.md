@@ -146,14 +146,7 @@ r.evaluate(source);
 
 #### Import Trap
 
-```js
-const r = new Realm({
-  import(referrerNamespace, specifier) {
-    return getPromiseForNamespaceObjFor(specifier); // invokes your own mechanism to resolve to a namespace
-  }
-});
-const ns = r.evaluate('import("foo")'); // where referrerNamespace is null, and specifier is "foo"
-```
+The import trap has been removed for stage 2. We might bring it back at some point.
 
 ## Shim
 
