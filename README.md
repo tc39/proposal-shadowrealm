@@ -16,7 +16,7 @@ This proposal is at stage 2 of [the TC39 Process](https://tc39.github.io/process
 
 You can view the spec rendered as [HTML](https://rawgit.com/tc39/proposal-realms/master/index.html).
 
-### Shim/Polyfill [![Build Status][travis-svg]][travis-url]
+### Shim/Polyfill [![License][license-image]][license-url] [![Build Status][travis-svg]][travis-url]
 
 A shim implementation of the Realm API can be found [here](shim/README.md).
 
@@ -172,4 +172,6 @@ Alternative, you can use `npm run watch`.
 
 [travis-svg]: https://travis-ci.com/tc39/proposal-realms.svg?branch=master
 [travis-url]: https://travis-ci.com/tc39/proposal-realms
+[license-image]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
+[license-url]: shim/LICENSE
 
