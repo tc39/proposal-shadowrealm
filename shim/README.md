@@ -47,6 +47,21 @@ To use the shim with node:
   [...]
 ```
 
+To can also use es6 modules on node via package `esm`. To do that, launch node with esm via the "require" option:
+
+```bash
+npm install esm
+node -r esm main.js
+```
+
+And import the realm module in your code:
+
+```js
+  import Realm from './shim/src/realm';
+  const r = new Realm();
+  [...]
+```
+
 ## Examples
 
 ### Example 1: Root Realm

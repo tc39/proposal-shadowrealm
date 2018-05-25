@@ -12,8 +12,10 @@ export default {
     sourcemap: true
   },
   plugins: [
-    isProduction ? minify({
-      comments: false
-    }) : {}
+    isProduction
+      ? minify({
+          comments: false
+        })
+      : {}
   ]
 };
