@@ -1,5 +1,5 @@
-const Realm = require('../../dist/realm-shim.js');
-const test = require('tape');
+import test from 'tape';
+import Realm from '../../src/realm';
 
 test('esid: sec-array.prototype.concat', t => {
   t.plan(2);
