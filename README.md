@@ -1,12 +1,10 @@
 # ECMAScript spec proposal for Realms API
 
-[![Build Status](https://travis-ci.com/tc39/proposal-realms.svg?branch=master)](https://travis-ci.com/tc39/proposal-realms)
-
 ## Status
 
 ### Current Stage
 
- * __Stage 1__
+This proposal is at stage 2 of [the TC39 Process](https://tc39.github.io/process-document/).
 
 ### Champions
 
@@ -17,6 +15,12 @@
 ### Spec Text
 
 You can view the spec rendered as [HTML](https://rawgit.com/tc39/proposal-realms/master/index.html).
+
+### Shim/Polyfill [![Build Status][travis-svg]][travis-url]
+
+A shim implementation of the Realm API can be found [here](shim/README.md).
+
+You can play around with the current version of the shim in a Realm [here](https://rawgit.com/tc39/proposal-realms/master/shim/examples/simple.html) and in a Frozen Realm [here](https://rawgit.com/tc39/proposal-realms/master/shim/examples/frozen.html).
 
 # Realms
 
@@ -148,28 +152,6 @@ r.evaluate(source);
 
 The import trap has been removed for stage 2. We might bring it back at some point.
 
-## Shim
-
-A shim implementation of the Realm API can be found [here](shim/README.md).
-
-And you can play around with the current version of the shim in a Realm [here](https://rawgit.com/tc39/proposal-realms/master/shim/examples/simple.html) and in Frozen Realm [here](https://rawgit.com/tc39/proposal-realms/master/shim/examples/frozen.html).
-
-To use the shim in a webpage:
-```html
-  <script src="../dist/realm-shim.min.js"></script>
-  <script>
-    const r = new Realm();
-    [...]
-  </script>
-```
-
-To use the shim in node:
-```js
-  const Realm = require('./realm-shim.min.js');
-  const r = new Realm();
-  [...]
-```
-
 ## Contributing
 
 ### Updating the spec text for this proposal
@@ -187,3 +169,7 @@ open index.html
 ```
 
 Alternative, you can use `npm run watch`.
+
+[travis-svg]: https://travis-ci.com/tc39/proposal-realms.svg?branch=master
+[travis-url]: https://travis-ci.com/tc39/proposal-realms
+

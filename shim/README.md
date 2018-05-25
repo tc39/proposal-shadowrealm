@@ -1,4 +1,4 @@
-# Realm Shim
+# Realm Shim [![Build Status][travis-svg]][travis-url]
 
 This folder contains a shim implementation of the Realm API specified in this repo.
 
@@ -13,11 +13,94 @@ The current implementation has 3 main limitations:
 ## Building the Shim
 
 ```bash
-git clone https://github.com/caridy/proposal-realms.git
+git clone https://github.com/tc39/proposal-realms.git
 cd proposal-realms
 npm install
-npm run build-shim-dev
+npm run build-shim
+```
+
+This will install the necessary dependencies and build the shim locally.
+
+## Playground
+
+To open the playground example in your default browser.
+
+```bash
 open shim/examples/simple.html
 ```
 
-This will install the necessary dependencies, build the shim locally, and open the playground example in your default browser.
+## Usage
+
+To use the shim in a webpage:
+```html
+  <script src="../dist/realm-shim.min.js"></script>
+  <script>
+    const r = new Realm();
+    [...]
+  </script>
+```
+
+To use the shim with node:
+```js
+  const Realm = require('./realm-shim.min.js');
+  const r = new Realm();
+  [...]
+```
+
+## Examples
+
+### Example 1: Root Realm
+
+To create a root realm with a new global and a fresh set of intrinsics:
+
+```js
+const r = new Realm(); // root realm
+r.global === this; // false
+r.global.JSON === JSON; // false
+```
+
+### Example 2: Realm Compartment
+
+To create a realm compartment with a new global and inherit the intrinsics from another realm:
+
+```js
+const r1 = new Realm(); // root realm
+const r2 = new r1.global.Realm({ intrinsics: 'inherit' }); // realm compartment
+r1.global === r2.global; // false
+r1.global.JSON === r2.global.JSON; // true
+```
+
+### Example 3: Realm Compartment from current Realm
+
+To create a realm compartment with a new global and inherit the intrinsics from the current execution context:
+
+```js
+const r = new Realm({ intrinsics: 'inherit' }); // realm compartment
+r.global === this; // false
+r.global.JSON === JSON; // true
+```
+
+### Example 4: Frozen realm
+
+To create a frozen realm:
+
+```js
+const r = new Realm(); // root realm
+r.freeze();
+'use strict'; // disable silent errors
+r.evaluate('[].__proto__.slice = function(){}'); // TypeError: Cannot assign to read only property 'parse'
+```
+
+### Example 5: Frozen realm from current Realm (careful)
+
+To create a frozen realm compartment from the current execution context (which will also become frozen):
+
+```js
+const r = new Realm({ intrinsics: 'inherit' }); // realm compartment
+r.freeze()
+'use strict'; // disable silent errors
+[].__proto__.slice = function(){}; // TypeError: Cannot assign to read only property 'slice'
+```
+
+[travis-svg]: https://travis-ci.com/tc39/proposal-realms.svg?branch=master
+[travis-url]: https://travis-ci.com/tc39/proposal-realms
