@@ -1,4 +1,4 @@
-# Realm Shim [![Build Status][travis-svg]][travis-url]
+# Realm Shim [![License][license-image]][license-url] [![Build Status][travis-svg]][travis-url]
 
 This folder contains a shim implementation of the Realm API specified in this repo.
 
@@ -119,3 +119,6 @@ r.freeze()
 
 [travis-svg]: https://travis-ci.com/tc39/proposal-realms.svg?branch=master
 [travis-url]: https://travis-ci.com/tc39/proposal-realms
+[license-image]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
+[license-url]: LICENSE
+

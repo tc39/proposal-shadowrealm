@@ -1,0 +1,8 @@
+Realm Shim
+Copyright 2018 TC39 Open Source Contributors
+This product includes software developed at TC39 (http://ecma-international.org/memento/TC39.htm/).
+
+Includes modified work from:
+- Aura Locker Service Copyright 2015 Salesforce.com Inc under the Apache 2.0 license (https://github.com/forcedotcom/aura)
+- Caja Copyright 2011 Google Inc under the Apache 2.0 license (https://github.com/google/caja)
+- V8 Copyright 2008 Google Inc under the BSD license (https://github.com/v8/v8)
