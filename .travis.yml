@@ -8,9 +8,9 @@ node_js:
 sudo: false
 
 script:
-  - yarn lint-shim
-  - yarn build-shim
-  - yarn test-shim
+  - yarn shim:lint
+  - yarn shim:build
+  - yarn shim:test
 
 branches:
   only:

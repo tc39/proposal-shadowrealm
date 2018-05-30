@@ -95,28 +95,6 @@ r.global === this; // false
 r.global.JSON === JSON; // true
 ```
 
-### Example 4: Frozen realm
-
-To create a frozen realm:
-
-```js
-const r = new Realm(); // root realm
-r.freeze();
-'use strict'; // disable silent errors
-r.evaluate('[].__proto__.slice = function(){}'); // TypeError: Cannot assign to read only property 'parse'
-```
-
-### Example 5: Frozen realm from current Realm (careful)
-
-To create a frozen realm compartment from the current execution context (which will also become frozen):
-
-```js
-const r = new Realm({ intrinsics: 'inherit' }); // realm compartment
-r.freeze()
-'use strict'; // disable silent errors
-[].__proto__.slice = function(){}; // TypeError: Cannot assign to read only property 'slice'
-```
-
 [travis-svg]: https://travis-ci.com/tc39/proposal-realms.svg?branch=master
 [travis-url]: https://travis-ci.com/tc39/proposal-realms
 [license-image]: https://img.shields.io/badge/License-Apache%202.0-blue.svg

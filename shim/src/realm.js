@@ -2,8 +2,6 @@ import { createContextRec, getCurrentContextRec } from './context';
 import { getDirectEvalEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getIntrinsics } from './intrinsics';
-import { tamperProofDataProperties } from './tamper-proof';
-import { deepFreeze } from './deep-freeze';
 import { IsCallable } from './utils';
 import { assign, create, defineProperty, defineProperties, getPrototypeOf } from './commons';
 import { Intrinsics, GlobalObject, IsDirectEvalTrap, ContextRec } from './symbols';
@@ -160,21 +158,6 @@ export default class Realm {
     const realmRec = Realm2RealmRec.get(O);
     const evaluator = realmRec[IsDirectEvalTrap];
     return evaluator(x);
-  }
-  // This is a temporary addition, currenly being evaluated.
-  freeze() {
-    const O = this;
-    if (typeof O !== 'object') throw new TypeError();
-    if (!Realm2RealmRec.has(O)) throw new TypeError();
-    const realmRec = Realm2RealmRec.get(O);
-
-    // Copy the intrinsics into a plain object to avoid
-    // freezing the object itself.
-    const obj = create(null);
-    const intrinsics = realmRec[Intrinsics];
-    assign(obj, intrinsics);
-    tamperProofDataProperties(obj);
-    deepFreeze(obj);
   }
 }
 
