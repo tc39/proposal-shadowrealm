@@ -36,7 +36,7 @@ export function getIntrinsics(contextRec) {
   const AsyncGeneratorPrototype = hasAsyncIterator && AsyncGenerator.prototype;
 
   const AsyncIteratorPrototype = hasAsyncIterator && getPrototypeOf(AsyncGeneratorPrototype);
-  const AsyncFromSyncIteratorPrototype = undefined; // Not reacheable.
+  // const AsyncFromSyncIteratorPrototype = undefined; // Not reacheable.
 
   const MapIteratorObject = new g.Map()[SymbolIterator]();
   const MapIteratorPrototype = getPrototypeOf(MapIteratorObject);
@@ -78,7 +78,7 @@ export function getIntrinsics(contextRec) {
     // %ArrayProto_values%
     ArrayProto_values: g.Array.prototype.values,
     // %AsyncFromSyncIteratorPrototype%
-    AsyncFromSyncIteratorPrototype,
+    // AsyncFromSyncIteratorPrototype, // Not reachable
     // %AsyncFunction%
     AsyncFunction,
     // %AsyncFunctionPrototype%
