@@ -16,7 +16,17 @@ import { defineProperty, defineProperties, getPrototypeOf, setPrototypeOf } from
 function repairFunction(contextRec, functionName, functionDecl) {
   const { contextEval, contextFunction } = contextRec;
 
-  const FunctionInstance = contextEval(`(${functionDecl}(){})`);
+  let FunctionInstance;
+  try {
+    FunctionInstance = contextEval(`(${functionDecl}(){})`);
+  } catch (e) {
+    if (!(e instanceof SyntaxError)) {
+      // Re-throw
+      throw e;
+    }
+    // Prevent failure on platforms where generators are not supported.
+    return;
+  }
   const FunctionPrototype = getPrototypeOf(FunctionInstance);
 
   // Block evaluation of source when calling constructor on the prototype of functions.
@@ -43,16 +53,10 @@ function repairFunction(contextRec, functionName, functionDecl) {
  * the originals should no longer be reachable.
  */
 export function repairFunctions(contextRec) {
-  const { contextGlobal: g } = contextRec;
-
   // Here, the order of operation is important: Function needs to be
   // repaired first since the other constructors need it.
   repairFunction(contextRec, 'Function', 'function');
   repairFunction(contextRec, 'GeneratorFunction', 'function*');
   repairFunction(contextRec, 'AsyncFunction', 'async function');
-
-  const hasAsyncIteration = typeof g.Symbol.asyncIterator !== 'undefined';
-  if (hasAsyncIteration) {
-    repairFunction(contextRec, 'AsyncGeneratorFunction', 'async function*');
-  }
+  repairFunction(contextRec, 'AsyncGeneratorFunction', 'async function*');
 }

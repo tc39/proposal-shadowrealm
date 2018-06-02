@@ -23,19 +23,37 @@ export function getIntrinsics(contextRec) {
   const AsyncFunction = AsyncFunctionInstance.constructor;
   const AsyncFunctionPrototype = AsyncFunction.prototype;
 
-  const GeneratorFunctionInstance = g.eval('(function*(){})');
-  const GeneratorFunction = GeneratorFunctionInstance.constructor;
-  const Generator = GeneratorFunction.prototype;
-  const GeneratorPrototype = Generator.prototype;
+  // Ensure parsing doesn't fail on platforms that don't support Generator Functions.
+  let GeneratorFunctionInstance;
+  try {
+    GeneratorFunctionInstance = g.eval('(function*(){})');
+  } catch (e) {
+    if (!(e instanceof SyntaxError)) {
+      // Re-throw
+      throw e;
+    }
+  }
+  const GeneratorFunction = GeneratorFunctionInstance && GeneratorFunctionInstance.constructor;
+  const Generator = GeneratorFunctionInstance && GeneratorFunction.prototype;
+  const GeneratorPrototype = GeneratorFunctionInstance && Generator.prototype;
 
-  const hasAsyncIterator = typeof g.Symbol.asyncIterator !== 'undefined';
+  // Ensure parsing doesn't fail on platforms that don't support Async Generator Functions.
+  let AsyncGeneratorFunctionInstance;
+  try {
+    AsyncGeneratorFunctionInstance = g.eval('(async function*(){})');
+  } catch (e) {
+    if (!(e instanceof SyntaxError)) {
+      // Re-throw
+      throw e;
+    }
+  }
+  const AsyncGeneratorFunction =
+    AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
+  const AsyncGenerator = AsyncGeneratorFunctionInstance && AsyncGeneratorFunction.prototype;
+  const AsyncGeneratorPrototype = AsyncGeneratorFunctionInstance && AsyncGenerator.prototype;
 
-  const AsyncGeneratorFunctionInstance = hasAsyncIterator && g.eval('(async function*(){})');
-  const AsyncGeneratorFunction = hasAsyncIterator && AsyncGeneratorFunctionInstance.constructor;
-  const AsyncGenerator = hasAsyncIterator && AsyncGeneratorFunction.prototype;
-  const AsyncGeneratorPrototype = hasAsyncIterator && AsyncGenerator.prototype;
-
-  const AsyncIteratorPrototype = hasAsyncIterator && getPrototypeOf(AsyncGeneratorPrototype);
+  const AsyncIteratorPrototype =
+    AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorPrototype);
   // const AsyncFromSyncIteratorPrototype = undefined; // Not reacheable.
 
   const MapIteratorObject = new g.Map()[SymbolIterator]();
