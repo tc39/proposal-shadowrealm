@@ -130,6 +130,14 @@ function createEvaluators(realmRec) {
 function setDefaultBindings(realmRec) {
   const intrinsics = realmRec[Intrinsics];
   const descs = getStdLib(intrinsics);
+  for (const name of Object.getOwnPropertyNames(descs)) {
+    // these three properties should be immutable
+    if (name !== 'Infinity' && name !== 'NaN' && name !== 'undefined') {
+      // everything else should be mutable
+      descs[name].writable = true;
+      descs[name].configurable = true;
+    }
+  }
   defineProperties(realmRec[GlobalObject], descs);
 }
 
