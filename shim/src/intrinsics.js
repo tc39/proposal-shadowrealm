@@ -28,7 +28,7 @@ export function getIntrinsics(contextRec) {
   try {
     GeneratorFunctionInstance = g.eval('(function*(){})');
   } catch (e) {
-    if (!(e instanceof SyntaxError)) {
+    if (!(e instanceof g.SyntaxError)) {
       // Re-throw
       throw e;
     }
@@ -42,7 +42,7 @@ export function getIntrinsics(contextRec) {
   try {
     AsyncGeneratorFunctionInstance = g.eval('(async function*(){})');
   } catch (e) {
-    if (!(e instanceof SyntaxError)) {
+    if (!(e instanceof g.SyntaxError)) {
       // Re-throw
       throw e;
     }

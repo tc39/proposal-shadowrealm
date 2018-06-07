@@ -14,13 +14,13 @@ import { defineProperty, defineProperties, getPrototypeOf, setPrototypeOf } from
  * 5. Replace its [[Prototype]] slot with the noop constructor of Function
  */
 function repairFunction(contextRec, functionName, functionDecl) {
-  const { contextEval, contextFunction } = contextRec;
+  const { contextEval, contextFunction, contextGlobal } = contextRec;
 
   let FunctionInstance;
   try {
     FunctionInstance = contextEval(`(${functionDecl}(){})`);
   } catch (e) {
-    if (!(e instanceof SyntaxError)) {
+    if (!(e instanceof contextGlobal.SyntaxError)) {
       // Re-throw
       throw e;
     }
