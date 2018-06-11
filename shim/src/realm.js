@@ -30,23 +30,62 @@ function createRealmFacade(contextRec, BaseRealm) {
     'BaseRealm',
     `
 
+const errorConstructors = new Map([
+  ['EvalError', EvalError],
+  ['RangeError', RangeError],
+  ['ReferenceError', ReferenceError],
+  ['SyntaxError', SyntaxError],
+  ['TypeError', TypeError],
+  ['URIError', URIError]
+]);
+
+// Like Realm.apply except that it catches anything thrown and rethrows
+// it as an Error from this realm
+function doAndWrapError(thunk) {
+  try {
+    return thunk();
+  } catch (err) {
+    let eName, eMessage;
+    try {
+      // The child environment might seek to use 'err' to reach the parent's
+      // intrinsics and corrupt them. ''+err.name will cause string coercion
+      // of 'err.name'. If err.name is an object (probably a String of the
+      // parent Realm), the coercion uses err.name.toString(), which is under
+      // the control of the parent. If err.name were a primitive, it would
+      // use String.toString(err.name), using the child's String (which the
+      // child could modify to capture its argument for later use), however
+      // primitives don't have properties like .prototype so they aren't
+      // useful for an attack.
+      eName = ''+err.name;
+      eMessage = ''+err.message;
+      // eName and eMessage are now child-realm Strings, and safe to expose
+    } catch (_) {
+      // if err.name.toString() throws, keep the (parent realm) Error away
+      // from the child
+      throw new Error('Something bad happened');
+    }
+    const eConstructor = errorConstructors.get(eName) || Error;
+    throw new eConstructor(eMessage);
+  }
+}
+
 const descs = Object.getOwnPropertyDescriptors(BaseRealm.prototype);
 
 class Realm {
-  constructor(options) {
-    return Reflect.construct(BaseRealm, arguments, Realm);
+  constructor(...args) {
+    return doAndWrapError(() => Reflect.construct(BaseRealm, args, Realm));
   }
   init() {
-    descs.init.value.apply(this);
+    return doAndWrapError(() => descs.init.value.apply(this));
   }
   get intrinsics() {
-    return descs.intrinsics.get.apply(this);
+    return doAndWrapError(() => descs.intrinsics.get.apply(this));
   }
   get global() {
-    return descs.global.get.apply(this);
+    return doAndWrapError(() => descs.global.get.apply(this));
   }
-  evaluate(x) {
-    return descs.evaluate.value.apply(this, arguments);
+  evaluate(...args) {
+    return doAndWrapError(() => descs.evaluate.value.apply(this, args));
   }
 }
 
@@ -108,6 +147,8 @@ export default class Realm {
       contextRec = createContextRec();
       createRealmFacade(contextRec, Realm);
     } else {
+      // todo: this leaks the parent TypeError, from which the child can
+      // access .prototype and the parent's intrinsics
       throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
     }
     const intrinsics = getIntrinsics(contextRec);
@@ -157,7 +198,7 @@ export default class Realm {
     if (!Realm2RealmRec.has(O)) throw new TypeError();
     const realmRec = Realm2RealmRec.get(O);
     const evaluator = realmRec[IsDirectEvalTrap];
-    return evaluator(x);
+    return evaluator(`${x}`);
   }
 }
 
