@@ -1,4 +1,4 @@
-import { getDirectEvalEvaluatorFactory } from './evaluators';
+import { getScopedEvaluatorFactory } from './evaluators';
 import { sanitize } from './sanitize';
 
 // Detection used in RollupJS.
@@ -43,7 +43,7 @@ export function createContextRec(context) {
 
   // Create the evaluator factory that will generate the evaluators
   // for each compartment realm.
-  contextRec.evalEvaluatorFactory = getDirectEvalEvaluatorFactory(contextRec);
+  contextRec.scopedEvaluatorFactory = getScopedEvaluatorFactory(contextRec);
 
   sanitize(contextRec);
   return contextRec;
