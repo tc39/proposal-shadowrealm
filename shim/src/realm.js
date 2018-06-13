@@ -139,6 +139,7 @@ export default class Realm {
     options = Object(options); // Todo: sanitize
 
     let contextRec;
+    // was there a big conditional here once upon a time? -erights
     if (options.intrinsics === 'inherit') {
       // In "inherit" mode, we create a compartment realm and inherit
       // the context since we share the intrinsics. We create a new
