@@ -65,7 +65,7 @@ export function getSafeEvaluator(realmRec) {
   // Ensure that eval from any compartment in a root realm is an
   // instance of Function in any compartment of the same root realm.
   const { contextGlobal, contextFunction } = contextRec;
-  setPrototypeOf(evaluator, contextFunction.prototype.constructor);
+  setPrototypeOf(evaluator, contextFunction.prototype.constructor); // todo: this is wrong
 
   defineProperty(evaluator.prototype, contextGlobal.Symbol.toStringTag, {
     value: 'function eval() { [shim code] }',
