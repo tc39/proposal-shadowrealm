@@ -36,6 +36,7 @@ export function createContextRec(context) {
   }
 
   const contextRec = {
+    // todo: consider renaming to 'unsafeGlobal'/etc
     contextGlobal: context.global,
     contextEval: context.eval,
     contextFunction: context.Function
