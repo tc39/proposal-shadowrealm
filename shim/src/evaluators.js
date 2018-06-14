@@ -57,7 +57,7 @@ export function getDirectEvalEvaluator(realmRec) {
   }.eval;
 
   // Ensure that eval from any compartment in a root realm is an
-  // instance of Function in any compartment of the same root ralm.
+  // instance of Function in any compartment of the same root realm.
   const { contextGlobal, contextFunction } = contextRec;
   setPrototypeOf(evaluator, contextFunction.prototype.constructor);
 
