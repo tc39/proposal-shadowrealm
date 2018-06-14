@@ -262,9 +262,19 @@
    * 5. Replace its [[Prototype]] slot with the noop constructor of Function
    */
   function repairFunction(contextRec, functionName, functionDecl) {
-    const { contextEval, contextFunction } = contextRec;
+    const { contextEval, contextFunction, contextGlobal } = contextRec;
 
-    const FunctionInstance = contextEval(`(${functionDecl}(){})`);
+    let FunctionInstance;
+    try {
+      FunctionInstance = contextEval(`(${functionDecl}(){})`);
+    } catch (e) {
+      if (!(e instanceof contextGlobal.SyntaxError)) {
+        // Re-throw
+        throw e;
+      }
+      // Prevent failure on platforms where generators are not supported.
+      return;
+    }
     const FunctionPrototype = getPrototypeOf(FunctionInstance);
 
     // Block evaluation of source when calling constructor on the prototype of functions.
@@ -291,18 +301,12 @@
    * the originals should no longer be reachable.
    */
   function repairFunctions(contextRec) {
-    const { contextGlobal: g } = contextRec;
-
     // Here, the order of operation is important: Function needs to be
     // repaired first since the other constructors need it.
     repairFunction(contextRec, 'Function', 'function');
     repairFunction(contextRec, 'GeneratorFunction', 'function*');
     repairFunction(contextRec, 'AsyncFunction', 'async function');
-
-    const hasAsyncIteration = typeof g.Symbol.asyncIterator !== 'undefined';
-    if (hasAsyncIteration) {
-      repairFunction(contextRec, 'AsyncGeneratorFunction', 'async function*');
-    }
+    repairFunction(contextRec, 'AsyncGeneratorFunction', 'async function*');
   }
 
   // Sanitizing ensures that neither the legacy
@@ -482,20 +486,38 @@
     const AsyncFunction = AsyncFunctionInstance.constructor;
     const AsyncFunctionPrototype = AsyncFunction.prototype;
 
-    const GeneratorFunctionInstance = g.eval('(function*(){})');
-    const GeneratorFunction = GeneratorFunctionInstance.constructor;
-    const Generator = GeneratorFunction.prototype;
-    const GeneratorPrototype = Generator.prototype;
+    // Ensure parsing doesn't fail on platforms that don't support Generator Functions.
+    let GeneratorFunctionInstance;
+    try {
+      GeneratorFunctionInstance = g.eval('(function*(){})');
+    } catch (e) {
+      if (!(e instanceof g.SyntaxError)) {
+        // Re-throw
+        throw e;
+      }
+    }
+    const GeneratorFunction = GeneratorFunctionInstance && GeneratorFunctionInstance.constructor;
+    const Generator = GeneratorFunctionInstance && GeneratorFunction.prototype;
+    const GeneratorPrototype = GeneratorFunctionInstance && Generator.prototype;
 
-    const hasAsyncIterator = typeof g.Symbol.asyncIterator !== 'undefined';
+    // Ensure parsing doesn't fail on platforms that don't support Async Generator Functions.
+    let AsyncGeneratorFunctionInstance;
+    try {
+      AsyncGeneratorFunctionInstance = g.eval('(async function*(){})');
+    } catch (e) {
+      if (!(e instanceof g.SyntaxError)) {
+        // Re-throw
+        throw e;
+      }
+    }
+    const AsyncGeneratorFunction =
+      AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
+    const AsyncGenerator = AsyncGeneratorFunctionInstance && AsyncGeneratorFunction.prototype;
+    const AsyncGeneratorPrototype = AsyncGeneratorFunctionInstance && AsyncGenerator.prototype;
 
-    const AsyncGeneratorFunctionInstance = hasAsyncIterator && g.eval('(async function*(){})');
-    const AsyncGeneratorFunction = hasAsyncIterator && AsyncGeneratorFunctionInstance.constructor;
-    const AsyncGenerator = hasAsyncIterator && AsyncGeneratorFunction.prototype;
-    const AsyncGeneratorPrototype = hasAsyncIterator && AsyncGenerator.prototype;
-
-    const AsyncIteratorPrototype = hasAsyncIterator && getPrototypeOf(AsyncGeneratorPrototype);
-    const AsyncFromSyncIteratorPrototype = undefined; // Not reacheable.
+    const AsyncIteratorPrototype =
+      AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorPrototype);
+    // const AsyncFromSyncIteratorPrototype = undefined; // Not reacheable.
 
     const MapIteratorObject = new g.Map()[SymbolIterator]();
     const MapIteratorPrototype = getPrototypeOf(MapIteratorObject);
@@ -537,7 +559,7 @@
       // %ArrayProto_values%
       ArrayProto_values: g.Array.prototype.values,
       // %AsyncFromSyncIteratorPrototype%
-      AsyncFromSyncIteratorPrototype,
+      // AsyncFromSyncIteratorPrototype, // Not reachable
       // %AsyncFunction%
       AsyncFunction,
       // %AsyncFunctionPrototype%
@@ -762,8 +784,85 @@
   const Realm2RealmRec = new WeakMap();
   const RealmProto2ContextRec = new WeakMap();
 
+  // buildChildRealm is immediately turned into a string, and this function is
+  // never referenced again, because it closes over the wrong intrinsics
+
+  function buildChildRealm(BaseRealm) {
+    const errorConstructors = new Map([
+      ['EvalError', EvalError],
+      ['RangeError', RangeError],
+      ['ReferenceError', ReferenceError],
+      ['SyntaxError', SyntaxError],
+      ['TypeError', TypeError],
+      ['URIError', URIError]
+    ]);
+
+    // Like Realm.apply except that it catches anything thrown and rethrows it
+    // as an Error from this realm
+    function doAndWrapError(thunk) {
+      try {
+        return thunk();
+      } catch (err) {
+        let eName, eMessage;
+        try {
+          // The child environment might seek to use 'err' to reach the
+          // parent's intrinsics and corrupt them. `${err.name}` will cause
+          // string coercion of 'err.name'. If err.name is an object (probably
+          // a String of the parent Realm), the coercion uses
+          // err.name.toString(), which is under the control of the parent. If
+          // err.name were a primitive (e.g. a number), it would use
+          // Number.toString(err.name), using the child's version of Number
+          // (which the child could modify to capture its argument for later
+          // use), however primitives don't have properties like .prototype so
+          // they aren't useful for an attack.
+          eName = `${err.name}`;
+          eMessage = `${err.message}`;
+          // eName and eMessage are now child-realm primitive strings, and safe
+          // to expose
+        } catch (_) {
+          // if err.name.toString() throws, keep the (parent realm) Error away
+          // from the child
+          throw new Error('Something bad happened');
+        }
+        const ErrorConstructor = errorConstructors.get(eName) || Error;
+        throw new ErrorConstructor(eMessage);
+      }
+    }
+
+    const descs = Object.getOwnPropertyDescriptors(BaseRealm.prototype);
+
+    class Realm {
+      constructor(...args) {
+        return doAndWrapError(() => Reflect.construct(BaseRealm, args, Realm));
+      }
+      init() {
+        return doAndWrapError(() => descs.init.value.apply(this));
+      }
+      get intrinsics() {
+        return doAndWrapError(() => descs.intrinsics.get.apply(this));
+      }
+      get global() {
+        return doAndWrapError(() => descs.global.get.apply(this));
+      }
+      evaluate(...args) {
+        return doAndWrapError(() => descs.evaluate.value.apply(this, args));
+      }
+    }
+
+    Object.defineProperty(Realm.prototype, Symbol.toStringTag, {
+      value: 'function Realm() { [shim code] }',
+      writable: false,
+      enumerable: false,
+      configurable: true
+    });
+
+    return Realm;
+  }
+
+  const buildChildRealmString = `(${buildChildRealm})`;
+
   function createRealmFacade(contextRec, BaseRealm) {
-    const { contextFunction, contextGlobal } = contextRec;
+    const { contextEval, contextGlobal } = contextRec;
 
     // The BaseRealm is the Realm class created by
     // the shim. It's only valid for the context where
@@ -779,42 +878,7 @@
     // values using the intrinsics of the realm's context.
 
     // Invoke the BaseRealm constructor with Realm as the prototype.
-    const Realm = contextFunction(
-      'BaseRealm',
-      `
-
-const descs = Object.getOwnPropertyDescriptors(BaseRealm.prototype);
-
-class Realm {
-  constructor(options) {
-    return Reflect.construct(BaseRealm, arguments, Realm);
-  }
-  init() {
-    descs.init.value.apply(this);
-  }
-  get intrinsics() {
-    return descs.intrinsics.get.apply(this);
-  }
-  get global() {
-    return descs.global.get.apply(this);
-  }
-  evaluate(x) {
-    return descs.evaluate.value.apply(this, arguments);
-  }
-}
-
-Object.defineProperty(Realm.prototype, Symbol.toStringTag, {
-  value: 'function Realm() { [shim code] }',
-  writable: false,
-  enumerable: false,
-  configurable: true
-});
-
-return Realm;
-
-  `
-    )(BaseRealm);
-
+    const Realm = contextEval(buildChildRealmString)(BaseRealm);
     contextGlobal.Realm = Realm;
     RealmProto2ContextRec.set(Realm.prototype, contextRec);
   }
@@ -861,6 +925,8 @@ return Realm;
         contextRec = createContextRec();
         createRealmFacade(contextRec, Realm);
       } else {
+        // todo: this leaks the parent TypeError, from which the child can
+        // access .prototype and the parent's intrinsics
         throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
       }
       const intrinsics = getIntrinsics(contextRec);
@@ -910,7 +976,7 @@ return Realm;
       if (!Realm2RealmRec.has(O)) throw new TypeError();
       const realmRec = Realm2RealmRec.get(O);
       const evaluator = realmRec[IsDirectEvalTrap];
-      return evaluator(x);
+      return evaluator(`${x}`);
     }
   }
 
