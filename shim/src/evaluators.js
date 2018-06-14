@@ -80,14 +80,21 @@ export function getFunctionEvaluator(realmRec) {
   const { [ContextRec]: contextRec, [Intrinsics]: intrinsics } = realmRec;
 
   const evaluator = function Function(...params) {
-    const functionBody = params.pop() || '';
+    const functionBody = `${params.pop()}` || '';
     let functionParams = params.join(',');
+
+    // Is this a real functionBody, or is someone attempting an injection
+    // attack? This will throw a SyntaxError if the string is not actually a
+    // function body. We coerce the body into a real string above to prevent
+    // someone from passing an object with a toString() that returns a safe
+    // string the first time, but an evil string the second time.
+    new contextRec.contextFunction(functionBody); // eslint-disable-line
 
     if (functionParams.includes(')')) {
       // If the formal parameters string include ) - an illegal
       // character - it may make the combined function expression
       // compile. We avoid this problem by checking for this early on.
-      throw new Error('Function arg string contains parenthesis');
+      throw new SyntaxError('Function arg string contains parenthesis');
     }
 
     if (functionParams.length > 0) {
