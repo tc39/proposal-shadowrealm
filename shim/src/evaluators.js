@@ -82,9 +82,6 @@ export function getFunctionEvaluator(realmRec) {
   const evaluator = function Function(...params) {
     const functionBody = `${params.pop()}` || '';
     let functionParams = `${params.join(',')}`;
-    // todo: can the Function constructor syntax accept complex parameters
-    // (default values, spread args, destructuring patterns)? Our new
-    // Function here cannot.
 
     // Is this a real functionBody, or is someone attempting an injection
     // attack? This will throw a SyntaxError if the string is not actually a
