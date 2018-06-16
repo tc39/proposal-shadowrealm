@@ -1,7 +1,7 @@
 // Portions adapted from V8 - Copyright 2016 the V8 project authors.
 // https://github.com/v8/v8/blob/master/src/builtins/builtins-function.cc
 
-import { GlobalObject, Intrinsics, ContextRec } from './symbols';
+import { GlobalObject, Intrinsics, ContextRec, UnsafeEvaluators } from './symbols';
 import { defineProperty, getOwnPropertyDescriptor, setPrototypeOf } from './commons';
 import { Handler } from './handler';
 
@@ -65,9 +65,9 @@ export function getSafeEvaluator(realmRec) {
   // Ensure that eval from any compartment in a root realm is an
   // instance of Function in any compartment of the same root realm.
   const { contextGlobal, contextFunction } = contextRec;
-  setPrototypeOf(evaluator, contextFunction.prototype.constructor); // todo: this is wrong
+  setPrototypeOf(evaluator, contextFunction.prototype);
 
-  defineProperty(evaluator.prototype, contextGlobal.Symbol.toStringTag, {
+  defineProperty(evaluator, contextGlobal.Symbol.toStringTag, {
     value: 'function eval() { [shim code] }',
     writable: false,
     enumerable: false,
@@ -80,10 +80,9 @@ export function getSafeEvaluator(realmRec) {
  * A safe version of the native Function which relies on
  * the safety of evalEvaluator for confinement.
  */
-export function getFunctionEvaluator(realmRec) {
-  const { [ContextRec]: contextRec, [Intrinsics]: intrinsics } = realmRec;
+export function getFunctionEvaluator(unsafeFunction, unsafeGlobal, safeEvaluator) {
 
-  const evaluator = function Function(...params) {
+  const SafeFunction = function Function(...params) {
     const functionBody = `${params.pop()}` || '';
     let functionParams = `${params.join(',')}`;
 
@@ -92,7 +91,7 @@ export function getFunctionEvaluator(realmRec) {
     // function body. We coerce the body into a real string above to prevent
     // someone from passing an object with a toString() that returns a safe
     // string the first time, but an evil string the second time.
-    new contextRec.contextFunction(functionBody); // eslint-disable-line
+    new unsafeFunction(functionBody); // eslint-disable-line
 
     if (functionParams.includes(')')) {
       // If the formal parameters string include ) - an illegal
@@ -110,27 +109,24 @@ export function getFunctionEvaluator(realmRec) {
 
     const src = `(function(${functionParams}){\n${functionBody}\n})`;
 
-    return intrinsics.eval(src);
+    return safeEvaluator(src);
   };
 
   // Ensure that Function from any compartment in a root realm can be used
   // with instance checks in any compartment of the same root realm.
-  const { contextGlobal, contextFunction } = contextRec;
-  setPrototypeOf(evaluator, contextFunction.prototype.constructor);
+  setPrototypeOf(SafeFunction, unsafeFunction.prototype);
 
   // Ensure that any function created in any compartment in a root realm is an
   // instance of Function in any compartment of the same root ralm.
-  const desc = getOwnPropertyDescriptor(evaluator, 'prototype');
-  desc.value = contextFunction.prototype;
-  defineProperty(evaluator, 'prototype', desc);
+  defineProperty(SafeFunction, 'prototype', { value: unsafeFunction.prototype });
 
   // Provide a custom output without overwriting the Function.prototype.toString
   // which is called by some libraries.
-  defineProperty(evaluator.prototype, contextGlobal.Symbol.toStringTag, {
+  defineProperty(SafeFunction, unsafeGlobal.Symbol.toStringTag, {
     value: 'function Function() { [shim code] }',
     writable: false,
     enumerable: false,
     configurable: true
   });
-  return evaluator;
+  return SafeFunction;
 }

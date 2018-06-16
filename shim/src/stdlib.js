@@ -1,4 +1,4 @@
-export function getStdLib(intrinsics) {
+export function getStdLib(intrinsics, safeEvaluators) {
   const descriptors = {
     // *** 18.1 Value Properties of the Global Object
 
@@ -10,10 +10,10 @@ export function getStdLib(intrinsics) {
   // All the following stdlib items have the same name on both our intrinsics
   // object and on the global object. Unlike Infinity/NaN/undefined, these
   // should all be writable and configurable.
-  const names = [
+  const intrinsicNames = [
     // *** 18.2 Function Properties of the Global Object
 
-    'eval',
+    //'eval', // comes from safeEvaluators instead
     'isFinite',
     'isNaN',
     'parseFloat',
@@ -35,7 +35,7 @@ export function getStdLib(intrinsics) {
     'EvalError',
     'Float32Array',
     'Float64Array',
-    'Function',
+    //'Function', // comes from safeEvaluators instead
     'Int8Array',
     'Int16Array',
     'Int32Array',
@@ -82,9 +82,24 @@ export function getStdLib(intrinsics) {
     'Realm'
   ];
 
-  for (const name of names) {
+  for (const name of intrinsicNames) {
     descriptors[name] = {
       value: intrinsics[name],
+      writable: true,
+      configurable: true
+    };
+  }
+
+  const evaluatorNames = [
+    // *** 18.2 Function Properties of the Global Object
+    'eval',
+    // *** 18.3 Constructor Properties of the Global Object
+    'Function'
+  ];
+
+  for (const name of evaluatorNames) {
+    descriptors[name] = {
+      value: safeEvaluators[name],
       writable: true,
       configurable: true
     };
