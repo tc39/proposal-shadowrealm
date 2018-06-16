@@ -1,15 +1,21 @@
-import { getPrototypeOf } from './commons';
+import { getPrototypeOf, defineProperty } from './commons';
 
 /**
  * Get the intrinsics from Table 7 & Annex B
  * Named intrinsics: available as data properties of the global object.
  * Anonymous intrinsics: not otherwise reachable by own property name traversal.
  *
+ * In preparation for placing, for example, the Function.prototype in the
+ * intrinsics object from it will be accessible, first remove its
+ * .contructor which currently points at the unsafe evaluator constructor.
+ * Later, once we actually create the safe replacement constructors, we will
+ * set these .contructor properties to point to them.
+ *
  * https://tc39.github.io/ecma262/#table-7
  * https://tc39.github.io/ecma262/#table-73
  */
-export function getIntrinsics(contextRec) {
-  const { contextGlobal: g } = contextRec;
+export function getFixedIntrinsics(contextGlobal) {
+  const g = contextGlobal;
 
   // Anonymous intrinsics.
 
@@ -19,9 +25,27 @@ export function getIntrinsics(contextRec) {
   const ArrayIteratorPrototype = getPrototypeOf(ArrayIteratorInstance);
   const IteratorPrototype = getPrototypeOf(ArrayIteratorPrototype);
 
-  const AsyncFunctionInstance = g.eval('(async function(){})');
-  const AsyncFunction = AsyncFunctionInstance.constructor;
-  const AsyncFunctionPrototype = AsyncFunction.prototype;
+  // note: compartments share the intrinsics of their parent RootRealm, so
+  // we'll have already fixed these intrinsics. This code should tolerate
+  // fixing them multiple times.
+  defineProperty(g.Function.prototype, "constructor", { value: void 0 });
+
+  // Ensure parsing doesn't fail on platforms that don't support Async Functions.
+  let AsyncFunctionInstance;
+  try {
+    AsyncFunctionInstance = g.eval('(async function(){})');
+  } catch (e) {
+    if (!(e instanceof g.SyntaxError)) {
+      // Re-throw
+      throw e;
+    }
+  }
+
+  //const AsyncFunction = AsyncFunctionInstance && AsyncFunctionInstance.constructor;
+  const AsyncFunctionPrototype = AsyncFunctionInstance && getPrototypeOf(AsyncFunctionInstance);
+  if (AsyncFunctionInstance) {
+    defineProperty(AsyncFunctionPrototype, "constructor", { value: void 0 });
+  }
 
   // Ensure parsing doesn't fail on platforms that don't support Generator Functions.
   let GeneratorFunctionInstance;
@@ -33,9 +57,13 @@ export function getIntrinsics(contextRec) {
       throw e;
     }
   }
-  const GeneratorFunction = GeneratorFunctionInstance && GeneratorFunctionInstance.constructor;
-  const Generator = GeneratorFunctionInstance && GeneratorFunction.prototype;
+  //const GeneratorFunction = GeneratorFunctionInstance && GeneratorFunctionInstance.constructor;
+  const Generator = GeneratorFunctionInstance && getPrototypeOf(GeneratorFunctionInstance);
   const GeneratorPrototype = GeneratorFunctionInstance && Generator.prototype;
+  if (GeneratorFunctionInstance) {
+    defineProperty(Generator, "constructor", { value: void 0 });
+    defineProperty(GeneratorPrototype, "constructor", { value: void 0 });
+  }
 
   // Ensure parsing doesn't fail on platforms that don't support Async Generator Functions.
   let AsyncGeneratorFunctionInstance;
@@ -47,10 +75,14 @@ export function getIntrinsics(contextRec) {
       throw e;
     }
   }
-  const AsyncGeneratorFunction =
-    AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
-  const AsyncGenerator = AsyncGeneratorFunctionInstance && AsyncGeneratorFunction.prototype;
+  //const AsyncGeneratorFunction =
+  //  AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
+  const AsyncGenerator = AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorFunctionInstance);
   const AsyncGeneratorPrototype = AsyncGeneratorFunctionInstance && AsyncGenerator.prototype;
+  if (AsyncGeneratorFunctionInstance) {
+    defineProperty(AsyncGenerator, "constructor", { value: void 0 });
+    defineProperty(AsyncGeneratorPrototype, "constructor", {value: void 0 });
+  }
 
   const AsyncIteratorPrototype =
     AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorPrototype);
@@ -74,7 +106,7 @@ export function getIntrinsics(contextRec) {
 
   // Named intrinsics
 
-  const intrinsics = {
+  const sharedIntrinsics = {
     // *** Table 7
 
     // %Array%
@@ -97,14 +129,8 @@ export function getIntrinsics(contextRec) {
     ArrayProto_values: g.Array.prototype.values,
     // %AsyncFromSyncIteratorPrototype%
     // AsyncFromSyncIteratorPrototype, // Not reachable
-    // %AsyncFunction%
-    AsyncFunction,
     // %AsyncFunctionPrototype%
     AsyncFunctionPrototype,
-    // %AsyncGenerator%
-    AsyncGenerator,
-    // %AsyncGeneratorFunction%
-    AsyncGeneratorFunction,
     // %AsyncGeneratorPrototype%
     AsyncGeneratorPrototype,
     // %AsyncIteratorPrototype%
@@ -135,8 +161,6 @@ export function getIntrinsics(contextRec) {
     Error: g.Error,
     // %ErrorPrototype%
     ErrorPrototype: g.Error.prototype,
-    // %eval%
-    eval: g.eval,
     // %EvalError%
     EvalError: g.EvalError,
     // %EvalErrorPrototype%
@@ -149,14 +173,8 @@ export function getIntrinsics(contextRec) {
     Float64Array: g.Float64Array,
     // %Float64ArrayPrototype%
     Float64ArrayPrototype: g.Float64Array.prototype,
-    // %Function%
-    Function: g.Function,
     // %FunctionPrototype%
     FunctionPrototype: g.Function.prototype,
-    // %Generator%
-    Generator,
-    // %GeneratorFunction%
-    GeneratorFunction,
     // %GeneratorPrototype%
     GeneratorPrototype,
     // %Int8Array%
@@ -307,9 +325,31 @@ export function getIntrinsics(contextRec) {
 
     Intl: g.Intl,
 
-    // *** ESNext
+    // *** ESNext.
+    // This is in sharedIntrinsics because there's only one Realm constructor
+    // per RootRealm even though there's one Realm instance per Realm.
+    // Compartments use the Realm constructor from their parent RootRealm.
     Realm: g.Realm
   };
 
-  return intrinsics;
+  const evaluators = {
+    // %AsyncFunction%
+    //AsyncFunction,
+    // %AsyncGenerator%
+    //AsyncGenerator,
+    // %AsyncGeneratorFunction%
+    //AsyncGeneratorFunction,
+    // %eval%
+    eval: g.eval,
+    // %Function%
+    Function: g.Function,
+    // %Generator%
+    //Generator,
+    // %GeneratorFunction%
+    //GeneratorFunction,
+  };
+
+  // sharedIntrinsics are per RootRealm, while evaluators are per Realm,
+  // i.e., one for each RootRealm and one for each Compartment.
+  return {sharedIntrinsics, evaluators};
 }

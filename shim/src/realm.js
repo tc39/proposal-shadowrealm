@@ -1,10 +1,10 @@
 import { createContextRec, getCurrentContextRec } from './context';
 import { getSafeEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
-import { getIntrinsics } from './intrinsics';
+import { getFixedIntrinsics } from './intrinsics';
 import { IsCallable } from './utils';
 import { assign, create, defineProperty, defineProperties, getPrototypeOf } from './commons';
-import { Intrinsics, GlobalObject, SafeEvaluator, ContextRec } from './symbols';
+import { Intrinsics, UnsafeEvaluators, GlobalObject, SafeEvaluators, ContextRec } from './symbols';
 
 const Realm2RealmRec = new WeakMap();
 const RealmProto2ContextRec = new WeakMap();
@@ -117,19 +117,18 @@ function createEvaluators(realmRec) {
   // a global and they are tied to a realm and to the intrinsics
   // of that realm.
   const safeEvaluator = getSafeEvaluator(realmRec);
-  const functionEvaluator = getFunctionEvaluator(realmRec);
+  const functionEvaluator = getFunctionEvaluator(realmRec[UnsafeEvaluators].Function,
+                                                 realmRec[ContextRec].contextGlobal,
+                                                 safeEvaluator);
 
   // Limitation: export a direct evaluator.
-  const intrinsics = realmRec[Intrinsics];
-  intrinsics.eval = safeEvaluator;
-  intrinsics.Function = functionEvaluator;
-
-  realmRec[SafeEvaluator] = safeEvaluator;
+  realmRec[SafeEvaluators] = {eval: safeEvaluator, Function: functionEvaluator};
 }
 
 function setDefaultBindings(realmRec) {
   const intrinsics = realmRec[Intrinsics];
-  const descs = getStdLib(intrinsics);
+  const safeEvaluators = realmRec[SafeEvaluators];
+  const descs = getStdLib(intrinsics, safeEvaluators);
   defineProperties(realmRec[GlobalObject], descs);
 }
 
@@ -155,14 +154,16 @@ export default class Realm {
       // access .prototype and the parent's intrinsics
       throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
     }
-    const intrinsics = getIntrinsics(contextRec);
-    const globalObj = getGlobaObject(intrinsics);
+    const {sharedIntrinsics, evaluators} = getFixedIntrinsics(contextRec.contextGlobal);
+    const globalObj = getGlobaObject(sharedIntrinsics);
 
     const realmRec = {
+      // todo: why use symbols instead of named properties?
       [ContextRec]: contextRec,
-      [Intrinsics]: intrinsics,
+      [Intrinsics]: sharedIntrinsics,
+      [UnsafeEvaluators]: evaluators,
       [GlobalObject]: globalObj,
-      [SafeEvaluator]: undefined
+      [SafeEvaluators]: undefined
     };
     Realm2RealmRec.set(O, realmRec);
 
@@ -201,7 +202,7 @@ export default class Realm {
     if (typeof O !== 'object') throw new TypeError();
     if (!Realm2RealmRec.has(O)) throw new TypeError();
     const realmRec = Realm2RealmRec.get(O);
-    const evaluator = realmRec[SafeEvaluator];
+    const evaluator = realmRec[SafeEvaluators].eval;
     return evaluator(`${x}`);
   }
 }
