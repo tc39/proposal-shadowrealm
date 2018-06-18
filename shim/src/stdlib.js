@@ -90,20 +90,21 @@ export function getStdLib(intrinsics, safeEvaluators) {
     };
   }
 
-  const evaluatorNames = [
-    // *** 18.2 Function Properties of the Global Object
-    'eval',
-    // *** 18.3 Constructor Properties of the Global Object
-    'Function'
-  ];
+  // add the safe named evaluators
 
-  for (const name of evaluatorNames) {
-    descriptors[name] = {
-      value: safeEvaluators[name],
-      writable: true,
-      configurable: true
-    };
-  }
+  // *** 18.2 Function Properties of the Global Object
+  descriptors.eval = {
+    value: safeEvaluators.eval,
+    writable: true,
+    configurable: true // todo: maybe make this non-configurable
+  };
+
+  // *** 18.3 Constructor Properties of the Global Object
+  descriptors.Function = {
+    value: safeEvaluators.Function,
+    writable: true,
+    configurable: true
+  };
 
   // TODO: we changed eval to be configurable along with everything else,
   // should we change it back to honor this earlier comment?

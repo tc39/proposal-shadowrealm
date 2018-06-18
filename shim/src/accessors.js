@@ -14,8 +14,8 @@ import {
  * and ES2016 semantics, we do this by redefining them while in 'use strict'
  * https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
  */
-export function repairAccessors(contextRec) {
-  const { contextGlobal: g } = contextRec;
+export function repairAccessors(unsafeRec) {
+  const { unsafeGlobal: g } = unsafeRec;
 
   defineProperties(g.Object.prototype, {
     __defineGetter__: {
