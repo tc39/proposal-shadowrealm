@@ -5,6 +5,7 @@ export class Handler {
   constructor(contextRec) {
     this.contextGlobal = contextRec.contextGlobal;
     this.unsafeEval = contextRec.contextGlobal.eval;
+    this.contextGlobal = contextRec.contextGlobal;
 
     // this flag allow us to determine if the eval() call is a controlled
     // eval done by the realm's code or if it is user-land invocation, so
