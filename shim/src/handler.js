@@ -3,6 +3,7 @@ export class Handler {
   // are not available from the proxy.
 
   constructor(contextRec) {
+    this.contextGlobal = contextRec.contextGlobal;
     this.unsafeEval = contextRec.contextGlobal.eval;
 
     // this flag allow us to determine if the eval() call is a controlled
