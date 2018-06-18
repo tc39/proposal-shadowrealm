@@ -14,7 +14,7 @@ function buildOptimizer(constants) {
   return `const {${constants.join(',')}} = arguments[0];`;
 }
 
-export function getDirectEvalEvaluatorFactory(contextRec, constants) {
+export function getScopedEvaluatorFactory(contextRec, constants) {
   const { contextFunction } = contextRec;
 
   const optimizer = buildOptimizer(constants);
@@ -32,7 +32,7 @@ export function getDirectEvalEvaluatorFactory(contextRec, constants) {
   `);
 }
 
-export function getDirectEvalEvaluator(realmRec) {
+export function getSafeEvaluator(realmRec) {
   const { [ContextRec]: contextRec, [GlobalObject]: globalObject } = realmRec;
 
   // This proxy has several functions:
@@ -42,22 +42,28 @@ export function getDirectEvalEvaluator(realmRec) {
   const handler = new Handler(contextRec);
   const proxy = new Proxy(globalObject, handler);
 
-  const scopedEvaluator = contextRec.evalEvaluatorFactory(proxy);
+  const scopedEvaluator = contextRec.scopedEvaluatorFactory(proxy);
 
-  // Create an eval without a [[Construct]] behavior such that the
-  // invocation "new eval()" throws TypeError: eval is not a constructor".
+  // We use the the concise method syntax to create an eval without a
+  // [[Construct]] behavior (such that the invocation "new eval()" throws
+  // TypeError: eval is not a constructor"), but which still accepts a 'this'
+  // binding.
   const evaluator = {
     eval(src) {
-      handler.isInternalEvaluation = true;
-      // Ensure that "this" resolves to the secure global.
-      const result = scopedEvaluator.call(globalObject, src);
-      handler.isInternalEvaluation = false;
-      return result;
+      handler.useUnsafeEvaluator = true;
+      try {
+        // Ensure that "this" resolves to the secure global.
+        return scopedEvaluator.call(globalObject, src);
+      } finally {
+        // belt and suspenders: the proxy switches this off immediately after
+        // the first access, but just in case we clear it here too
+        handler.useUnsafeEvaluator = false;
+      }
     }
   }.eval;
 
   // Ensure that eval from any compartment in a root realm is an
-  // instance of Function in any compartment of the same root ralm.
+  // instance of Function in any compartment of the same root realm.
   const { contextGlobal, contextFunction } = contextRec;
   setPrototypeOf(evaluator, contextFunction.prototype.constructor);
 
@@ -78,14 +84,21 @@ export function getFunctionEvaluator(realmRec) {
   const { [ContextRec]: contextRec, [Intrinsics]: intrinsics } = realmRec;
 
   const evaluator = function Function(...params) {
-    const functionBody = params.pop() || '';
-    let functionParams = params.join(',');
+    const functionBody = `${params.pop()}` || '';
+    let functionParams = `${params.join(',')}`;
+
+    // Is this a real functionBody, or is someone attempting an injection
+    // attack? This will throw a SyntaxError if the string is not actually a
+    // function body. We coerce the body into a real string above to prevent
+    // someone from passing an object with a toString() that returns a safe
+    // string the first time, but an evil string the second time.
+    new contextRec.contextFunction(functionBody); // eslint-disable-line
 
     if (functionParams.includes(')')) {
       // If the formal parameters string include ) - an illegal
       // character - it may make the combined function expression
       // compile. We avoid this problem by checking for this early on.
-      throw new Error('Function arg string contains parenthesis');
+      throw new SyntaxError('Function arg string contains parenthesis');
     }
 
     if (functionParams.length > 0) {

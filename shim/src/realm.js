@@ -1,10 +1,10 @@
 import { createContextRec, getCurrentContextRec } from './context';
-import { getDirectEvalEvaluator, getFunctionEvaluator } from './evaluators';
+import { getSafeEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getIntrinsics } from './intrinsics';
 import { IsCallable } from './utils';
 import { assign, create, defineProperty, defineProperties, getPrototypeOf } from './commons';
-import { Intrinsics, GlobalObject, IsDirectEvalTrap, ContextRec } from './symbols';
+import { Intrinsics, GlobalObject, SafeEvaluator, ContextRec } from './symbols';
 
 const Realm2RealmRec = new WeakMap();
 const RealmProto2ContextRec = new WeakMap();
@@ -116,15 +116,15 @@ function createEvaluators(realmRec) {
   // Divergence from specifications: the evaluators are tied to
   // a global and they are tied to a realm and to the intrinsics
   // of that realm.
-  const directEvalEvaluator = getDirectEvalEvaluator(realmRec);
+  const safeEvaluator = getSafeEvaluator(realmRec);
   const functionEvaluator = getFunctionEvaluator(realmRec);
 
   // Limitation: export a direct evaluator.
   const intrinsics = realmRec[Intrinsics];
-  intrinsics.eval = directEvalEvaluator;
+  intrinsics.eval = safeEvaluator;
   intrinsics.Function = functionEvaluator;
 
-  realmRec[IsDirectEvalTrap] = directEvalEvaluator;
+  realmRec[SafeEvaluator] = safeEvaluator;
 }
 
 function setDefaultBindings(realmRec) {
@@ -161,7 +161,7 @@ export default class Realm {
       [ContextRec]: contextRec,
       [Intrinsics]: intrinsics,
       [GlobalObject]: globalObj,
-      [IsDirectEvalTrap]: undefined
+      [SafeEvaluator]: undefined
     };
     Realm2RealmRec.set(O, realmRec);
 
@@ -200,7 +200,7 @@ export default class Realm {
     if (typeof O !== 'object') throw new TypeError();
     if (!Realm2RealmRec.has(O)) throw new TypeError();
     const realmRec = Realm2RealmRec.get(O);
-    const evaluator = realmRec[IsDirectEvalTrap];
+    const evaluator = realmRec[SafeEvaluator];
     return evaluator(`${x}`);
   }
 }

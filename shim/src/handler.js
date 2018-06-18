@@ -3,21 +3,21 @@ export class Handler {
   // are not available from the proxy.
 
   constructor(contextRec) {
-    const { contextGlobal } = contextRec;
-    this.contextGlobal = contextGlobal;
+    this.contextGlobal = contextRec.contextGlobal;
+    this.unsafeEval = contextRec.contextGlobal.eval;
 
     // this flag allow us to determine if the eval() call is a controlled
     // eval done by the realm's code or if it is user-land invocation, so
     // we can react differently.
-    this.isInternalEvaluation = false;
+    this.useUnsafeEvaluator = false;
   }
 
   get(target, prop) {
     // Special treatment for eval.
     if (prop === 'eval') {
-      if (this.isInternalEvaluation) {
-        this.isInternalEvaluation = false;
-        return this.contextGlobal.eval;
+      if (this.useUnsafeEvaluator) {
+        this.useUnsafeEvaluator = false;
+        return this.unsafeEval;
       }
       return target.eval;
     }
