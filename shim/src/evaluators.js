@@ -1,7 +1,6 @@
 // Portions adapted from V8 - Copyright 2016 the V8 project authors.
 // https://github.com/v8/v8/blob/master/src/builtins/builtins-function.cc
 
-import { GlobalObject, ContextRec } from './symbols';
 import { defineProperty, setPrototypeOf } from './commons';
 import { Handler } from './handler';
 
@@ -33,7 +32,7 @@ export function getScopedEvaluatorFactory(unsafeRec, constants) {
 }
 
 export function getSafeEvaluator(realmRec) {
-  const { [ContextRec]: unsafeRec, [GlobalObject]: globalObject } = realmRec;
+  const { unsafeRec, globalObject } = realmRec;
 
   // This proxy has several functions:
   // 1. works with the sentinel to alternate between direct eval and confined eval.

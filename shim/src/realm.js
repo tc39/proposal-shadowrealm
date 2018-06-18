@@ -3,7 +3,6 @@ import { getSafeEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getIntrinsics } from './intrinsics';
 import { assign, create, defineProperty, defineProperties, getPrototypeOf } from './commons';
-import { Intrinsics, UnsafeEvaluators, GlobalObject, SafeEvaluators, ContextRec } from './symbols';
 
 const Realm2RealmRec = new WeakMap();
 const RealmProto2UnsafeRec = new WeakMap();
@@ -127,20 +126,20 @@ function createEvaluators(realmRec) {
   // of that realm.
   const safeEvaluator = getSafeEvaluator(realmRec);
   const functionEvaluator = getFunctionEvaluator(
-    realmRec[UnsafeEvaluators].Function,
-    realmRec[ContextRec].unsafeGlobal,
+    realmRec.unsafeEvaluators.Function,
+    realmRec.unsafeRec.unsafeGlobal,
     safeEvaluator
   );
 
   // Limitation: export a direct evaluator.
-  realmRec[SafeEvaluators] = { eval: safeEvaluator, Function: functionEvaluator };
+  realmRec.safeEvaluators = { eval: safeEvaluator, Function: functionEvaluator };
 }
 
 function setDefaultBindings(realmRec) {
-  const intrinsics = realmRec[Intrinsics];
-  const safeEvaluators = realmRec[SafeEvaluators];
+  const intrinsics = realmRec.sharedIntrinsics;
+  const safeEvaluators = realmRec.safeEvaluators;
   const descs = getStdLib(intrinsics, safeEvaluators);
-  defineProperties(realmRec[GlobalObject], descs);
+  defineProperties(realmRec.globalObject, descs);
 }
 
 export default class Realm {
@@ -184,12 +183,11 @@ export default class Realm {
     const globalObj = getGlobalObject(sharedIntrinsics);
 
     const realmRec = {
-      // todo: why use symbols instead of named properties?
-      [ContextRec]: unsafeRec,
-      [Intrinsics]: sharedIntrinsics,
-      [UnsafeEvaluators]: evaluators,
-      [GlobalObject]: globalObj,
-      [SafeEvaluators]: undefined
+      unsafeRec,
+      sharedIntrinsics,
+      unsafeEvaluators: evaluators,
+      globalObject: globalObj,
+      safeEvaluators: undefined
     };
     Realm2RealmRec.set(O, realmRec);
 
@@ -201,7 +199,7 @@ export default class Realm {
     if (typeof O !== 'object') throw new TypeError();
     if (!Realm2RealmRec.has(O)) throw new TypeError();
     const realmRec = Realm2RealmRec.get(O);
-    const intrinsics = realmRec[Intrinsics];
+    const intrinsics = realmRec.sharedIntrinsics;
     // The object returned has its prototype
     // match the ObjectPrototype of the realm.
     const obj = create(intrinsics.ObjectPrototype);
@@ -212,14 +210,14 @@ export default class Realm {
     if (typeof O !== 'object') throw new TypeError();
     if (!Realm2RealmRec.has(O)) throw new TypeError();
     const realmRec = Realm2RealmRec.get(O);
-    return realmRec[GlobalObject];
+    return realmRec.globalObject;
   }
   evaluate(x) {
     const O = this;
     if (typeof O !== 'object') throw new TypeError();
     if (!Realm2RealmRec.has(O)) throw new TypeError();
     const realmRec = Realm2RealmRec.get(O);
-    const evaluator = realmRec[SafeEvaluators].eval;
+    const evaluator = realmRec.safeEvaluators.eval;
     return evaluator(`${x}`);
   }
   static makeRootRealm() {
