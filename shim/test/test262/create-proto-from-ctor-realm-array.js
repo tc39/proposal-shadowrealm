@@ -5,7 +5,7 @@ test('esid: sec-array.prototype.concat', t => {
   t.plan(2);
 
   const array = [];
-  const OArray = new Realm().global.Array;
+  const OArray = Realm.makeRootRealm().global.Array;
   let callCount = 0;
   const speciesDesc = {
     get() {

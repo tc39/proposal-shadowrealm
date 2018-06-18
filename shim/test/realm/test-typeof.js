@@ -11,7 +11,7 @@ test('typeof', t => {
   t.ok(console);
   t.equal(typeof console, 'object');
 
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
   t.throws(() => r.evaluate('DEFINITELY_NOT_DEFINED'), r.global.ReferenceError);
   t.equal(r.evaluate('typeof DEFINITELY_NOT_DEFINED'), 'undefined');
   t.equal(r.evaluate('typeof 4'), 'number');

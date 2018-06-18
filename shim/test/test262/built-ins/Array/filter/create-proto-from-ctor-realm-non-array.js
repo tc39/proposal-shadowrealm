@@ -7,7 +7,7 @@ test('esid: sec-array.prototype.filter', t => {
   const array = [];
   let callCount = 0;
   const CustomCtor = function() {};
-  const OObject = new Realm().global.Object;
+  const OObject = Realm.makeRootRealm().global.Object;
   const speciesDesc = {
     get() {
       callCount += 1;

@@ -3,7 +3,7 @@ import Realm from '../../src/realm';
 
 test('function-injection', t => {
   const goodFunc = 'return a+1';
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
   const f1 = new r.global.Function('a', goodFunc);
   t.equal(f1(5), 6);
 
@@ -24,7 +24,7 @@ test('function-injection', t => {
 
 test('function-default-parameters', t => {
   const goodFunc = 'return a+1';
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
   const f1 = new r.global.Function('a=1', goodFunc);
   t.equal(f1(), 2);
   t.end();
@@ -32,7 +32,7 @@ test('function-default-parameters', t => {
 
 test('function-rest-parameters', t => {
   const goodFunc = 'return rest[0] + rest[1]';
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
   const f1 = new r.global.Function('...rest', goodFunc);
   t.equal(f1(1, 2), 3);
   t.end();
@@ -40,7 +40,7 @@ test('function-rest-parameters', t => {
 
 test('function-destructuring-parameters', t => {
   const goodFunc = 'return foo + bar + baz';
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
   const f1 = new r.global.Function('{foo, bar}, baz', goodFunc);
   t.equal(f1({ foo: 1, bar: 2 }, 3), 6);
   t.end();

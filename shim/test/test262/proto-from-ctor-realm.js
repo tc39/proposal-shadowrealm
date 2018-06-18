@@ -4,7 +4,7 @@ import Realm from '../../src/realm';
 test('esid: sec-array-constructor-array', t => {
   t.plan(1);
 
-  const other = new Realm().global;
+  const other = Realm.makeRootRealm().global;
   const C = new other.Function();
   C.prototype = null;
 
@@ -16,7 +16,7 @@ test('esid: sec-array-constructor-array', t => {
 test('esid: sec-array.of', t => {
   t.plan(1);
 
-  const other = new Realm().global;
+  const other = Realm.makeRootRealm().global;
   const C = new other.Function();
   C.prototype = null;
 
@@ -28,7 +28,7 @@ test('esid: sec-array.of', t => {
 test('esid: sec-array.of', t => {
   t.plan(1);
 
-  const other = new Realm().global;
+  const other = Realm.makeRootRealm().global;
   const C = new other.Function();
   C.prototype = null;
 

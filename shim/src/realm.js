@@ -2,7 +2,6 @@ import { createContextRec, getCurrentContextRec } from './context';
 import { getSafeEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getIntrinsics } from './intrinsics';
-import { IsCallable } from './utils';
 import { assign, create, defineProperty, defineProperties, getPrototypeOf } from './commons';
 import { Intrinsics, GlobalObject, SafeEvaluator, ContextRec } from './symbols';
 
@@ -28,7 +27,7 @@ function buildChildRealm(BaseRealm) {
     try {
       return thunk();
     } catch (err) {
-      if(Object(err) === err) {
+      if (Object(err) !== err) {
         throw err;
       }
       let eName, eMessage;

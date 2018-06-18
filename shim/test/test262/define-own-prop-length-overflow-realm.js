@@ -4,7 +4,7 @@ import Realm from '../../src/realm';
 test('esid: sec-array-exotic-objects-defineownproperty-p-desc', t => {
   t.plan(1);
 
-  const other = new Realm().global;
+  const other = Realm.makeRootRealm().global;
   const OArray = other.Array;
   const array = new OArray();
 
