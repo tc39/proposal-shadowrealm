@@ -96,5 +96,10 @@ export function getStdLib(intrinsics) {
   // // value, and leave it non-unconfigurable to prevent userland
   // // from changing its descriptor and breaking an invariant.
 
+  // (note: 'non-unconfigurable' should have been 'non-configurable')
+
+  // we need to prevent the user from manipulating the 'eval' binding while
+  // simultaneously enabling the proxy to *switch* the 'eval' binding
+
   return descriptors;
 }
