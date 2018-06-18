@@ -44,6 +44,8 @@ function repairFunction(unsafeRec, functionName, functionDecl) {
 
   // Ensures that all functions meet "instanceof Function" in a realm.
   setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
+  // todo: why does this work? it used to be done only for 'Function', but by
+  // doing it on all types, it should set up a circular prototype chain
 }
 
 /**
