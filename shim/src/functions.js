@@ -13,14 +13,14 @@ import { defineProperty, defineProperties, getPrototypeOf, setPrototypeOf } from
  * 4. Replace its prototype property's constructor with itself
  * 5. Replace its [[Prototype]] slot with the noop constructor of Function
  */
-function repairFunction(contextRec, functionName, functionDecl) {
-  const { contextEval, contextFunction, contextGlobal } = contextRec;
+function repairFunction(unsafeRec, functionName, functionDecl) {
+  const { unsafeEval, unsafeFunction, unsafeGlobal } = unsafeRec;
 
   let FunctionInstance;
   try {
-    FunctionInstance = contextEval(`(${functionDecl}(){})`);
+    FunctionInstance = unsafeEval(`(${functionDecl}(){})`);
   } catch (e) {
-    if (!(e instanceof contextGlobal.SyntaxError)) {
+    if (!(e instanceof unsafeGlobal.SyntaxError)) {
       // Re-throw
       throw e;
     }
@@ -30,7 +30,7 @@ function repairFunction(contextRec, functionName, functionDecl) {
   const FunctionPrototype = getPrototypeOf(FunctionInstance);
 
   // Block evaluation of source when calling constructor on the prototype of functions.
-  const TamedFunction = contextFunction('throw new Error("Not available");');
+  const TamedFunction = unsafeFunction('throw new Error("Not available");');
 
   defineProperties(TamedFunction, {
     name: {
@@ -43,7 +43,9 @@ function repairFunction(contextRec, functionName, functionDecl) {
   defineProperty(FunctionPrototype, 'constructor', { value: TamedFunction });
 
   // Ensures that all functions meet "instanceof Function" in a realm.
-  setPrototypeOf(TamedFunction, contextFunction.prototype.constructor);
+  setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
+  // todo: why does this work? it used to be done only for 'Function', but by
+  // doing it on all types, it should set up a circular prototype chain
 }
 
 /**
@@ -52,11 +54,11 @@ function repairFunction(contextRec, functionName, functionDecl) {
  * safe replacements that preserve SES confinement. After this block is done,
  * the originals should no longer be reachable.
  */
-export function repairFunctions(contextRec) {
+export function repairFunctions(unsafeRec) {
   // Here, the order of operation is important: Function needs to be
   // repaired first since the other constructors need it.
-  repairFunction(contextRec, 'Function', 'function');
-  repairFunction(contextRec, 'GeneratorFunction', 'function*');
-  repairFunction(contextRec, 'AsyncFunction', 'async function');
-  repairFunction(contextRec, 'AsyncGeneratorFunction', 'async function*');
+  repairFunction(unsafeRec, 'Function', 'function');
+  repairFunction(unsafeRec, 'GeneratorFunction', 'function*');
+  repairFunction(unsafeRec, 'AsyncFunction', 'async function');
+  repairFunction(unsafeRec, 'AsyncGeneratorFunction', 'async function*');
 }

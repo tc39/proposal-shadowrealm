@@ -1,13 +1,12 @@
-import { createContextRec, getCurrentContextRec } from './context';
+import { createUnsafeRec, getCurrentUnsafeRec } from './context';
 import { getSafeEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
-import { getIntrinsics } from './intrinsics';
+import { getSharedIntrinsics } from './intrinsics';
 import { IsCallable } from './utils';
 import { assign, create, defineProperty, defineProperties, getPrototypeOf } from './commons';
-import { Intrinsics, GlobalObject, SafeEvaluator, ContextRec } from './symbols';
 
 const Realm2RealmRec = new WeakMap();
-const RealmProto2ContextRec = new WeakMap();
+const RealmProto2UnsafeRec = new WeakMap();
 
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
@@ -86,8 +85,8 @@ function buildChildRealm(BaseRealm) {
 
 const buildChildRealmString = `(${buildChildRealm})`;
 
-function createRealmFacade(contextRec, BaseRealm) {
-  const { contextEval, contextGlobal } = contextRec;
+function createRealmFacade(unsafeRec, BaseRealm) {
+  const { unsafeEval, unsafeGlobal } = unsafeRec;
 
   // The BaseRealm is the Realm class created by
   // the shim. It's only valid for the context where
@@ -103,12 +102,12 @@ function createRealmFacade(contextRec, BaseRealm) {
   // values using the intrinsics of the realm's context.
 
   // Invoke the BaseRealm constructor with Realm as the prototype.
-  const Realm = contextEval(buildChildRealmString)(BaseRealm);
-  contextGlobal.Realm = Realm;
-  RealmProto2ContextRec.set(Realm.prototype, contextRec);
+  const Realm = unsafeEval(buildChildRealmString)(BaseRealm);
+  unsafeGlobal.Realm = Realm;
+  RealmProto2UnsafeRec.set(Realm.prototype, unsafeRec);
 }
 
-function getGlobaObject(intrinsics) {
+function getGlobalObject(intrinsics) {
   return create(intrinsics.ObjectPrototype);
 }
 
@@ -117,20 +116,21 @@ function createEvaluators(realmRec) {
   // a global and they are tied to a realm and to the intrinsics
   // of that realm.
   const safeEvaluator = getSafeEvaluator(realmRec);
-  const functionEvaluator = getFunctionEvaluator(realmRec);
+  const functionEvaluator = getFunctionEvaluator(
+    realmRec.unsafeRec.unsafeFunction,
+    realmRec.unsafeRec.unsafeGlobal,
+    safeEvaluator
+  );
 
   // Limitation: export a direct evaluator.
-  const intrinsics = realmRec[Intrinsics];
-  intrinsics.eval = safeEvaluator;
-  intrinsics.Function = functionEvaluator;
-
-  realmRec[SafeEvaluator] = safeEvaluator;
+  realmRec.safeEvaluators = { eval: safeEvaluator, Function: functionEvaluator };
 }
 
 function setDefaultBindings(realmRec) {
-  const intrinsics = realmRec[Intrinsics];
-  const descs = getStdLib(intrinsics);
-  defineProperties(realmRec[GlobalObject], descs);
+  const intrinsics = realmRec.sharedIntrinsics;
+  const safeEvaluators = realmRec.safeEvaluators;
+  const descs = getStdLib(intrinsics, safeEvaluators);
+  defineProperties(realmRec.globalObject, descs);
 }
 
 export default class Realm {
@@ -138,30 +138,32 @@ export default class Realm {
     const O = this;
     options = Object(options); // Todo: sanitize
 
-    let contextRec;
+    let unsafeRec;
+    // was there a big conditional here once upon a time? -erights
     if (options.intrinsics === 'inherit') {
       // In "inherit" mode, we create a compartment realm and inherit
       // the context since we share the intrinsics. We create a new
       // set to allow us to define eval() anf Function() for the realm.
-      contextRec = RealmProto2ContextRec.get(getPrototypeOf(this));
+      unsafeRec = RealmProto2UnsafeRec.get(getPrototypeOf(this));
     } else if (options.intrinsics === undefined) {
       // When intrinics are not provided, we create a root realm
       // using the fresh set of new intrinics from a new context.
-      contextRec = createContextRec();
-      createRealmFacade(contextRec, Realm);
+      unsafeRec = createUnsafeRec(); // this repairs the constructors too
+      createRealmFacade(unsafeRec, Realm);
     } else {
-      // todo: this leaks the parent TypeError, from which the child can
-      // access .prototype and the parent's intrinsics
+      // note this would leak the parent TypeError, from which the child can
+      // access .prototype and the parent's intrinsics, except that the Realm
+      // facade catches all errors and translates them into local Error types
       throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
     }
-    const intrinsics = getIntrinsics(contextRec);
-    const globalObj = getGlobaObject(intrinsics);
+    const sharedIntrinsics = getSharedIntrinsics(unsafeRec.unsafeGlobal);
+    const globalObj = getGlobalObject(sharedIntrinsics);
 
     const realmRec = {
-      [ContextRec]: contextRec,
-      [Intrinsics]: intrinsics,
-      [GlobalObject]: globalObj,
-      [SafeEvaluator]: undefined
+      unsafeRec,
+      sharedIntrinsics,
+      globalObject: globalObj,
+      safeEvaluators: undefined
     };
     Realm2RealmRec.set(O, realmRec);
 
@@ -182,7 +184,7 @@ export default class Realm {
     if (typeof O !== 'object') throw new TypeError();
     if (!Realm2RealmRec.has(O)) throw new TypeError();
     const realmRec = Realm2RealmRec.get(O);
-    const intrinsics = realmRec[Intrinsics];
+    const intrinsics = realmRec.sharedIntrinsics;
     // The object returned has its prototype
     // match the ObjectPrototype of the realm.
     const obj = create(intrinsics.ObjectPrototype);
@@ -193,19 +195,19 @@ export default class Realm {
     if (typeof O !== 'object') throw new TypeError();
     if (!Realm2RealmRec.has(O)) throw new TypeError();
     const realmRec = Realm2RealmRec.get(O);
-    return realmRec[GlobalObject];
+    return realmRec.globalObject;
   }
   evaluate(x) {
     const O = this;
     if (typeof O !== 'object') throw new TypeError();
     if (!Realm2RealmRec.has(O)) throw new TypeError();
     const realmRec = Realm2RealmRec.get(O);
-    const evaluator = realmRec[SafeEvaluator];
+    const evaluator = realmRec.safeEvaluators.eval;
     return evaluator(`${x}`);
   }
 }
 
-RealmProto2ContextRec.set(Realm.prototype, getCurrentContextRec());
+RealmProto2UnsafeRec.set(Realm.prototype, getCurrentUnsafeRec());
 
 defineProperty(Realm.prototype, Symbol.toStringTag, {
   value: 'function Realm() { [shim code] }',
