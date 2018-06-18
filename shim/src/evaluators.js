@@ -44,8 +44,10 @@ export function getSafeEvaluator(realmRec) {
 
   const scopedEvaluator = contextRec.scopedEvaluatorFactory(proxy);
 
-  // Create an eval without a [[Construct]] behavior such that the
-  // invocation "new eval()" throws TypeError: eval is not a constructor".
+  // We use the the concise method syntax to create an eval without a
+  // [[Construct]] behavior (such that the invocation "new eval()" throws
+  // TypeError: eval is not a constructor"), but which still accepts a 'this'
+  // binding.
   const evaluator = {
     eval(src) {
       handler.useUnsafeEvaluator = true;
@@ -53,6 +55,8 @@ export function getSafeEvaluator(realmRec) {
         // Ensure that "this" resolves to the secure global.
         return scopedEvaluator.call(globalObject, src);
       } finally {
+        // belt and suspenders: the proxy switches this off immediately after
+        // the first access, but just in case we clear it here too
         handler.useUnsafeEvaluator = false;
       }
     }
