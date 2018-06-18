@@ -1,7 +1,7 @@
 import { createUnsafeRec, getCurrentUnsafeRec } from './context';
 import { getSafeEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
-import { getIntrinsics } from './intrinsics';
+import { getSharedIntrinsics } from './intrinsics';
 import { assign, create, defineProperty, defineProperties, getPrototypeOf } from './commons';
 
 const Realm2RealmRec = new WeakMap();
@@ -126,7 +126,7 @@ function createEvaluators(realmRec) {
   // of that realm.
   const safeEvaluator = getSafeEvaluator(realmRec);
   const functionEvaluator = getFunctionEvaluator(
-    realmRec.unsafeEvaluators.Function,
+    realmRec.unsafeRec.unsafeFunction,
     realmRec.unsafeRec.unsafeGlobal,
     safeEvaluator
   );
@@ -179,13 +179,12 @@ export default class Realm {
       // access .prototype and the parent's intrinsics
       throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
     }
-    const { sharedIntrinsics, evaluators } = getFixedIntrinsics(unsafeRec.unsafeGlobal);
+    const sharedIntrinsics = getSharedIntrinsics(unsafeRec.unsafeGlobal);
     const globalObj = getGlobalObject(sharedIntrinsics);
 
     const realmRec = {
       unsafeRec,
       sharedIntrinsics,
-      unsafeEvaluators: evaluators,
       globalObject: globalObj,
       safeEvaluators: undefined
     };
