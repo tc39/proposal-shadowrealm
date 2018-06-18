@@ -117,7 +117,7 @@ function createRealmFacade(unsafeRec, BaseRealm) {
   RealmProto2UnsafeRec.set(Realm.prototype, unsafeRec);
 }
 
-function getGlobaObject(intrinsics) {
+function getGlobalObject(intrinsics) {
   return create(intrinsics.ObjectPrototype);
 }
 
@@ -181,7 +181,7 @@ export default class Realm {
       throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
     }
     const { sharedIntrinsics, evaluators } = getFixedIntrinsics(unsafeRec.unsafeGlobal);
-    const globalObj = getGlobaObject(sharedIntrinsics);
+    const globalObj = getGlobalObject(sharedIntrinsics);
 
     const realmRec = {
       // todo: why use symbols instead of named properties?
