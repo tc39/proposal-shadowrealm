@@ -93,10 +93,8 @@ export function getStdLib(intrinsics) {
   // TODO: we changed eval to be configurable along with everything else,
   // should we change it back to honor this earlier comment?
   // // Make eval writable to allow proxy to return a different
-  // // value, and leave it non-unconfigurable to prevent userland
+  // // value, and leave it non-configurable to prevent userland
   // // from changing its descriptor and breaking an invariant.
-
-  // (note: 'non-unconfigurable' should have been 'non-configurable')
 
   // we need to prevent the user from manipulating the 'eval' binding while
   // simultaneously enabling the proxy to *switch* the 'eval' binding
