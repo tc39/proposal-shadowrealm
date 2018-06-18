@@ -4,7 +4,7 @@ import Realm from '../../src/realm';
 test('confinement evaluation strict mode', t => {
   t.plan(2);
 
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
 
   t.equal(r.evaluate('(function() { return this })()'), undefined);
   t.equal(r.evaluate('(new Function("return this"))()'), undefined);
@@ -13,7 +13,7 @@ test('confinement evaluation strict mode', t => {
 test('confinement evaluation constructor', t => {
   t.plan(2);
 
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
 
   t.throws(() => {
     r.evaluate('({}).constructor.constructor("return this")()');
@@ -26,7 +26,7 @@ test('confinement evaluation constructor', t => {
 test('confinement evaluation eval', t => {
   t.plan(2);
 
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
 
   // Strict mode
   t.equal(r.evaluate('(0, eval)("this")'), r.global);

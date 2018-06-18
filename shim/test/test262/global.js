@@ -4,7 +4,7 @@ import Realm from '../../src/realm';
 test('esid: sec-performeval', t => {
   t.plan(1);
 
-  const other = new Realm().global;
+  const other = Realm.makeRootRealm().global;
   const otherEval = other.eval;
 
   otherEval('var x = 23;');

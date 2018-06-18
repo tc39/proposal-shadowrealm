@@ -5,7 +5,7 @@ import Realm from '../../src/realm';
 test('identity JSON', t => {
   t.plan(5);
 
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
 
   t.equal(r.evaluate('JSON'), r.evaluate('JSON'));
   t.equal(r.evaluate('JSON'), r.evaluate('eval("JSON")'));
@@ -18,7 +18,7 @@ test('identity JSON', t => {
 test('identity Realm', t => {
   t.plan(5);
 
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
 
   t.ok(r.evaluate('Realm instanceof Function'));
   t.ok(r.evaluate('Realm instanceof Object'));
@@ -31,7 +31,7 @@ test('identity Realm', t => {
 test('identity eval', t => {
   t.plan(3);
 
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
 
   t.ok(r.evaluate('eval instanceof Function'));
   t.ok(r.evaluate('eval instanceof Object'));
@@ -42,7 +42,7 @@ test('identity eval', t => {
 test('identity Function', t => {
   t.plan(4);
 
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
 
   t.ok(r.evaluate('Function instanceof Function'));
   t.ok(r.evaluate('Function instanceof Object'));

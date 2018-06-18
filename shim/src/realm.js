@@ -2,7 +2,6 @@ import { createContextRec, getCurrentContextRec } from './context';
 import { getSafeEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getIntrinsics } from './intrinsics';
-import { IsCallable } from './utils';
 import { assign, create, defineProperty, defineProperties, getPrototypeOf } from './commons';
 import { Intrinsics, GlobalObject, SafeEvaluator, ContextRec } from './symbols';
 
@@ -28,6 +27,9 @@ function buildChildRealm(BaseRealm) {
     try {
       return thunk();
     } catch (err) {
+      if (Object(err) !== err) {
+        throw err;
+      }
       let eName, eMessage;
       try {
         // The child environment might seek to use 'err' to reach the
@@ -60,9 +62,6 @@ function buildChildRealm(BaseRealm) {
     constructor(...args) {
       return doAndWrapError(() => Reflect.construct(BaseRealm, args, Realm));
     }
-    init() {
-      return doAndWrapError(() => descs.init.value.apply(this));
-    }
     get intrinsics() {
       return doAndWrapError(() => descs.intrinsics.get.apply(this));
     }
@@ -71,6 +70,16 @@ function buildChildRealm(BaseRealm) {
     }
     evaluate(...args) {
       return doAndWrapError(() => descs.evaluate.value.apply(this, args));
+    }
+    static makeRootRealm() {
+      return new Realm();
+    }
+    static makeCompartment() {
+      return new Realm({
+        transform: 'inherit',
+        isDirectEval: 'inherit',
+        intrinsics: 'inherit'
+      });
     }
   }
 
@@ -138,13 +147,29 @@ export default class Realm {
     const O = this;
     options = Object(options); // Todo: sanitize
 
+    if (options.thisValue !== undefined) {
+      throw new TypeError('Realm only supports undefined thisValue.');
+    }
+
     let contextRec;
-    if (options.intrinsics === 'inherit') {
+    if (
+      options.intrinsics === 'inherit' &&
+      options.isDirectEval === 'inherit' &&
+      options.transform === 'inherit'
+    ) {
       // In "inherit" mode, we create a compartment realm and inherit
       // the context since we share the intrinsics. We create a new
-      // set to allow us to define eval() anf Function() for the realm.
+      // set to allow us to define eval() and Function() for the realm.
+
+      // Class constructor only has a [[Construct]] behavior and not
+      // a call behavior, therefore the use of "this" cannot be bound
+      // by an adversary.
       contextRec = RealmProto2ContextRec.get(getPrototypeOf(this));
-    } else if (options.intrinsics === undefined) {
+    } else if (
+      options.intrinsics === undefined &&
+      options.isDirectEval === undefined &&
+      options.transform === undefined
+    ) {
       // When intrinics are not provided, we create a root realm
       // using the fresh set of new intrinics from a new context.
       contextRec = createContextRec();
@@ -165,15 +190,6 @@ export default class Realm {
     };
     Realm2RealmRec.set(O, realmRec);
 
-    const init = O.init;
-    if (!IsCallable(init)) throw new TypeError();
-    init.call(O);
-  }
-  init() {
-    const O = this;
-    if (typeof O !== 'object') throw new TypeError();
-    if (!Realm2RealmRec.has(O)) throw new TypeError();
-    const realmRec = Realm2RealmRec.get(O);
     createEvaluators(realmRec);
     setDefaultBindings(realmRec);
   }
@@ -202,6 +218,16 @@ export default class Realm {
     const realmRec = Realm2RealmRec.get(O);
     const evaluator = realmRec[SafeEvaluator];
     return evaluator(`${x}`);
+  }
+  static makeRootRealm() {
+    return new Realm();
+  }
+  static makeCompartment() {
+    return new Realm({
+      transform: 'inherit',
+      isDirectEval: 'inherit',
+      intrinsics: 'inherit'
+    });
   }
 }
 

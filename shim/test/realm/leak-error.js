@@ -2,7 +2,7 @@ import test from 'tape';
 import Realm from '../../src/realm';
 
 test('constructor error should not leak TypeError', t => {
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
   function check() {
     try {
       const r2 = new Realm({ intrinsics: 'bad values cause TypeError' });
@@ -26,9 +26,9 @@ test('constructor error should not leak TypeError', t => {
 });
 
 test('init() with bad this should not leak TypeError', t => {
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
   function check() {
-    const r2 = new Realm();
+    const r2 = Realm.makeRootRealm();
     try {
       r2.init.apply(4); // causes TypeError in init(), typeof O !== 'object'
       return false;
@@ -45,9 +45,9 @@ test('init() with bad this should not leak TypeError', t => {
 });
 
 test('init() with bad this should not leak TypeError', t => {
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
   function check() {
-    const r2 = new Realm();
+    const r2 = Realm.makeRootRealm();
     try {
       r2.init.apply({}); // causes TypeError in init(), Realm2RealmRec.has(O)
       return false;
@@ -64,9 +64,9 @@ test('init() with bad this should not leak TypeError', t => {
 });
 
 test('eval() with non-parsable string should not leak SyntaxError', t => {
-  const r = new Realm();
+  const r = Realm.makeRootRealm();
   function check() {
-    const r2 = new Realm();
+    const r2 = Realm.makeRootRealm();
     try {
       r2.evaluate('!$%$%!@#$%!#@$%'); // non-parsable, should cause error
       return false;
