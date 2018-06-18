@@ -6,7 +6,7 @@ import { repairFunctions } from './functions';
 // used to escape the confinement of the evaluators
 // to execute in the context.
 
-export function sanitize(contextRec) {
-  repairAccessors(contextRec);
-  repairFunctions(contextRec);
+export function sanitize(unsafeRec) {
+  repairAccessors(unsafeRec);
+  repairFunctions(unsafeRec);
 }

@@ -1,6 +1,6 @@
 import test from 'tape';
 import Realm from '../../src/realm';
-import { createContextRec } from '../../src/context';
+import { createUnsafeRec } from '../../src/context';
 
 test('typeof', t => {
   t.throws(() => DEFINITELY_NOT_DEFINED, ReferenceError); // eslint-disable-line
@@ -22,7 +22,7 @@ test('typeof', t => {
   // t.throws(() => r.evaluate('console'), r.global.ReferenceError);
 
   // node 7 doesn't have 'console' in the vm environment
-  if ('console' in createContextRec().contextGlobal) {
+  if ('console' in createUnsafeRec().unsafeGlobal) {
     t.equal(r.evaluate('console'), undefined); // should be censored
     t.equal(r.evaluate('typeof console'), 'undefined'); // should be censored
   }

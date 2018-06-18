@@ -1,4 +1,4 @@
-import { createContextRec, getCurrentContextRec } from './context';
+import { createUnsafeRec, getCurrentUnsafeRec } from './context';
 import { getSafeEvaluator, getFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getIntrinsics } from './intrinsics';
@@ -6,7 +6,7 @@ import { assign, create, defineProperty, defineProperties, getPrototypeOf } from
 import { Intrinsics, UnsafeEvaluators, GlobalObject, SafeEvaluators, ContextRec } from './symbols';
 
 const Realm2RealmRec = new WeakMap();
-const RealmProto2ContextRec = new WeakMap();
+const RealmProto2UnsafeRec = new WeakMap();
 
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
@@ -95,8 +95,8 @@ function buildChildRealm(BaseRealm) {
 
 const buildChildRealmString = `(${buildChildRealm})`;
 
-function createRealmFacade(contextRec, BaseRealm) {
-  const { contextEval, contextGlobal } = contextRec;
+function createRealmFacade(unsafeRec, BaseRealm) {
+  const { unsafeEval, unsafeGlobal } = unsafeRec;
 
   // The BaseRealm is the Realm class created by
   // the shim. It's only valid for the context where
@@ -112,9 +112,9 @@ function createRealmFacade(contextRec, BaseRealm) {
   // values using the intrinsics of the realm's context.
 
   // Invoke the BaseRealm constructor with Realm as the prototype.
-  const Realm = contextEval(buildChildRealmString)(BaseRealm);
-  contextGlobal.Realm = Realm;
-  RealmProto2ContextRec.set(Realm.prototype, contextRec);
+  const Realm = unsafeEval(buildChildRealmString)(BaseRealm);
+  unsafeGlobal.Realm = Realm;
+  RealmProto2UnsafeRec.set(Realm.prototype, unsafeRec);
 }
 
 function getGlobaObject(intrinsics) {
@@ -128,7 +128,7 @@ function createEvaluators(realmRec) {
   const safeEvaluator = getSafeEvaluator(realmRec);
   const functionEvaluator = getFunctionEvaluator(
     realmRec[UnsafeEvaluators].Function,
-    realmRec[ContextRec].contextGlobal,
+    realmRec[ContextRec].unsafeGlobal,
     safeEvaluator
   );
 
@@ -152,7 +152,7 @@ export default class Realm {
       throw new TypeError('Realm only supports undefined thisValue.');
     }
 
-    let contextRec;
+    let unsafeRec;
     if (
       options.intrinsics === 'inherit' &&
       options.isDirectEval === 'inherit' &&
@@ -165,7 +165,7 @@ export default class Realm {
       // Class constructor only has a [[Construct]] behavior and not
       // a call behavior, therefore the use of "this" cannot be bound
       // by an adversary.
-      contextRec = RealmProto2ContextRec.get(getPrototypeOf(this));
+      unsafeRec = RealmProto2UnsafeRec.get(getPrototypeOf(this));
     } else if (
       options.intrinsics === undefined &&
       options.isDirectEval === undefined &&
@@ -173,19 +173,19 @@ export default class Realm {
     ) {
       // When intrinics are not provided, we create a root realm
       // using the fresh set of new intrinics from a new context.
-      contextRec = createContextRec();
-      createRealmFacade(contextRec, Realm);
+      unsafeRec = createUnsafeRec(); // this repairs the constructors too
+      createRealmFacade(unsafeRec, Realm);
     } else {
       // todo: this leaks the parent TypeError, from which the child can
       // access .prototype and the parent's intrinsics
       throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
     }
-    const { sharedIntrinsics, evaluators } = getFixedIntrinsics(contextRec.contextGlobal);
+    const { sharedIntrinsics, evaluators } = getFixedIntrinsics(unsafeRec.unsafeGlobal);
     const globalObj = getGlobaObject(sharedIntrinsics);
 
     const realmRec = {
       // todo: why use symbols instead of named properties?
-      [ContextRec]: contextRec,
+      [ContextRec]: unsafeRec,
       [Intrinsics]: sharedIntrinsics,
       [UnsafeEvaluators]: evaluators,
       [GlobalObject]: globalObj,
@@ -234,7 +234,7 @@ export default class Realm {
   }
 }
 
-RealmProto2ContextRec.set(Realm.prototype, getCurrentContextRec());
+RealmProto2UnsafeRec.set(Realm.prototype, getCurrentUnsafeRec());
 
 defineProperty(Realm.prototype, Symbol.toStringTag, {
   value: 'function Realm() { [shim code] }',

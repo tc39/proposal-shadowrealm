@@ -14,14 +14,14 @@ function buildOptimizer(constants) {
   return `const {${constants.join(',')}} = arguments[0];`;
 }
 
-export function getScopedEvaluatorFactory(contextRec, constants) {
-  const { contextFunction } = contextRec;
+export function getScopedEvaluatorFactory(unsafeRec, constants) {
+  const { unsafeFunction } = unsafeRec;
 
   const optimizer = buildOptimizer(constants);
 
   // Create a function in sloppy mode that returns
   // a function in strict mode.
-  return contextFunction(`
+  return unsafeFunction(`
     with (arguments[0]) {
       ${optimizer}
       return function() {
@@ -33,16 +33,16 @@ export function getScopedEvaluatorFactory(contextRec, constants) {
 }
 
 export function getSafeEvaluator(realmRec) {
-  const { [ContextRec]: contextRec, [GlobalObject]: globalObject } = realmRec;
+  const { [ContextRec]: unsafeRec, [GlobalObject]: globalObject } = realmRec;
 
   // This proxy has several functions:
   // 1. works with the sentinel to alternate between direct eval and confined eval.
   // 2. shadows all properties of the hidden global by declaring them as undefined.
   // 3. resolves all existing properties of the sandboxed global.
-  const handler = new Handler(contextRec);
+  const handler = new Handler(unsafeRec);
   const proxy = new Proxy(globalObject, handler);
 
-  const scopedEvaluator = contextRec.scopedEvaluatorFactory(proxy);
+  const scopedEvaluator = unsafeRec.scopedEvaluatorFactory(proxy);
 
   // We use the the concise method syntax to create an eval without a
   // [[Construct]] behavior (such that the invocation "new eval()" throws
@@ -64,10 +64,10 @@ export function getSafeEvaluator(realmRec) {
 
   // Ensure that eval from any compartment in a root realm is an
   // instance of Function in any compartment of the same root realm.
-  const { contextGlobal, contextFunction } = contextRec;
-  setPrototypeOf(evaluator, contextFunction.prototype);
+  const { unsafeGlobal, unsafeFunction } = unsafeRec;
+  setPrototypeOf(evaluator, unsafeFunction.prototype);
 
-  defineProperty(evaluator, contextGlobal.Symbol.toStringTag, {
+  defineProperty(evaluator, unsafeGlobal.Symbol.toStringTag, {
     value: 'function eval() { [shim code] }',
     writable: false,
     enumerable: false,

@@ -30,24 +30,23 @@ function createBrowserContext() {
 
 const createContext = isNode ? createNodeContext : createBrowserContext;
 
-export function createContextRec(context) {
+export function createUnsafeRec(context) {
   if (context === undefined) {
     context = createContext();
   }
 
-  const contextRec = {
-    // todo: consider renaming to 'unsafeGlobal'/etc
-    contextGlobal: context.global,
-    contextEval: context.eval,
-    contextFunction: context.Function
+  const unsafeRec = {
+    unsafeGlobal: context.global,
+    unsafeEval: context.eval,
+    unsafeFunction: context.Function
   };
 
   // Create the evaluator factory that will generate the evaluators
   // for each compartment realm.
-  contextRec.scopedEvaluatorFactory = getScopedEvaluatorFactory(contextRec);
+  unsafeRec.scopedEvaluatorFactory = getScopedEvaluatorFactory(unsafeRec);
 
-  sanitize(contextRec);
-  return contextRec;
+  sanitize(unsafeRec);
+  return unsafeRec;
 }
 
 // The current context is the context where the
@@ -56,7 +55,7 @@ function getCurrentContext() {
   return (0, eval)(contextRecSrc);
 }
 
-export function getCurrentContextRec() {
+export function getCurrentUnsafeRec() {
   const context = getCurrentContext();
-  return createContextRec(context);
+  return createUnsafeRec(context);
 }
