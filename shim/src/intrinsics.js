@@ -28,7 +28,7 @@ export function getFixedIntrinsics(contextGlobal) {
   // note: compartments share the intrinsics of their parent RootRealm, so
   // we'll have already fixed these intrinsics. This code should tolerate
   // fixing them multiple times.
-  defineProperty(g.Function.prototype, "constructor", { value: void 0 });
+  defineProperty(g.Function.prototype, 'constructor', { value: void 0 });
 
   // Ensure parsing doesn't fail on platforms that don't support Async Functions.
   let AsyncFunctionInstance;
@@ -41,10 +41,10 @@ export function getFixedIntrinsics(contextGlobal) {
     }
   }
 
-  //const AsyncFunction = AsyncFunctionInstance && AsyncFunctionInstance.constructor;
+  // const AsyncFunction = AsyncFunctionInstance && AsyncFunctionInstance.constructor;
   const AsyncFunctionPrototype = AsyncFunctionInstance && getPrototypeOf(AsyncFunctionInstance);
   if (AsyncFunctionInstance) {
-    defineProperty(AsyncFunctionPrototype, "constructor", { value: void 0 });
+    defineProperty(AsyncFunctionPrototype, 'constructor', { value: void 0 });
   }
 
   // Ensure parsing doesn't fail on platforms that don't support Generator Functions.
@@ -57,12 +57,12 @@ export function getFixedIntrinsics(contextGlobal) {
       throw e;
     }
   }
-  //const GeneratorFunction = GeneratorFunctionInstance && GeneratorFunctionInstance.constructor;
+  // const GeneratorFunction = GeneratorFunctionInstance && GeneratorFunctionInstance.constructor;
   const Generator = GeneratorFunctionInstance && getPrototypeOf(GeneratorFunctionInstance);
   const GeneratorPrototype = GeneratorFunctionInstance && Generator.prototype;
   if (GeneratorFunctionInstance) {
-    defineProperty(Generator, "constructor", { value: void 0 });
-    defineProperty(GeneratorPrototype, "constructor", { value: void 0 });
+    defineProperty(Generator, 'constructor', { value: void 0 });
+    defineProperty(GeneratorPrototype, 'constructor', { value: void 0 });
   }
 
   // Ensure parsing doesn't fail on platforms that don't support Async Generator Functions.
@@ -75,13 +75,14 @@ export function getFixedIntrinsics(contextGlobal) {
       throw e;
     }
   }
-  //const AsyncGeneratorFunction =
+  // const AsyncGeneratorFunction =
   //  AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
-  const AsyncGenerator = AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorFunctionInstance);
+  const AsyncGenerator =
+    AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorFunctionInstance);
   const AsyncGeneratorPrototype = AsyncGeneratorFunctionInstance && AsyncGenerator.prototype;
   if (AsyncGeneratorFunctionInstance) {
-    defineProperty(AsyncGenerator, "constructor", { value: void 0 });
-    defineProperty(AsyncGeneratorPrototype, "constructor", {value: void 0 });
+    defineProperty(AsyncGenerator, 'constructor', { value: void 0 });
+    defineProperty(AsyncGeneratorPrototype, 'constructor', { value: void 0 });
   }
 
   const AsyncIteratorPrototype =
@@ -333,23 +334,23 @@ export function getFixedIntrinsics(contextGlobal) {
   };
 
   const evaluators = {
-    // %AsyncFunction%
-    //AsyncFunction,
-    // %AsyncGenerator%
-    //AsyncGenerator,
-    // %AsyncGeneratorFunction%
-    //AsyncGeneratorFunction,
-    // %eval%
+    //  %AsyncFunction%
+    // AsyncFunction,
+    //  %AsyncGenerator%
+    // AsyncGenerator,
+    //  %AsyncGeneratorFunction%
+    // AsyncGeneratorFunction,
+    //  %eval%
     eval: g.eval,
-    // %Function%
-    Function: g.Function,
-    // %Generator%
-    //Generator,
-    // %GeneratorFunction%
-    //GeneratorFunction,
+    //  %Function%
+    Function: g.Function
+    //  %Generator%
+    // Generator,
+    //  %GeneratorFunction%
+    // GeneratorFunction,
   };
 
   // sharedIntrinsics are per RootRealm, while evaluators are per Realm,
   // i.e., one for each RootRealm and one for each Compartment.
-  return {sharedIntrinsics, evaluators};
+  return { sharedIntrinsics, evaluators };
 }

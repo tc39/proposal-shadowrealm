@@ -117,12 +117,14 @@ function createEvaluators(realmRec) {
   // a global and they are tied to a realm and to the intrinsics
   // of that realm.
   const safeEvaluator = getSafeEvaluator(realmRec);
-  const functionEvaluator = getFunctionEvaluator(realmRec[UnsafeEvaluators].Function,
-                                                 realmRec[ContextRec].contextGlobal,
-                                                 safeEvaluator);
+  const functionEvaluator = getFunctionEvaluator(
+    realmRec[UnsafeEvaluators].Function,
+    realmRec[ContextRec].contextGlobal,
+    safeEvaluator
+  );
 
   // Limitation: export a direct evaluator.
-  realmRec[SafeEvaluators] = {eval: safeEvaluator, Function: functionEvaluator};
+  realmRec[SafeEvaluators] = { eval: safeEvaluator, Function: functionEvaluator };
 }
 
 function setDefaultBindings(realmRec) {
@@ -154,7 +156,7 @@ export default class Realm {
       // access .prototype and the parent's intrinsics
       throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
     }
-    const {sharedIntrinsics, evaluators} = getFixedIntrinsics(contextRec.contextGlobal);
+    const { sharedIntrinsics, evaluators } = getFixedIntrinsics(contextRec.contextGlobal);
     const globalObj = getGlobaObject(sharedIntrinsics);
 
     const realmRec = {
