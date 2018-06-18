@@ -1,8 +1,8 @@
 // Portions adapted from V8 - Copyright 2016 the V8 project authors.
 // https://github.com/v8/v8/blob/master/src/builtins/builtins-function.cc
 
-import { GlobalObject, Intrinsics, ContextRec, UnsafeEvaluators } from './symbols';
-import { defineProperty, getOwnPropertyDescriptor, setPrototypeOf } from './commons';
+import { GlobalObject, ContextRec } from './symbols';
+import { defineProperty, setPrototypeOf } from './commons';
 import { Handler } from './handler';
 
 function buildOptimizer(constants) {
@@ -81,7 +81,6 @@ export function getSafeEvaluator(realmRec) {
  * the safety of evalEvaluator for confinement.
  */
 export function getFunctionEvaluator(unsafeFunction, unsafeGlobal, safeEvaluator) {
-
   const SafeFunction = function Function(...params) {
     const functionBody = `${params.pop()}` || '';
     let functionParams = `${params.join(',')}`;

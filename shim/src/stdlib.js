@@ -13,7 +13,7 @@ export function getStdLib(intrinsics, safeEvaluators) {
   const intrinsicNames = [
     // *** 18.2 Function Properties of the Global Object
 
-    //'eval', // comes from safeEvaluators instead
+    // 'eval', // comes from safeEvaluators instead
     'isFinite',
     'isNaN',
     'parseFloat',
@@ -35,7 +35,7 @@ export function getStdLib(intrinsics, safeEvaluators) {
     'EvalError',
     'Float32Array',
     'Float64Array',
-    //'Function', // comes from safeEvaluators instead
+    // 'Function', // comes from safeEvaluators instead
     'Int8Array',
     'Int16Array',
     'Int32Array',
