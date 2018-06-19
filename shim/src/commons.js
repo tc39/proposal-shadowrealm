@@ -6,19 +6,22 @@ export const {
   assign,
   create,
   defineProperties,
+  defineProperty,
   freeze,
+  getOwnPropertyDescriptor,
   getOwnPropertyDescriptors,
-  getOwnPropertyNames
+  getOwnPropertyNames,
+  getPrototypeOf,
+  setPrototypeOf
 } = Object;
+
+// TODO: if we use Reflect.* and it returns false, we should either inspect
+// the failure, or use Object.* instead.
 
 export const {
   apply,
-  defineProperty,
   deleteProperty,
-  getOwnPropertyDescriptor,
-  getPrototypeOf,
-  ownKeys,
-  setPrototypeOf
+  ownKeys // similar but different than Object.ownKeys
 } = Reflect;
 
 export const objectHasOwnProperty = Object.prototype.hasOwnProperty;
