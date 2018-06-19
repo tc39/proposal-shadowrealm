@@ -1,8 +1,7 @@
 // Portions adapted from V8 - Copyright 2016 the V8 project authors.
 // https://github.com/v8/v8/blob/master/src/builtins/builtins-function.cc
 
-import { GlobalObject, Intrinsics, ContextRec } from './symbols';
-import { defineProperty, getOwnPropertyDescriptor, setPrototypeOf } from './commons';
+import { defineProperty, setPrototypeOf } from './commons';
 import { Handler } from './handler';
 
 function buildOptimizer(constants) {
@@ -14,14 +13,14 @@ function buildOptimizer(constants) {
   return `const {${constants.join(',')}} = arguments[0];`;
 }
 
-export function getScopedEvaluatorFactory(contextRec, constants) {
-  const { contextFunction } = contextRec;
+export function getScopedEvaluatorFactory(unsafeRec, constants) {
+  const { unsafeFunction } = unsafeRec;
 
   const optimizer = buildOptimizer(constants);
 
   // Create a function in sloppy mode that returns
   // a function in strict mode.
-  return contextFunction(`
+  return unsafeFunction(`
     with (arguments[0]) {
       ${optimizer}
       return function() {
@@ -33,16 +32,16 @@ export function getScopedEvaluatorFactory(contextRec, constants) {
 }
 
 export function getSafeEvaluator(realmRec) {
-  const { [ContextRec]: contextRec, [GlobalObject]: globalObject } = realmRec;
+  const { unsafeRec, globalObject } = realmRec;
 
   // This proxy has several functions:
   // 1. works with the sentinel to alternate between direct eval and confined eval.
   // 2. shadows all properties of the hidden global by declaring them as undefined.
   // 3. resolves all existing properties of the sandboxed global.
-  const handler = new Handler(contextRec);
+  const handler = new Handler(unsafeRec);
   const proxy = new Proxy(globalObject, handler);
 
-  const scopedEvaluator = contextRec.scopedEvaluatorFactory(proxy);
+  const scopedEvaluator = unsafeRec.scopedEvaluatorFactory(proxy);
 
   // We use the the concise method syntax to create an eval without a
   // [[Construct]] behavior (such that the invocation "new eval()" throws
@@ -64,10 +63,10 @@ export function getSafeEvaluator(realmRec) {
 
   // Ensure that eval from any compartment in a root realm is an
   // instance of Function in any compartment of the same root realm.
-  const { contextGlobal, contextFunction } = contextRec;
-  setPrototypeOf(evaluator, contextFunction.prototype.constructor);
+  const { unsafeGlobal, unsafeFunction } = unsafeRec;
+  setPrototypeOf(evaluator, unsafeFunction.prototype);
 
-  defineProperty(evaluator.prototype, contextGlobal.Symbol.toStringTag, {
+  defineProperty(evaluator, unsafeGlobal.Symbol.toStringTag, {
     value: 'function eval() { [shim code] }',
     writable: false,
     enumerable: false,
@@ -80,10 +79,8 @@ export function getSafeEvaluator(realmRec) {
  * A safe version of the native Function which relies on
  * the safety of evalEvaluator for confinement.
  */
-export function getFunctionEvaluator(realmRec) {
-  const { [ContextRec]: contextRec, [Intrinsics]: intrinsics } = realmRec;
-
-  const evaluator = function Function(...params) {
+export function getFunctionEvaluator(unsafeFunction, unsafeGlobal, safeEvaluator) {
+  const SafeFunction = function Function(...params) {
     const functionBody = `${params.pop()}` || '';
     let functionParams = `${params.join(',')}`;
 
@@ -92,7 +89,7 @@ export function getFunctionEvaluator(realmRec) {
     // function body. We coerce the body into a real string above to prevent
     // someone from passing an object with a toString() that returns a safe
     // string the first time, but an evil string the second time.
-    new contextRec.contextFunction(functionBody); // eslint-disable-line
+    new unsafeFunction(functionBody); // eslint-disable-line
 
     if (functionParams.includes(')')) {
       // If the formal parameters string include ) - an illegal
@@ -110,27 +107,24 @@ export function getFunctionEvaluator(realmRec) {
 
     const src = `(function(${functionParams}){\n${functionBody}\n})`;
 
-    return intrinsics.eval(src);
+    return safeEvaluator(src);
   };
 
   // Ensure that Function from any compartment in a root realm can be used
   // with instance checks in any compartment of the same root realm.
-  const { contextGlobal, contextFunction } = contextRec;
-  setPrototypeOf(evaluator, contextFunction.prototype.constructor);
+  setPrototypeOf(SafeFunction, unsafeFunction.prototype);
 
   // Ensure that any function created in any compartment in a root realm is an
   // instance of Function in any compartment of the same root ralm.
-  const desc = getOwnPropertyDescriptor(evaluator, 'prototype');
-  desc.value = contextFunction.prototype;
-  defineProperty(evaluator, 'prototype', desc);
+  defineProperty(SafeFunction, 'prototype', { value: unsafeFunction.prototype });
 
   // Provide a custom output without overwriting the Function.prototype.toString
   // which is called by some libraries.
-  defineProperty(evaluator.prototype, contextGlobal.Symbol.toStringTag, {
+  defineProperty(SafeFunction, unsafeGlobal.Symbol.toStringTag, {
     value: 'function Function() { [shim code] }',
     writable: false,
     enumerable: false,
     configurable: true
   });
-  return evaluator;
+  return SafeFunction;
 }

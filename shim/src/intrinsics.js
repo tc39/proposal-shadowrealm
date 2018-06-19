@@ -8,8 +8,11 @@ import { getPrototypeOf } from './commons';
  * https://tc39.github.io/ecma262/#table-7
  * https://tc39.github.io/ecma262/#table-73
  */
-export function getIntrinsics(contextRec) {
-  const { contextGlobal: g } = contextRec;
+export function getSharedIntrinsics(contextGlobal) {
+  const g = contextGlobal;
+
+  // the .constructor properties on evaluator intrinsics should already be
+  // fixed by this point, due to the sanitize() call inside createUnsafeRec()
 
   // Anonymous intrinsics.
 
@@ -19,9 +22,19 @@ export function getIntrinsics(contextRec) {
   const ArrayIteratorPrototype = getPrototypeOf(ArrayIteratorInstance);
   const IteratorPrototype = getPrototypeOf(ArrayIteratorPrototype);
 
-  const AsyncFunctionInstance = g.eval('(async function(){})');
-  const AsyncFunction = AsyncFunctionInstance.constructor;
-  const AsyncFunctionPrototype = AsyncFunction.prototype;
+  // Ensure parsing doesn't fail on platforms that don't support Async Functions.
+  let AsyncFunctionInstance;
+  try {
+    AsyncFunctionInstance = g.eval('(async function(){})');
+  } catch (e) {
+    if (!(e instanceof g.SyntaxError)) {
+      // Re-throw
+      throw e;
+    }
+  }
+
+  // const AsyncFunction = AsyncFunctionInstance && AsyncFunctionInstance.constructor;
+  const AsyncFunctionPrototype = AsyncFunctionInstance && getPrototypeOf(AsyncFunctionInstance);
 
   // Ensure parsing doesn't fail on platforms that don't support Generator Functions.
   let GeneratorFunctionInstance;
@@ -33,8 +46,8 @@ export function getIntrinsics(contextRec) {
       throw e;
     }
   }
-  const GeneratorFunction = GeneratorFunctionInstance && GeneratorFunctionInstance.constructor;
-  const Generator = GeneratorFunctionInstance && GeneratorFunction.prototype;
+  // const GeneratorFunction = GeneratorFunctionInstance && GeneratorFunctionInstance.constructor;
+  const Generator = GeneratorFunctionInstance && getPrototypeOf(GeneratorFunctionInstance);
   const GeneratorPrototype = GeneratorFunctionInstance && Generator.prototype;
 
   // Ensure parsing doesn't fail on platforms that don't support Async Generator Functions.
@@ -47,9 +60,10 @@ export function getIntrinsics(contextRec) {
       throw e;
     }
   }
-  const AsyncGeneratorFunction =
-    AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
-  const AsyncGenerator = AsyncGeneratorFunctionInstance && AsyncGeneratorFunction.prototype;
+  // const AsyncGeneratorFunction =
+  //  AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
+  const AsyncGenerator =
+    AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorFunctionInstance);
   const AsyncGeneratorPrototype = AsyncGeneratorFunctionInstance && AsyncGenerator.prototype;
 
   const AsyncIteratorPrototype =
@@ -74,7 +88,7 @@ export function getIntrinsics(contextRec) {
 
   // Named intrinsics
 
-  const intrinsics = {
+  const sharedIntrinsics = {
     // *** Table 7
 
     // %Array%
@@ -97,14 +111,8 @@ export function getIntrinsics(contextRec) {
     ArrayProto_values: g.Array.prototype.values,
     // %AsyncFromSyncIteratorPrototype%
     // AsyncFromSyncIteratorPrototype, // Not reachable
-    // %AsyncFunction%
-    AsyncFunction,
     // %AsyncFunctionPrototype%
     AsyncFunctionPrototype,
-    // %AsyncGenerator%
-    AsyncGenerator,
-    // %AsyncGeneratorFunction%
-    AsyncGeneratorFunction,
     // %AsyncGeneratorPrototype%
     AsyncGeneratorPrototype,
     // %AsyncIteratorPrototype%
@@ -135,8 +143,6 @@ export function getIntrinsics(contextRec) {
     Error: g.Error,
     // %ErrorPrototype%
     ErrorPrototype: g.Error.prototype,
-    // %eval%
-    eval: g.eval,
     // %EvalError%
     EvalError: g.EvalError,
     // %EvalErrorPrototype%
@@ -149,14 +155,8 @@ export function getIntrinsics(contextRec) {
     Float64Array: g.Float64Array,
     // %Float64ArrayPrototype%
     Float64ArrayPrototype: g.Float64Array.prototype,
-    // %Function%
-    Function: g.Function,
     // %FunctionPrototype%
     FunctionPrototype: g.Function.prototype,
-    // %Generator%
-    Generator,
-    // %GeneratorFunction%
-    GeneratorFunction,
     // %GeneratorPrototype%
     GeneratorPrototype,
     // %Int8Array%
@@ -307,9 +307,13 @@ export function getIntrinsics(contextRec) {
 
     Intl: g.Intl,
 
-    // *** ESNext
+    // *** ESNext.
+    // This is in sharedIntrinsics because there's only one Realm constructor
+    // per RootRealm even though there's one Realm instance per Realm.
+    // Compartments use the Realm constructor from their parent RootRealm.
     Realm: g.Realm
   };
 
-  return intrinsics;
+  // sharedIntrinsics are per RootRealm
+  return sharedIntrinsics;
 }
