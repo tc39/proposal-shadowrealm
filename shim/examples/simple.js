@@ -21,7 +21,7 @@ console.log(2.6, r2.evaluate('JSON') !== r1.evaluate('JSON'));
 console.log(2.7, r2.evaluate('eval("JSON")') !== r1.evaluate('eval("JSON")'));
 
 // Compartment realm vs root realm
-const r3 = new r1.global.Realm({ intrinsics: 'inherit' });
+const r3 = r1.global.Realm.makeCompartment();
 console.log(3.1, r3.evaluate('JSON'));
 console.log(3.2, r3.evaluate('JSON') !== JSON);
 console.log(3.3, r3.evaluate('JSON') === r3.evaluate('JSON'));
