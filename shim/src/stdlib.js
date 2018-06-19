@@ -1,4 +1,6 @@
-export function getStdLib(intrinsics, safeEvaluators) {
+export function getStdLib(realmRec) {
+  const { sharedIntrinsics, safeEval, safeFunction } = realmRec;
+
   const descriptors = {
     // *** 18.1 Value Properties of the Global Object
 
@@ -13,7 +15,7 @@ export function getStdLib(intrinsics, safeEvaluators) {
   const namedIntrinsics = [
     // *** 18.2 Function Properties of the Global Object
 
-    // 'eval', // comes from safeEvaluators instead
+    // 'eval', // comes from safeEval instead
     'isFinite',
     'isNaN',
     'parseFloat',
@@ -35,7 +37,7 @@ export function getStdLib(intrinsics, safeEvaluators) {
     'EvalError',
     'Float32Array',
     'Float64Array',
-    // 'Function', // comes from safeEvaluators instead
+    // 'Function', // comes from safeFunction instead
     'Int8Array',
     'Int16Array',
     'Int32Array',
@@ -84,7 +86,7 @@ export function getStdLib(intrinsics, safeEvaluators) {
 
   for (const name of namedIntrinsics) {
     descriptors[name] = {
-      value: intrinsics[name],
+      value: sharedIntrinsics[name],
       writable: true,
       configurable: true
     };
@@ -94,14 +96,14 @@ export function getStdLib(intrinsics, safeEvaluators) {
 
   // *** 18.2 Function Properties of the Global Object
   descriptors.eval = {
-    value: safeEvaluators.eval,
+    value: safeEval,
     writable: true,
     configurable: true // todo: maybe make this non-configurable
   };
 
   // *** 18.3 Constructor Properties of the Global Object
   descriptors.Function = {
-    value: safeEvaluators.Function,
+    value: safeFunction,
     writable: true,
     configurable: true
   };

@@ -1,8 +1,15 @@
-import { createUnsafeRec, getCurrentUnsafeRec } from './context';
-import { getSafeEvaluator, getFunctionEvaluator } from './evaluators';
+import { createUnsafeRec, createCurrentUnsafeRec } from './context';
+import { createSafeEvaluator, createFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getSharedIntrinsics } from './intrinsics';
-import { assign, create, defineProperty, defineProperties, getPrototypeOf } from './commons';
+import {
+  assign,
+  create,
+  defineProperty,
+  defineProperties,
+  freeze,
+  getPrototypeOf
+} from './commons';
 
 const Realm2RealmRec = new WeakMap();
 const RealmProto2UnsafeRec = new WeakMap();
@@ -45,10 +52,10 @@ function buildChildRealm(BaseRealm) {
         eMessage = `${err.message}`;
         // eName and eMessage are now child-realm primitive strings, and safe
         // to expose
-      } catch (_) {
+      } catch (ignored) {
         // if err.name.toString() throws, keep the (parent realm) Error away
         // from the child
-        throw new Error('Something bad happened');
+        throw new Error('unknown error');
       }
       const ErrorConstructor = errorConstructors.get(eName) || Error;
       throw new ErrorConstructor(eMessage);
@@ -116,35 +123,35 @@ function createRealmFacade(unsafeRec, BaseRealm) {
   RealmProto2UnsafeRec.set(Realm.prototype, unsafeRec);
 }
 
-function getGlobalObject(intrinsics) {
+function createGlobalObject(intrinsics) {
   return create(intrinsics.ObjectPrototype);
 }
 
-function createEvaluators(realmRec) {
-  // Divergence from specifications: the evaluators are tied to
-  // a global and they are tied to a realm and to the intrinsics
-  // of that realm.
-  const safeEvaluator = getSafeEvaluator(realmRec);
-  const functionEvaluator = getFunctionEvaluator(
-    realmRec.unsafeRec.unsafeFunction,
-    realmRec.unsafeRec.unsafeGlobal,
-    safeEvaluator
-  );
-
-  // Limitation: export a direct evaluator.
-  realmRec.safeEvaluators = { eval: safeEvaluator, Function: functionEvaluator };
+function setDefaultBindings(realmRec) {
+  const descs = getStdLib(realmRec);
+  defineProperties(realmRec.globalObject, descs);
 }
 
-function setDefaultBindings(realmRec) {
-  const intrinsics = realmRec.sharedIntrinsics;
-  const safeEvaluators = realmRec.safeEvaluators;
-  const descs = getStdLib(intrinsics, safeEvaluators);
-  defineProperties(realmRec.globalObject, descs);
+function createRealmRec(unsafeRec) {
+  const sharedIntrinsics = getSharedIntrinsics(unsafeRec);
+  const globalObject = createGlobalObject(sharedIntrinsics);
+
+  const safeEval = createSafeEvaluator(unsafeRec, globalObject);
+  const safeFunction = createFunctionEvaluator(unsafeRec, safeEval);
+
+  const realmRec = freeze({
+    sharedIntrinsics,
+    globalObject,
+    safeEval,
+    safeFunction
+  });
+
+  setDefaultBindings(realmRec);
+  return realmRec;
 }
 
 export default class Realm {
   constructor(options) {
-    const O = this;
     options = Object(options); // Todo: sanitize
 
     if (options.thisValue !== undefined) {
@@ -180,19 +187,8 @@ export default class Realm {
       // facade catches all errors and translates them into local Error types
       throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
     }
-    const sharedIntrinsics = getSharedIntrinsics(unsafeRec.unsafeGlobal);
-    const globalObj = getGlobalObject(sharedIntrinsics);
-
-    const realmRec = {
-      unsafeRec,
-      sharedIntrinsics,
-      globalObject: globalObj,
-      safeEvaluators: undefined
-    };
-    Realm2RealmRec.set(O, realmRec);
-
-    createEvaluators(realmRec);
-    setDefaultBindings(realmRec);
+    const realmRec = createRealmRec(unsafeRec);
+    Realm2RealmRec.set(this, realmRec);
   }
   get intrinsics() {
     const O = this;
@@ -217,8 +213,8 @@ export default class Realm {
     if (typeof O !== 'object') throw new TypeError();
     if (!Realm2RealmRec.has(O)) throw new TypeError();
     const realmRec = Realm2RealmRec.get(O);
-    const evaluator = realmRec.safeEvaluators.eval;
-    return evaluator(`${x}`);
+    const safeEval = realmRec.safeEval;
+    return safeEval(`${x}`);
   }
   static makeRootRealm() {
     return new Realm();
@@ -232,7 +228,9 @@ export default class Realm {
   }
 }
 
-RealmProto2UnsafeRec.set(Realm.prototype, getCurrentUnsafeRec());
+// Create the unsafeRec from the current realm (the realm where the
+// Realm shim is loaded and executed).
+RealmProto2UnsafeRec.set(Realm.prototype, createCurrentUnsafeRec());
 
 defineProperty(Realm.prototype, Symbol.toStringTag, {
   value: 'function Realm() { [shim code] }',
