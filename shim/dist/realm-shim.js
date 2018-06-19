@@ -4,11 +4,6 @@
   (global.Realm = factory());
 }(this, (function () { 'use strict';
 
-  const Intrinsics = Symbol('Intrinsics Slot');
-  const GlobalObject = Symbol('GlobalObject Slot');
-  const IsDirectEvalTrap = Symbol('IsDirectEvalTrap Slot');
-  const ContextRec = Symbol('Shim Context');
-
   // Declare shorthand functions. Sharing these declarations accross modules
   // improves both consitency and minification. Unused declarations are dropped
   // by the tree shaking process.
@@ -36,22 +31,22 @@
     // Properties stored on the handler
     // are not available from the proxy.
 
-    constructor(contextRec) {
-      const { contextGlobal } = contextRec;
-      this.contextGlobal = contextGlobal;
+    constructor(unsafeRec) {
+      this.unsafeGlobal = unsafeRec.unsafeGlobal;
+      this.unsafeEval = unsafeRec.unsafeGlobal.eval;
 
       // this flag allow us to determine if the eval() call is a controlled
       // eval done by the realm's code or if it is user-land invocation, so
       // we can react differently.
-      this.isInternalEvaluation = false;
+      this.useUnsafeEvaluator = false;
     }
 
     get(target, prop) {
       // Special treatment for eval.
       if (prop === 'eval') {
-        if (this.isInternalEvaluation) {
-          this.isInternalEvaluation = false;
-          return this.contextGlobal.eval;
+        if (this.useUnsafeEvaluator) {
+          this.useUnsafeEvaluator = false;
+          return this.unsafeEval;
         }
         return target.eval;
       }
@@ -73,7 +68,7 @@
       if (prop in target) {
         return true;
       }
-      if (prop in this.contextGlobal) {
+      if (prop in this.unsafeGlobal) {
         return true;
       }
       return false;
@@ -91,14 +86,14 @@
     return `const {${constants.join(',')}} = arguments[0];`;
   }
 
-  function getDirectEvalEvaluatorFactory(contextRec, constants) {
-    const { contextFunction } = contextRec;
+  function getScopedEvaluatorFactory(unsafeRec, constants) {
+    const { unsafeFunction } = unsafeRec;
 
     const optimizer = buildOptimizer(constants);
 
     // Create a function in sloppy mode that returns
     // a function in strict mode.
-    return contextFunction(`
+    return unsafeFunction(`
     with (arguments[0]) {
       ${optimizer}
       return function() {
@@ -109,36 +104,42 @@
   `);
   }
 
-  function getDirectEvalEvaluator(realmRec) {
-    const { [ContextRec]: contextRec, [GlobalObject]: globalObject } = realmRec;
+  function getSafeEvaluator(realmRec) {
+    const { unsafeRec, globalObject } = realmRec;
 
     // This proxy has several functions:
     // 1. works with the sentinel to alternate between direct eval and confined eval.
     // 2. shadows all properties of the hidden global by declaring them as undefined.
     // 3. resolves all existing properties of the sandboxed global.
-    const handler = new Handler(contextRec);
+    const handler = new Handler(unsafeRec);
     const proxy = new Proxy(globalObject, handler);
 
-    const scopedEvaluator = contextRec.evalEvaluatorFactory(proxy);
+    const scopedEvaluator = unsafeRec.scopedEvaluatorFactory(proxy);
 
-    // Create an eval without a [[Construct]] behavior such that the
-    // invocation "new eval()" throws TypeError: eval is not a constructor".
+    // We use the the concise method syntax to create an eval without a
+    // [[Construct]] behavior (such that the invocation "new eval()" throws
+    // TypeError: eval is not a constructor"), but which still accepts a 'this'
+    // binding.
     const evaluator = {
       eval(src) {
-        handler.isInternalEvaluation = true;
-        // Ensure that "this" resolves to the secure global.
-        const result = scopedEvaluator.call(globalObject, src);
-        handler.isInternalEvaluation = false;
-        return result;
+        handler.useUnsafeEvaluator = true;
+        try {
+          // Ensure that "this" resolves to the secure global.
+          return scopedEvaluator.call(globalObject, src);
+        } finally {
+          // belt and suspenders: the proxy switches this off immediately after
+          // the first access, but just in case we clear it here too
+          handler.useUnsafeEvaluator = false;
+        }
       }
     }.eval;
 
     // Ensure that eval from any compartment in a root realm is an
-    // instance of Function in any compartment of the same root ralm.
-    const { contextGlobal, contextFunction } = contextRec;
-    setPrototypeOf(evaluator, contextFunction.prototype.constructor);
+    // instance of Function in any compartment of the same root realm.
+    const { unsafeGlobal, unsafeFunction } = unsafeRec;
+    setPrototypeOf(evaluator, unsafeFunction.prototype);
 
-    defineProperty(evaluator.prototype, contextGlobal.Symbol.toStringTag, {
+    defineProperty(evaluator, unsafeGlobal.Symbol.toStringTag, {
       value: 'function eval() { [shim code] }',
       writable: false,
       enumerable: false,
@@ -151,18 +152,23 @@
    * A safe version of the native Function which relies on
    * the safety of evalEvaluator for confinement.
    */
-  function getFunctionEvaluator(realmRec) {
-    const { [ContextRec]: contextRec, [Intrinsics]: intrinsics } = realmRec;
+  function getFunctionEvaluator(unsafeFunction, unsafeGlobal, safeEvaluator) {
+    const SafeFunction = function Function(...params) {
+      const functionBody = `${params.pop()}` || '';
+      let functionParams = `${params.join(',')}`;
 
-    const evaluator = function Function(...params) {
-      const functionBody = params.pop() || '';
-      let functionParams = params.join(',');
+      // Is this a real functionBody, or is someone attempting an injection
+      // attack? This will throw a SyntaxError if the string is not actually a
+      // function body. We coerce the body into a real string above to prevent
+      // someone from passing an object with a toString() that returns a safe
+      // string the first time, but an evil string the second time.
+      new unsafeFunction(functionBody); // eslint-disable-line
 
       if (functionParams.includes(')')) {
         // If the formal parameters string include ) - an illegal
         // character - it may make the combined function expression
         // compile. We avoid this problem by checking for this early on.
-        throw new Error('Function arg string contains parenthesis');
+        throw new SyntaxError('Function arg string contains parenthesis');
       }
 
       if (functionParams.length > 0) {
@@ -174,29 +180,26 @@
 
       const src = `(function(${functionParams}){\n${functionBody}\n})`;
 
-      return intrinsics.eval(src);
+      return safeEvaluator(src);
     };
 
     // Ensure that Function from any compartment in a root realm can be used
     // with instance checks in any compartment of the same root realm.
-    const { contextGlobal, contextFunction } = contextRec;
-    setPrototypeOf(evaluator, contextFunction.prototype.constructor);
+    setPrototypeOf(SafeFunction, unsafeFunction.prototype);
 
     // Ensure that any function created in any compartment in a root realm is an
     // instance of Function in any compartment of the same root ralm.
-    const desc = getOwnPropertyDescriptor(evaluator, 'prototype');
-    desc.value = contextFunction.prototype;
-    defineProperty(evaluator, 'prototype', desc);
+    defineProperty(SafeFunction, 'prototype', { value: unsafeFunction.prototype });
 
     // Provide a custom output without overwriting the Function.prototype.toString
     // which is called by some libraries.
-    defineProperty(evaluator.prototype, contextGlobal.Symbol.toStringTag, {
+    defineProperty(SafeFunction, unsafeGlobal.Symbol.toStringTag, {
       value: 'function Function() { [shim code] }',
       writable: false,
       enumerable: false,
       configurable: true
     });
-    return evaluator;
+    return SafeFunction;
   }
 
   // Adapted from SES/Caja - Copyright (C) 2011 Google Inc.
@@ -206,8 +209,8 @@
    * and ES2016 semantics, we do this by redefining them while in 'use strict'
    * https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
    */
-  function repairAccessors(contextRec) {
-    const { contextGlobal: g } = contextRec;
+  function repairAccessors(unsafeRec) {
+    const { unsafeGlobal: g } = unsafeRec;
 
     defineProperties(g.Object.prototype, {
       __defineGetter__: {
@@ -261,14 +264,14 @@
    * 4. Replace its prototype property's constructor with itself
    * 5. Replace its [[Prototype]] slot with the noop constructor of Function
    */
-  function repairFunction(contextRec, functionName, functionDecl) {
-    const { contextEval, contextFunction, contextGlobal } = contextRec;
+  function repairFunction(unsafeRec, functionName, functionDecl) {
+    const { unsafeEval, unsafeFunction, unsafeGlobal } = unsafeRec;
 
     let FunctionInstance;
     try {
-      FunctionInstance = contextEval(`(${functionDecl}(){})`);
+      FunctionInstance = unsafeEval(`(${functionDecl}(){})`);
     } catch (e) {
-      if (!(e instanceof contextGlobal.SyntaxError)) {
+      if (!(e instanceof unsafeGlobal.SyntaxError)) {
         // Re-throw
         throw e;
       }
@@ -278,7 +281,7 @@
     const FunctionPrototype = getPrototypeOf(FunctionInstance);
 
     // Block evaluation of source when calling constructor on the prototype of functions.
-    const TamedFunction = contextFunction('throw new Error("Not available");');
+    const TamedFunction = unsafeFunction('throw new Error("Not available");');
 
     defineProperties(TamedFunction, {
       name: {
@@ -291,7 +294,9 @@
     defineProperty(FunctionPrototype, 'constructor', { value: TamedFunction });
 
     // Ensures that all functions meet "instanceof Function" in a realm.
-    setPrototypeOf(TamedFunction, contextFunction.prototype.constructor);
+    setPrototypeOf(TamedFunction, unsafeFunction.prototype.constructor);
+    // todo: why does this work? it used to be done only for 'Function', but by
+    // doing it on all types, it should set up a circular prototype chain
   }
 
   /**
@@ -300,13 +305,13 @@
    * safe replacements that preserve SES confinement. After this block is done,
    * the originals should no longer be reachable.
    */
-  function repairFunctions(contextRec) {
+  function repairFunctions(unsafeRec) {
     // Here, the order of operation is important: Function needs to be
     // repaired first since the other constructors need it.
-    repairFunction(contextRec, 'Function', 'function');
-    repairFunction(contextRec, 'GeneratorFunction', 'function*');
-    repairFunction(contextRec, 'AsyncFunction', 'async function');
-    repairFunction(contextRec, 'AsyncGeneratorFunction', 'async function*');
+    repairFunction(unsafeRec, 'Function', 'function');
+    repairFunction(unsafeRec, 'GeneratorFunction', 'function*');
+    repairFunction(unsafeRec, 'AsyncFunction', 'async function');
+    repairFunction(unsafeRec, 'AsyncGeneratorFunction', 'async function*');
   }
 
   // Sanitizing ensures that neither the legacy
@@ -314,9 +319,9 @@
   // used to escape the confinement of the evaluators
   // to execute in the context.
 
-  function sanitize(contextRec) {
-    repairAccessors(contextRec);
-    repairFunctions(contextRec);
+  function sanitize(unsafeRec) {
+    repairAccessors(unsafeRec);
+    repairFunctions(unsafeRec);
   }
 
   // Detection used in RollupJS.
@@ -348,23 +353,23 @@
 
   const createContext = isNode ? createNodeContext : createBrowserContext;
 
-  function createContextRec(context) {
+  function createUnsafeRec(context) {
     if (context === undefined) {
       context = createContext();
     }
 
-    const contextRec = {
-      contextGlobal: context.global,
-      contextEval: context.eval,
-      contextFunction: context.Function
+    const unsafeRec = {
+      unsafeGlobal: context.global,
+      unsafeEval: context.eval,
+      unsafeFunction: context.Function
     };
 
     // Create the evaluator factory that will generate the evaluators
     // for each compartment realm.
-    contextRec.evalEvaluatorFactory = getDirectEvalEvaluatorFactory(contextRec);
+    unsafeRec.scopedEvaluatorFactory = getScopedEvaluatorFactory(unsafeRec);
 
-    sanitize(contextRec);
-    return contextRec;
+    sanitize(unsafeRec);
+    return unsafeRec;
   }
 
   // The current context is the context where the
@@ -373,94 +378,129 @@
     return (0, eval)(contextRecSrc);
   }
 
-  function getCurrentContextRec() {
+  function getCurrentUnsafeRec() {
     const context = getCurrentContext();
-    return createContextRec(context);
+    return createUnsafeRec(context);
   }
 
-  function getStdLib(intrinsics) {
-    const i = intrinsics;
-
-    return {
+  function getStdLib(intrinsics, safeEvaluators) {
+    const descriptors = {
       // *** 18.1 Value Properties of the Global Object
 
       Infinity: { value: Infinity },
       NaN: { value: NaN },
-      undefined: { value: undefined },
+      undefined: { value: undefined }
+    };
 
+    // All the following stdlib items have the same name on both our intrinsics
+    // object and on the global object. Unlike Infinity/NaN/undefined, these
+    // should all be writable and configurable.
+    const namedIntrinsics = [
       // *** 18.2 Function Properties of the Global Object
 
-      // Make eval writable to allow proxy to return a different
-      // value, and leave it non-unconfigurable to prevent userland
-      // from changing its descriptor and breaking an invariant.
-      eval: { value: i.eval, writable: true },
-      isFinite: { value: i.isFinite },
-      isNaN: { value: i.isNaN },
-      parseFloat: { value: i.parseFloat },
-      parseInt: { value: i.parseInt },
+      // 'eval', // comes from safeEvaluators instead
+      'isFinite',
+      'isNaN',
+      'parseFloat',
+      'parseInt',
 
-      decodeURI: { value: i.decodeURI },
-      decodeURIComponent: { value: i.decodeURIComponent },
-      encodeURI: { value: i.encodeURI },
-      encodeURIComponent: { value: i.encodeURIComponent },
+      'decodeURI',
+      'decodeURIComponent',
+      'encodeURI',
+      'encodeURIComponent',
 
       // *** 18.3 Constructor Properties of the Global Object
 
-      Array: { value: i.Array },
-      ArrayBuffer: { value: i.ArrayBuffer },
-      Boolean: { value: i.Boolean },
-      DataView: { value: i.DataView },
-      Date: { value: i.Date },
-      Error: { value: i.Error },
-      EvalError: { value: i.EvalError },
-      Float32Array: { value: i.Float32Array },
-      Float64Array: { value: i.Float64Array },
-      Function: { value: i.Function },
-      Int8Array: { value: i.Int8Array },
-      Int16Array: { value: i.Int16Array },
-      Int32Array: { value: i.Int32Array },
-      Map: { value: i.Map },
-      Number: { value: i.Number },
-      Object: { value: i.Object },
-      Promise: { value: i.Promise },
-      Proxy: { value: i.Proxy },
-      RangeError: { value: i.RangeError },
-      ReferenceError: { value: i.ReferenceError },
-      RegExp: { value: i.RegExp },
-      Set: { value: i.Set },
-      // SharedArrayBuffer // Deprecated on Jan 5, 2018
-      String: { value: i.String },
-      Symbol: { value: i.Symbol },
-      SyntaxError: { value: i.SyntaxError },
-      TypeError: { value: i.TypeError },
-      Uint8Array: { value: i.Uint8Array },
-      Uint8ClampedArray: { value: i.Uint8ClampedArray },
-      Uint16Array: { value: i.Uint16Array },
-      Uint32Array: { value: i.Uint32Array },
-      URIError: { value: i.URIError },
-      WeakMap: { value: i.WeakMap },
-      WeakSet: { value: i.WeakSet },
+      'Array',
+      'ArrayBuffer',
+      'Boolean',
+      'DataView',
+      'Date',
+      'Error',
+      'EvalError',
+      'Float32Array',
+      'Float64Array',
+      // 'Function', // comes from safeEvaluators instead
+      'Int8Array',
+      'Int16Array',
+      'Int32Array',
+      'Map',
+      'Number',
+      'Object',
+      'Promise',
+      'Proxy',
+      'RangeError',
+      'ReferenceError',
+      'RegExp',
+      'Set',
+      // 'SharedArrayBuffer' // Deprecated on Jan 5, 2018
+      'String',
+      'Symbol',
+      'SyntaxError',
+      'TypeError',
+      'Uint8Array',
+      'Uint8ClampedArray',
+      'Uint16Array',
+      'Uint32Array',
+      'URIError',
+      'WeakMap',
+      'WeakSet',
 
       // *** 18.4 Other Properties of the Global Object
 
-      // Atomics: { value: i.Atomics }, // Deprecated on Jan 5, 2018
-      JSON: { value: i.JSON },
-      Math: { value: i.Math },
-      Reflect: { value: i.Reflect },
+      // 'Atomics', // Deprecated on Jan 5, 2018
+      'JSON',
+      'Math',
+      'Reflect',
 
       // *** Annex B
 
-      escape: { value: i.escape },
-      unescape: { value: i.unescape },
+      'escape',
+      'unescape',
 
       // *** ECMA-402
 
-      Intl: { value: i.Intl },
+      'Intl',
 
       // *** ESNext
 
-      Realm: { value: i.Realm }
+      'Realm'
+    ];
+
+    for (const name of namedIntrinsics) {
+      descriptors[name] = {
+        value: intrinsics[name],
+        writable: true,
+        configurable: true
+      };
+    }
+
+    // add the safe named evaluators
+
+    // *** 18.2 Function Properties of the Global Object
+    descriptors.eval = {
+      value: safeEvaluators.eval,
+      writable: true,
+      configurable: true // todo: maybe make this non-configurable
     };
+
+    // *** 18.3 Constructor Properties of the Global Object
+    descriptors.Function = {
+      value: safeEvaluators.Function,
+      writable: true,
+      configurable: true
+    };
+
+    // TODO: we changed eval to be configurable along with everything else,
+    // should we change it back to honor this earlier comment?
+    // // Make eval writable to allow proxy to return a different
+    // // value, and leave it non-configurable to prevent userland
+    // // from changing its descriptor and breaking an invariant.
+
+    // we need to prevent the user from manipulating the 'eval' binding while
+    // simultaneously enabling the proxy to *switch* the 'eval' binding
+
+    return descriptors;
   }
 
   /**
@@ -471,8 +511,11 @@
    * https://tc39.github.io/ecma262/#table-7
    * https://tc39.github.io/ecma262/#table-73
    */
-  function getIntrinsics(contextRec) {
-    const { contextGlobal: g } = contextRec;
+  function getSharedIntrinsics(contextGlobal) {
+    const g = contextGlobal;
+
+    // the .constructor properties on evaluator intrinsics should already be
+    // fixed by this point, due to the sanitize() call inside createUnsafeRec()
 
     // Anonymous intrinsics.
 
@@ -482,9 +525,19 @@
     const ArrayIteratorPrototype = getPrototypeOf(ArrayIteratorInstance);
     const IteratorPrototype = getPrototypeOf(ArrayIteratorPrototype);
 
-    const AsyncFunctionInstance = g.eval('(async function(){})');
-    const AsyncFunction = AsyncFunctionInstance.constructor;
-    const AsyncFunctionPrototype = AsyncFunction.prototype;
+    // Ensure parsing doesn't fail on platforms that don't support Async Functions.
+    let AsyncFunctionInstance;
+    try {
+      AsyncFunctionInstance = g.eval('(async function(){})');
+    } catch (e) {
+      if (!(e instanceof g.SyntaxError)) {
+        // Re-throw
+        throw e;
+      }
+    }
+
+    // const AsyncFunction = AsyncFunctionInstance && AsyncFunctionInstance.constructor;
+    const AsyncFunctionPrototype = AsyncFunctionInstance && getPrototypeOf(AsyncFunctionInstance);
 
     // Ensure parsing doesn't fail on platforms that don't support Generator Functions.
     let GeneratorFunctionInstance;
@@ -496,8 +549,8 @@
         throw e;
       }
     }
-    const GeneratorFunction = GeneratorFunctionInstance && GeneratorFunctionInstance.constructor;
-    const Generator = GeneratorFunctionInstance && GeneratorFunction.prototype;
+    // const GeneratorFunction = GeneratorFunctionInstance && GeneratorFunctionInstance.constructor;
+    const Generator = GeneratorFunctionInstance && getPrototypeOf(GeneratorFunctionInstance);
     const GeneratorPrototype = GeneratorFunctionInstance && Generator.prototype;
 
     // Ensure parsing doesn't fail on platforms that don't support Async Generator Functions.
@@ -510,9 +563,10 @@
         throw e;
       }
     }
-    const AsyncGeneratorFunction =
-      AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
-    const AsyncGenerator = AsyncGeneratorFunctionInstance && AsyncGeneratorFunction.prototype;
+    // const AsyncGeneratorFunction =
+    //  AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
+    const AsyncGenerator =
+      AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorFunctionInstance);
     const AsyncGeneratorPrototype = AsyncGeneratorFunctionInstance && AsyncGenerator.prototype;
 
     const AsyncIteratorPrototype =
@@ -537,7 +591,7 @@
 
     // Named intrinsics
 
-    const intrinsics = {
+    const sharedIntrinsics = {
       // *** Table 7
 
       // %Array%
@@ -560,14 +614,8 @@
       ArrayProto_values: g.Array.prototype.values,
       // %AsyncFromSyncIteratorPrototype%
       // AsyncFromSyncIteratorPrototype, // Not reachable
-      // %AsyncFunction%
-      AsyncFunction,
       // %AsyncFunctionPrototype%
       AsyncFunctionPrototype,
-      // %AsyncGenerator%
-      AsyncGenerator,
-      // %AsyncGeneratorFunction%
-      AsyncGeneratorFunction,
       // %AsyncGeneratorPrototype%
       AsyncGeneratorPrototype,
       // %AsyncIteratorPrototype%
@@ -598,8 +646,6 @@
       Error: g.Error,
       // %ErrorPrototype%
       ErrorPrototype: g.Error.prototype,
-      // %eval%
-      eval: g.eval,
       // %EvalError%
       EvalError: g.EvalError,
       // %EvalErrorPrototype%
@@ -612,14 +658,8 @@
       Float64Array: g.Float64Array,
       // %Float64ArrayPrototype%
       Float64ArrayPrototype: g.Float64Array.prototype,
-      // %Function%
-      Function: g.Function,
       // %FunctionPrototype%
       FunctionPrototype: g.Function.prototype,
-      // %Generator%
-      Generator,
-      // %GeneratorFunction%
-      GeneratorFunction,
       // %GeneratorPrototype%
       GeneratorPrototype,
       // %Int8Array%
@@ -770,19 +810,19 @@
 
       Intl: g.Intl,
 
-      // *** ESNext
+      // *** ESNext.
+      // This is in sharedIntrinsics because there's only one Realm constructor
+      // per RootRealm even though there's one Realm instance per Realm.
+      // Compartments use the Realm constructor from their parent RootRealm.
       Realm: g.Realm
     };
 
-    return intrinsics;
-  }
-
-  function IsCallable(obj) {
-    return typeof obj === 'function';
+    // sharedIntrinsics are per RootRealm
+    return sharedIntrinsics;
   }
 
   const Realm2RealmRec = new WeakMap();
-  const RealmProto2ContextRec = new WeakMap();
+  const RealmProto2UnsafeRec = new WeakMap();
 
   // buildChildRealm is immediately turned into a string, and this function is
   // never referenced again, because it closes over the wrong intrinsics
@@ -803,6 +843,9 @@
       try {
         return thunk();
       } catch (err) {
+        if (Object(err) !== err) {
+          throw err;
+        }
         let eName, eMessage;
         try {
           // The child environment might seek to use 'err' to reach the
@@ -835,9 +878,6 @@
       constructor(...args) {
         return doAndWrapError(() => Reflect.construct(BaseRealm, args, Realm));
       }
-      init() {
-        return doAndWrapError(() => descs.init.value.apply(this));
-      }
       get intrinsics() {
         return doAndWrapError(() => descs.intrinsics.get.apply(this));
       }
@@ -846,6 +886,16 @@
       }
       evaluate(...args) {
         return doAndWrapError(() => descs.evaluate.value.apply(this, args));
+      }
+      static makeRootRealm() {
+        return new Realm();
+      }
+      static makeCompartment() {
+        return new Realm({
+          transform: 'inherit',
+          isDirectEval: 'inherit',
+          intrinsics: 'inherit'
+        });
       }
     }
 
@@ -861,8 +911,8 @@
 
   const buildChildRealmString = `(${buildChildRealm})`;
 
-  function createRealmFacade(contextRec, BaseRealm) {
-    const { contextEval, contextGlobal } = contextRec;
+  function createRealmFacade(unsafeRec, BaseRealm) {
+    const { unsafeEval, unsafeGlobal } = unsafeRec;
 
     // The BaseRealm is the Realm class created by
     // the shim. It's only valid for the context where
@@ -878,12 +928,12 @@
     // values using the intrinsics of the realm's context.
 
     // Invoke the BaseRealm constructor with Realm as the prototype.
-    const Realm = contextEval(buildChildRealmString)(BaseRealm);
-    contextGlobal.Realm = Realm;
-    RealmProto2ContextRec.set(Realm.prototype, contextRec);
+    const Realm = unsafeEval(buildChildRealmString)(BaseRealm);
+    unsafeGlobal.Realm = Realm;
+    RealmProto2UnsafeRec.set(Realm.prototype, unsafeRec);
   }
 
-  function getGlobaObject(intrinsics) {
+  function getGlobalObject(intrinsics) {
     return create(intrinsics.ObjectPrototype);
   }
 
@@ -891,21 +941,22 @@
     // Divergence from specifications: the evaluators are tied to
     // a global and they are tied to a realm and to the intrinsics
     // of that realm.
-    const directEvalEvaluator = getDirectEvalEvaluator(realmRec);
-    const functionEvaluator = getFunctionEvaluator(realmRec);
+    const safeEvaluator = getSafeEvaluator(realmRec);
+    const functionEvaluator = getFunctionEvaluator(
+      realmRec.unsafeRec.unsafeFunction,
+      realmRec.unsafeRec.unsafeGlobal,
+      safeEvaluator
+    );
 
     // Limitation: export a direct evaluator.
-    const intrinsics = realmRec[Intrinsics];
-    intrinsics.eval = directEvalEvaluator;
-    intrinsics.Function = functionEvaluator;
-
-    realmRec[IsDirectEvalTrap] = directEvalEvaluator;
+    realmRec.safeEvaluators = { eval: safeEvaluator, Function: functionEvaluator };
   }
 
   function setDefaultBindings(realmRec) {
-    const intrinsics = realmRec[Intrinsics];
-    const descs = getStdLib(intrinsics);
-    defineProperties(realmRec[GlobalObject], descs);
+    const intrinsics = realmRec.sharedIntrinsics;
+    const safeEvaluators = realmRec.safeEvaluators;
+    const descs = getStdLib(intrinsics, safeEvaluators);
+    defineProperties(realmRec.globalObject, descs);
   }
 
   class Realm {
@@ -913,42 +964,50 @@
       const O = this;
       options = Object(options); // Todo: sanitize
 
-      let contextRec;
-      if (options.intrinsics === 'inherit') {
+      if (options.thisValue !== undefined) {
+        throw new TypeError('Realm only supports undefined thisValue.');
+      }
+
+      let unsafeRec;
+      if (
+        options.intrinsics === 'inherit' &&
+        options.isDirectEval === 'inherit' &&
+        options.transform === 'inherit'
+      ) {
         // In "inherit" mode, we create a compartment realm and inherit
         // the context since we share the intrinsics. We create a new
-        // set to allow us to define eval() anf Function() for the realm.
-        contextRec = RealmProto2ContextRec.get(getPrototypeOf(this));
-      } else if (options.intrinsics === undefined) {
+        // set to allow us to define eval() and Function() for the realm.
+
+        // Class constructor only has a [[Construct]] behavior and not
+        // a call behavior, therefore the use of "this" cannot be bound
+        // by an adversary.
+        unsafeRec = RealmProto2UnsafeRec.get(getPrototypeOf(this));
+      } else if (
+        options.intrinsics === undefined &&
+        options.isDirectEval === undefined &&
+        options.transform === undefined
+      ) {
         // When intrinics are not provided, we create a root realm
         // using the fresh set of new intrinics from a new context.
-        contextRec = createContextRec();
-        createRealmFacade(contextRec, Realm);
+        unsafeRec = createUnsafeRec(); // this repairs the constructors too
+        createRealmFacade(unsafeRec, Realm);
       } else {
-        // todo: this leaks the parent TypeError, from which the child can
-        // access .prototype and the parent's intrinsics
+        // note this would leak the parent TypeError, from which the child can
+        // access .prototype and the parent's intrinsics, except that the Realm
+        // facade catches all errors and translates them into local Error types
         throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
       }
-      const intrinsics = getIntrinsics(contextRec);
-      const globalObj = getGlobaObject(intrinsics);
+      const sharedIntrinsics = getSharedIntrinsics(unsafeRec.unsafeGlobal);
+      const globalObj = getGlobalObject(sharedIntrinsics);
 
       const realmRec = {
-        [ContextRec]: contextRec,
-        [Intrinsics]: intrinsics,
-        [GlobalObject]: globalObj,
-        [IsDirectEvalTrap]: undefined
+        unsafeRec,
+        sharedIntrinsics,
+        globalObject: globalObj,
+        safeEvaluators: undefined
       };
       Realm2RealmRec.set(O, realmRec);
 
-      const init = O.init;
-      if (!IsCallable(init)) throw new TypeError();
-      init.call(O);
-    }
-    init() {
-      const O = this;
-      if (typeof O !== 'object') throw new TypeError();
-      if (!Realm2RealmRec.has(O)) throw new TypeError();
-      const realmRec = Realm2RealmRec.get(O);
       createEvaluators(realmRec);
       setDefaultBindings(realmRec);
     }
@@ -957,7 +1016,7 @@
       if (typeof O !== 'object') throw new TypeError();
       if (!Realm2RealmRec.has(O)) throw new TypeError();
       const realmRec = Realm2RealmRec.get(O);
-      const intrinsics = realmRec[Intrinsics];
+      const intrinsics = realmRec.sharedIntrinsics;
       // The object returned has its prototype
       // match the ObjectPrototype of the realm.
       const obj = create(intrinsics.ObjectPrototype);
@@ -968,19 +1027,29 @@
       if (typeof O !== 'object') throw new TypeError();
       if (!Realm2RealmRec.has(O)) throw new TypeError();
       const realmRec = Realm2RealmRec.get(O);
-      return realmRec[GlobalObject];
+      return realmRec.globalObject;
     }
     evaluate(x) {
       const O = this;
       if (typeof O !== 'object') throw new TypeError();
       if (!Realm2RealmRec.has(O)) throw new TypeError();
       const realmRec = Realm2RealmRec.get(O);
-      const evaluator = realmRec[IsDirectEvalTrap];
+      const evaluator = realmRec.safeEvaluators.eval;
       return evaluator(`${x}`);
+    }
+    static makeRootRealm() {
+      return new Realm();
+    }
+    static makeCompartment() {
+      return new Realm({
+        transform: 'inherit',
+        isDirectEval: 'inherit',
+        intrinsics: 'inherit'
+      });
     }
   }
 
-  RealmProto2ContextRec.set(Realm.prototype, getCurrentContextRec());
+  RealmProto2UnsafeRec.set(Realm.prototype, getCurrentUnsafeRec());
 
   defineProperty(Realm.prototype, Symbol.toStringTag, {
     value: 'function Realm() { [shim code] }',
