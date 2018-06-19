@@ -5,12 +5,6 @@ import { getPrototypeOf } from './commons';
  * Named intrinsics: available as data properties of the global object.
  * Anonymous intrinsics: not otherwise reachable by own property name traversal.
  *
- * In preparation for placing, for example, the Function.prototype in the
- * intrinsics object from it will be accessible, first remove its
- * .contructor which currently points at the unsafe evaluator constructor.
- * Later, once we actually create the safe replacement constructors, we will
- * set these .contructor properties to point to them.
- *
  * https://tc39.github.io/ecma262/#table-7
  * https://tc39.github.io/ecma262/#table-73
  */
