@@ -8,8 +8,8 @@ import { getPrototypeOf } from './commons';
  * https://tc39.github.io/ecma262/#table-7
  * https://tc39.github.io/ecma262/#table-73
  */
-export function getSharedIntrinsics(contextGlobal) {
-  const g = contextGlobal;
+export function getSharedIntrinsics(unsafeRec) {
+  const { unsafeGlobal: g } = unsafeRec;
 
   // the .constructor properties on evaluator intrinsics should already be
   // fixed by this point, due to the sanitize() call inside createUnsafeRec()

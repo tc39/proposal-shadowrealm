@@ -13,7 +13,7 @@ function buildOptimizer(constants) {
   return `const {${constants.join(',')}} = arguments[0];`;
 }
 
-export function getScopedEvaluatorFactory(unsafeRec, constants) {
+export function createScopedEvaluatorFactory(unsafeRec, constants) {
   const { unsafeFunction } = unsafeRec;
 
   const optimizer = buildOptimizer(constants);
@@ -31,8 +31,8 @@ export function getScopedEvaluatorFactory(unsafeRec, constants) {
   `);
 }
 
-export function getSafeEvaluator(realmRec) {
-  const { unsafeRec, globalObject } = realmRec;
+export function createSafeEvaluator(unsafeRec, globalObject) {
+  const { unsafeGlobal, unsafeFunction } = unsafeRec;
 
   // This proxy has several functions:
   // 1. works with the sentinel to alternate between direct eval and confined eval.
@@ -41,13 +41,14 @@ export function getSafeEvaluator(realmRec) {
   const handler = new Handler(unsafeRec);
   const proxy = new Proxy(globalObject, handler);
 
-  const scopedEvaluator = unsafeRec.scopedEvaluatorFactory(proxy);
+  const scopedEvaluatorFactory = createScopedEvaluatorFactory(unsafeRec);
+  const scopedEvaluator = scopedEvaluatorFactory(proxy);
 
   // We use the the concise method syntax to create an eval without a
   // [[Construct]] behavior (such that the invocation "new eval()" throws
   // TypeError: eval is not a constructor"), but which still accepts a 'this'
   // binding.
-  const evaluator = {
+  const safeEval = {
     eval(src) {
       handler.useUnsafeEvaluator = true;
       try {
@@ -63,24 +64,26 @@ export function getSafeEvaluator(realmRec) {
 
   // Ensure that eval from any compartment in a root realm is an
   // instance of Function in any compartment of the same root realm.
-  const { unsafeGlobal, unsafeFunction } = unsafeRec;
-  setPrototypeOf(evaluator, unsafeFunction.prototype);
+  setPrototypeOf(safeEval, unsafeFunction.prototype);
 
-  defineProperty(evaluator, unsafeGlobal.Symbol.toStringTag, {
+  defineProperty(safeEval, unsafeGlobal.Symbol.toStringTag, {
     value: 'function eval() { [shim code] }',
     writable: false,
     enumerable: false,
     configurable: true
   });
-  return evaluator;
+
+  return safeEval;
 }
 
 /**
  * A safe version of the native Function which relies on
  * the safety of evalEvaluator for confinement.
  */
-export function getFunctionEvaluator(unsafeFunction, unsafeGlobal, safeEvaluator) {
-  const SafeFunction = function Function(...params) {
+export function createFunctionEvaluator(unsafeRec, safeEval) {
+  const { unsafeFunction, unsafeGlobal } = unsafeRec;
+
+  const safeFunction = function Function(...params) {
     const functionBody = `${params.pop()}` || '';
     let functionParams = `${params.join(',')}`;
 
@@ -107,24 +110,25 @@ export function getFunctionEvaluator(unsafeFunction, unsafeGlobal, safeEvaluator
 
     const src = `(function(${functionParams}){\n${functionBody}\n})`;
 
-    return safeEvaluator(src);
+    return safeEval(src);
   };
 
   // Ensure that Function from any compartment in a root realm can be used
   // with instance checks in any compartment of the same root realm.
-  setPrototypeOf(SafeFunction, unsafeFunction.prototype);
+  setPrototypeOf(safeFunction, unsafeFunction.prototype);
 
   // Ensure that any function created in any compartment in a root realm is an
   // instance of Function in any compartment of the same root ralm.
-  defineProperty(SafeFunction, 'prototype', { value: unsafeFunction.prototype });
+  defineProperty(safeFunction, 'prototype', { value: unsafeFunction.prototype });
 
   // Provide a custom output without overwriting the Function.prototype.toString
   // which is called by some libraries.
-  defineProperty(SafeFunction, unsafeGlobal.Symbol.toStringTag, {
+  defineProperty(safeFunction, unsafeGlobal.Symbol.toStringTag, {
     value: 'function Function() { [shim code] }',
     writable: false,
     enumerable: false,
     configurable: true
   });
-  return SafeFunction;
+
+  return safeFunction;
 }
