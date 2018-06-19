@@ -1,4 +1,4 @@
-import { createUnsafeRec, createCurrentUnsafeRec } from './context';
+import { createNewUnsafeRec, createCurrentUnsafeRec } from './context';
 import { createSafeEvaluator, createFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getSharedIntrinsics } from './intrinsics';
@@ -17,7 +17,10 @@ const RealmProto2UnsafeRec = new WeakMap();
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
 
+// re-declare this as strict because this is stringified and re-evaluated
 function buildChildRealm(BaseRealm) {
+  'use strict';
+
   const errorConstructors = new Map([
     ['EvalError', EvalError],
     ['RangeError', RangeError],
@@ -150,6 +153,19 @@ function createRealmRec(unsafeRec) {
   return realmRec;
 }
 
+// todo naming
+function getRealmRecForRealm(O) {
+  if (Object(O) !== O) {
+    throw new TypeError();
+  } // catch non-objects
+  // spec just says throw TypeError
+  // todo: but shim should include a message
+  if (!Realm2RealmRec.has(O)) {
+    throw new TypeError();
+  }
+  return Realm2RealmRec.get(O);
+}
+
 export default class Realm {
   constructor(options) {
     options = Object(options); // Todo: sanitize
@@ -179,7 +195,7 @@ export default class Realm {
     ) {
       // When intrinics are not provided, we create a root realm
       // using the fresh set of new intrinics from a new context.
-      unsafeRec = createUnsafeRec(); // this repairs the constructors too
+      unsafeRec = createNewUnsafeRec(); // this repairs the constructors too
       createRealmFacade(unsafeRec, Realm);
     } else {
       // note this would leak the parent TypeError, from which the child can
@@ -191,10 +207,7 @@ export default class Realm {
     Realm2RealmRec.set(this, realmRec);
   }
   get intrinsics() {
-    const O = this;
-    if (typeof O !== 'object') throw new TypeError();
-    if (!Realm2RealmRec.has(O)) throw new TypeError();
-    const realmRec = Realm2RealmRec.get(O);
+    const realmRec = getRealmRecForRealm(this);
     const intrinsics = realmRec.sharedIntrinsics;
     // The object returned has its prototype
     // match the ObjectPrototype of the realm.
@@ -202,17 +215,11 @@ export default class Realm {
     return assign(obj, intrinsics);
   }
   get global() {
-    const O = this;
-    if (typeof O !== 'object') throw new TypeError();
-    if (!Realm2RealmRec.has(O)) throw new TypeError();
-    const realmRec = Realm2RealmRec.get(O);
+    const realmRec = getRealmRecForRealm(this);
     return realmRec.globalObject;
   }
   evaluate(x) {
-    const O = this;
-    if (typeof O !== 'object') throw new TypeError();
-    if (!Realm2RealmRec.has(O)) throw new TypeError();
-    const realmRec = Realm2RealmRec.get(O);
+    const realmRec = getRealmRecForRealm(this);
     const safeEval = realmRec.safeEval;
     return safeEval(`${x}`);
   }

@@ -9,10 +9,32 @@ import {
   getOwnPropertyDescriptor
 } from './commons';
 
+// TOCTTOU and .asString() games could enable attacker to skip some
+// intermediate ancestors, so we stringify/propify this once, first.
+function asSymbolOrString(s) {
+  if (typeof s === 'symbol') {
+    return s;
+  }
+  return `${s}`;
+}
+
 /**
  * Replace the legacy accessors of Object to comply with strict mode
  * and ES2016 semantics, we do this by redefining them while in 'use strict'
  * https://tc39.github.io/ecma262/#sec-object.prototype.__defineGetter__
+
+We need this repair, but woudl it be included when the real realms is integrated into the language.  If not, what are we getting here?
+
+Also note that this changes the primal versions.  
+
+Do we require this for security? Could we provide this in a library of
+"utility shims for client code that uses frozen realms"?
+
+On some platforms, the implementation of these functions act as if they are
+in sloppy mode: if they're invoked badly, they will expose the global object,
+so we need to repair these for security. Thus it is our responsibility to fix
+this, and we need to include repairAccessors. E.g. Chrome in 2016.
+
  */
 export function repairAccessors(unsafeRec) {
   const { unsafeGlobal: g } = unsafeRec;
@@ -37,7 +59,8 @@ export function repairAccessors(unsafeRec) {
       }
     },
     __lookupGetter__: {
-      value(prop) {
+      value(unfixedProp) {
+        const prop = asSymbolOrString(unfixedProp);
         let base = this;
         let desc;
         while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
@@ -47,7 +70,8 @@ export function repairAccessors(unsafeRec) {
       }
     },
     __lookupSetter__: {
-      value(prop) {
+      value(unfixedProp) {
+        const prop = asSymbolOrString(unfixedProp);
         let base = this;
         let desc;
         while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
