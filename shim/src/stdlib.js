@@ -10,7 +10,7 @@ export function getStdLib(intrinsics, safeEvaluators) {
   // All the following stdlib items have the same name on both our intrinsics
   // object and on the global object. Unlike Infinity/NaN/undefined, these
   // should all be writable and configurable.
-  const intrinsicNames = [
+  const namedIntrinsics = [
     // *** 18.2 Function Properties of the Global Object
 
     // 'eval', // comes from safeEvaluators instead
@@ -82,7 +82,7 @@ export function getStdLib(intrinsics, safeEvaluators) {
     'Realm'
   ];
 
-  for (const name of intrinsicNames) {
+  for (const name of namedIntrinsics) {
     descriptors[name] = {
       value: intrinsics[name],
       writable: true,
