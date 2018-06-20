@@ -1,0 +1,33 @@
+unscopables: with(foo) should not say that 'foo' has, e.g. hasOwnProperty
+
+ with(foo):
+   hasOwnProperty('bar') // should not use foo.hasOwnProperty
+
+document[Symbol.unscopables] === ['append', 'prepend']
+
+undeniables
+unconscionables
+uncomprehensibles
+uncorrigibles
+
+
+
+buildOptimizer:
+* scan safeGlobal, find own properties which have valid variable names
+  (regexp) and whose descriptors say they're unwritable and unconfigurable
+  * "how hard could it be?" A: unicode.
+  * this is merely an optimization, so limiting ourselves to valid ASCII
+    variable names is ok.
+  * this also removes the potential injection attack from getting an array
+    with commas in the members
+
+
+test('function-unbalanced-comments', t => {
+  const r = Realm.makeRootRealm();
+  r.global.evil = 0;
+  const evilFunc = '// */this.evil = 666; function(a) { return b;\n ';
+  const f1 = new r.global.Function('a', '/*', evilFunc);
+  t.notEqual(r.global.evil, 666);
+  // we never actually invoke the function, we only parse it
+  t.end();
+});
