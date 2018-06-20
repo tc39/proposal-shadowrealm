@@ -1,6 +1,6 @@
 import test from 'tape';
 import Realm from '../../src/realm';
-import { createNewUnsafeRec } from '../../src/context';
+import { createNewUnsafeRec } from '../../src/unsafeRec';
 
 test('typeof', t => {
   t.throws(() => DEFINITELY_NOT_DEFINED, ReferenceError); // eslint-disable-line

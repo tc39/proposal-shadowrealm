@@ -103,7 +103,7 @@ function createScopedEvaluatorFactory(unsafeRec, constants) {
 }
 
 export function createSafeEvaluator(unsafeRec, safeGlobal) {
-  const { unsafeGlobal, unsafeFunction } = unsafeRec;
+  const { unsafeFunction } = unsafeRec;
 
   // This proxy has several functions:
   // 1. works with the sentinel to alternate between direct eval and confined eval.

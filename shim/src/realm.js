@@ -1,4 +1,4 @@
-import { createNewUnsafeRec, createCurrentUnsafeRec } from './context';
+import { createNewUnsafeRec, createCurrentUnsafeRec } from './unsafeRec';
 import { createSafeEvaluator, createFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getSharedIntrinsics } from './intrinsics';
