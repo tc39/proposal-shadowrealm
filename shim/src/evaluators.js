@@ -196,7 +196,9 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
       // compile. We avoid this problem by checking for this early on.
 
       // note: v8 throws just like this does, but chrome accepts e.g. 'a = new Date()'
-      throw new unsafeGlobal.SyntaxError('shim limitation: Function arg string contains parenthesis');
+      throw new unsafeGlobal.SyntaxError(
+        'shim limitation: Function arg string contains parenthesis'
+      );
       // todo: shim integrity threat if they change SyntaxError
     }
 

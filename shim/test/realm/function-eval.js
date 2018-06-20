@@ -26,8 +26,7 @@ test('function-reject-paren-default', t => {
   // this ought to be accepted, but our shim is conservative about parenthesis
   const r = Realm.makeRootRealm();
   const goodFunc = 'return foo';
-  t.throws(() => new r.global.Function('foo, a = new Date(0)', goodFunc),
-           r.global.SyntaxError);
+  t.throws(() => new r.global.Function('foo, a = new Date(0)', goodFunc), r.global.SyntaxError);
   t.end();
 });
 

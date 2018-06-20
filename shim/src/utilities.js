@@ -9,7 +9,7 @@ export function assert(condition, message) {
 // not throw an Error object which could be captured by child-Realm code and
 // used to access the (too-powerful) primal-realm Error object.
 
-export function throwTantrum(s, err=undefined) {
+export function throwTantrum(s, err = undefined) {
   const msg = `please report internal shim error: ${s}`;
   console.log(msg);
   if (err) {
@@ -18,4 +18,3 @@ export function throwTantrum(s, err=undefined) {
   }
   throw msg;
 }
-
