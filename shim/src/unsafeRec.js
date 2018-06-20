@@ -14,33 +14,33 @@ if ((!isNode && !isBrowser) || (isNode && isBrowser)) {
 }
 const vm = isNode ? require('vm') : undefined;
 
-// note: in a node module, the top-level 'this' is not the global object,
-// however an indirect eval of 'this' will be the correct global object
-// todo: in a node 'vm' context, which 'this' do we get?
+// note: in a node module, the top-level 'this' is not the global object
+// (it's *something* but we aren't sure what), however an indirect eval of
+// 'this' will be the correct global object.
 
-const unsafeGlobalSrc = `'use strict'; this`;
+const unsafeGlobalSrc = "'use strict'; this";
 const unsafeGlobalEvalSrc = `(0, eval)("'use strict'; this")`;
 
-function createNewUnsafeGlobalNode() {
+function createNewUnsafeGlobalForNode() {
   // Use unsafeGlobalEvalSrc to ensure we get the right 'this'.
-  const context = vm.runInNewContext(unsafeGlobalEvalSrc);
+  const unsafeGlobal = vm.runInNewContext(unsafeGlobalEvalSrc);
 
-  return context;
+  return unsafeGlobal;
 }
 
-function createNewUnsafeGlobalBrowser() {
+function createNewUnsafeGlobalForBrowser() {
   const iframe = document.createElement('iframe');
   iframe.style.display = 'none';
 
   document.body.appendChild(iframe);
-  const context = iframe.contentWindow.eval(unsafeGlobalSrc);
+  const unsafeGlobal = iframe.contentWindow.eval(unsafeGlobalSrc);
   // todo: we keep the iframe attached. At one point, removing the iframe
   // caused its global object to lose its intrinsics. todo: re-test this.
 
-  return context;
+  return unsafeGlobal;
 }
 
-const getNewUnsafeGlobal = isNode ? createNewUnsafeGlobalNode : createNewUnsafeGlobalBrowser;
+const getNewUnsafeGlobal = isNode ? createNewUnsafeGlobalForNode : createNewUnsafeGlobalForBrowser;
 
 // The unsafeRec is shim-specific. It acts as the mechanism to obtain a fresh
 // set of intrinsics together with their associated eval and Function
