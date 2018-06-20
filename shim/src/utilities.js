@@ -5,10 +5,12 @@
 
 export function throwTantrum(s, err = undefined) {
   const msg = `please report internal shim error: ${s}`;
-  console.log(msg);
+  // note: we really do want to log these 'should never happen' things. there
+  // might be a better way to convince the linter, though.
+  console.log(msg); // eslint-disable-line
   if (err) {
-    console.log(`${err}`);
-    console.log(`${err.stack}`);
+    console.log(`${err}`); // eslint-disable-line
+    console.log(`${err.stack}`); // eslint-disable-line
   }
   throw msg;
 }
