@@ -1,121 +1,74 @@
+import { createRealmFacade } from './realmFacade';
 import { createNewUnsafeRec, createCurrentUnsafeRec } from './unsafeRec';
 import { createSafeEvaluator, createFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getSharedIntrinsics } from './intrinsics';
-import { create, defineProperty, defineProperties, freeze, getPrototypeOf } from './commons';
+import { create, defineProperties, freeze } from './commons';
 
-const Realm2RealmRec = new WeakMap();
-const RealmProto2UnsafeRec = new WeakMap();
+// Create a registry to mimic a private static members on the realm classes.
+// We define it in the same module and do not export it.
 
-// buildChildRealm is immediately turned into a string, and this function is
-// never referenced again, because it closes over the wrong intrinsics
-function buildChildRealm(BaseRealm) {
-  const errorConstructors = new Map([
-    ['EvalError', EvalError],
-    ['RangeError', RangeError],
-    ['ReferenceError', ReferenceError],
-    ['SyntaxError', SyntaxError],
-    ['TypeError', TypeError],
-    ['URIError', URIError]
-  ]);
+const UnsafeRecForRealm = new WeakMap();
 
-  // Like Realm.apply except that it catches anything thrown and rethrows it
-  // as an Error from this realm
-  function doAndWrapError(thunk) {
-    try {
-      return thunk();
-    } catch (err) {
-      if (Object(err) !== err) {
-        // err is a primitive value, which is safe to rethrow
-        throw err;
-      }
-      let eName, eMessage;
-      try {
-        // The child environment might seek to use 'err' to reach the
-        // parent's intrinsics and corrupt them. `${err.name}` will cause
-        // string coercion of 'err.name'. If err.name is an object (probably
-        // a String of the parent Realm), the coercion uses
-        // err.name.toString(), which is under the control of the parent. If
-        // err.name were a primitive (e.g. a number), it would use
-        // Number.toString(err.name), using the child's version of Number
-        // (which the child could modify to capture its argument for later
-        // use), however primitives don't have properties like .prototype so
-        // they aren't useful for an attack.
-        eName = `${err.name}`;
-        eMessage = `${err.message}`;
-        // eName and eMessage are now child-realm primitive strings, and safe
-        // to expose
-      } catch (ignored) {
-        // if err.name.toString() throws, keep the (parent realm) Error away
-        // from the child
-        throw new Error('unknown error');
-      }
-      const ErrorConstructor = errorConstructors.get(eName) || Error;
-      // note: this drops the stack trace. todo: stringify and copy
-      throw new ErrorConstructor(eMessage);
-    }
+function getUnsafeRecForRealm(Realm) {
+  if (Object(Realm) !== Realm) {
+    // Detect non-objects.
+    throw new TypeError();
   }
-
-  const descs = Object.getOwnPropertyDescriptors(BaseRealm.prototype);
-
-  class Realm {
-    constructor(...args) {
-      // todo: protect these 'apply' values
-      // use the constructor from BaseRealm,
-      return doAndWrapError(() => Reflect.construct(BaseRealm, args, Realm));
-    }
-    get global() {
-      // todo: protect these 'apply' values
-      return doAndWrapError(() => descs.global.get.apply(this));
-    }
-    evaluate(...args) {
-      return doAndWrapError(() => descs.evaluate.value.apply(this, args));
-    }
-    static makeRootRealm() {
-      return new Realm();
-    }
-    static makeCompartment() {
-      return new Realm({
-        transform: 'inherit',
-        isDirectEval: 'inherit',
-        intrinsics: 'inherit'
-      });
-    }
+  // spec just says throw TypeError
+  // todo: but shim should include a message
+  if (!UnsafeRecForRealm.has(Realm)) {
+    // Realm has no unsafeRec. Shoud not proceed.
+    throw new TypeError();
   }
-
-  Object.defineProperty(Realm.prototype, 'toString', {
-    value: () => 'function Realm() { [shim code] }',
-    writable: false,
-    enumerable: false,
-    configurable: true
-  });
-
-  return Realm;
+  return UnsafeRecForRealm.get(Realm);
 }
 
-// the parentheses means we don't bind the 'buildChildRealm' name inside the
-// child's namespace. this would accept an anonymous function declaration.
-// function expression (not a declaration) so it has a completion value.
-const buildChildRealmString = `'use strict'; (${buildChildRealm})`;
+function setUnsafeRecForRealm(Realm, unsafeRec) {
+  if (Object(Realm) !== Realm) {
+    // Detect non-objects.
+    throw new TypeError();
+  }
+  // spec just says throw TypeError
+  // todo: but shim should include a message
+  if (UnsafeRecForRealm.has(Realm)) {
+    // Attempt to change an existing unsafeRec on a Realm. Shoud not proceed.
+    throw new TypeError();
+  }
+  UnsafeRecForRealm.set(Realm, unsafeRec);
+}
 
-function createRealmFacade(unsafeRec, BaseRealm) {
-  const { unsafeEval } = unsafeRec;
+// Create a registry to mimic a private members on the realm imtances.
+// We define it in the same module and do not export it.
 
-  // The BaseRealm is the Realm class created by
-  // the shim. It's only valid for the context where
-  // it was parsed.
+const RealmRecForRealmInstance = new WeakMap();
 
-  // The Realm facade is a lightweight class built in the
-  // context a different context, that provide a fully
-  // functional Realm class using the intrisics
-  // of that context.
+function getRealmRecForRealmInstance(realm) {
+  if (Object(realm) !== realm) {
+    // Detect non-objects.
+    throw new TypeError();
+  }
+  // spec just says throw TypeError
+  // todo: but shim should include a message
+  if (!RealmRecForRealmInstance.has(realm)) {
+    // Realm instance has no realmRec. Shoud not proceed.
+    throw new TypeError();
+  }
+  return RealmRecForRealmInstance.get(realm);
+}
 
-  // This process is simplified because all methods
-  // and properties on a realm instance already return
-  // values using the intrinsics of the realm's context.
-
-  // Invoke the BaseRealm constructor with Realm as the prototype.
-  return unsafeEval(buildChildRealmString)(BaseRealm);
+function setRealmRecForRealmInstance(realm, realmRec) {
+  if (Object(realm) !== realm) {
+    // Detect non-objects.
+    throw new TypeError();
+  }
+  // spec just says throw TypeError
+  // todo: but shim should include a message
+  if (RealmRecForRealmInstance.has(realm)) {
+    // Attempt to change an existing realmRec on a realm instance. Shoud not proceed.
+    throw new TypeError();
+  }
+  RealmRecForRealmInstance.set(realm, realmRec);
 }
 
 // initialize the global variables for the new Realm
@@ -142,26 +95,9 @@ function createRealmRec(unsafeRec) {
   return realmRec;
 }
 
-// todo naming
-function getRealmRecForRealm(O) {
-  if (Object(O) !== O) {
-    throw new TypeError();
-  } // catch non-objects
-  // spec just says throw TypeError
-  // todo: but shim should include a message
-  if (!Realm2RealmRec.has(O)) {
-    throw new TypeError();
-  }
-  return Realm2RealmRec.get(O);
-}
-
-export default class Realm {
+class BaseRealm {
   constructor(options) {
     options = Object(options); // Todo: sanitize
-
-    if (options.thisValue !== undefined) {
-      throw new TypeError('Realm only supports undefined thisValue.');
-    }
 
     let unsafeRec;
     if (
@@ -184,7 +120,7 @@ export default class Realm {
       // confused deputy / private field question. A: it can't be, we're in a
       // constructor, and constructors can't be invoked directly as
       // functions, using a class protects us here
-      unsafeRec = RealmProto2UnsafeRec.get(this.constructor);
+      unsafeRec = getUnsafeRecForRealm(this.constructor);
     } else if (
       options.intrinsics === undefined &&
       options.isDirectEval === undefined &&
@@ -198,12 +134,12 @@ export default class Realm {
 
       // Define newRealm onto new unsafeGlobal, so it can be copied onto the
       // safeGlobal like the rest of the intrinsics.
-      const newRealm = createRealmFacade(unsafeRec, Realm);
+      const newRealm = createRealmFacade(unsafeRec, BaseRealm);
       unsafeRec.unsafeGlobal.Realm = newRealm;
 
       // todo: make a library function named 'register', add more checking
       // todo: use 'newRealm' as the key, not 'newRealm.prototype'
-      RealmProto2UnsafeRec.set(newRealm, unsafeRec);
+      setUnsafeRecForRealm(newRealm, unsafeRec);
     } else {
       // note this would leak the parent TypeError, from which the child can
       // access .prototype and the parent's intrinsics, except that the Realm
@@ -215,37 +151,23 @@ export default class Realm {
 
     // note: we never invoke a method on 'this', we only use it as a key in
     // the weakmap. Never say "this." anywhere.
-    Realm2RealmRec.set(this, realmRec);
+    setRealmRecForRealmInstance(this, realmRec);
   }
   get global() {
-    const { safeGlobal } = getRealmRecForRealm(this);
+    const { safeGlobal } = getRealmRecForRealmInstance(this);
     return safeGlobal;
   }
   evaluate(x) {
-    const { safeEval } = getRealmRecForRealm(this);
+    const { safeEval } = getRealmRecForRealmInstance(this);
     return safeEval(x);
-  }
-  static makeRootRealm() {
-    return new Realm();
-  }
-  static makeCompartment() {
-    return new Realm({
-      transform: 'inherit',
-      isDirectEval: 'inherit',
-      intrinsics: 'inherit'
-    });
   }
 }
 
-defineProperty(Realm.prototype, 'toString', {
-  value: () => 'function Realm() { [shim code] }',
-  writable: false,
-  enumerable: false,
-  configurable: true
-});
+// Create the current unsafeRec from the current "primal" realm (the realm
+// where the Realm shim is loaded and executed).
+const currentUnsafeRec = createCurrentUnsafeRec();
+const Realm = createRealmFacade(currentUnsafeRec, BaseRealm);
+setUnsafeRecForRealm(Realm, currentUnsafeRec);
+currentUnsafeRec.unsafeGlobal.Realm = Realm;
 
-
-// Create the unsafeRec from the current realm (the realm where the
-// Realm shim is loaded and executed).
-RealmProto2UnsafeRec.set(Realm, createCurrentUnsafeRec());
-
+export default Realm;

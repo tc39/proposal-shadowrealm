@@ -5,7 +5,7 @@ test('set globals', t => {
   const r = Realm.makeRootRealm();
 
   // strict mode should prevent this
-  t.throws(() => r.evaluate('evil = 666'), r.global.ReferenceError);
+  t.throws(() => r.evaluate('evil = 666'), ReferenceError);
 
   r.global.victim = 3;
   r.evaluate('victim = 666');

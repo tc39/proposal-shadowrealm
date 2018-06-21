@@ -19,12 +19,12 @@ test('some Realm globals are immutable', t => {
   t.plan(6);
   const r = Realm.makeRootRealm();
 
-  t.throws(() => r.evaluate('Infinity = 4'), r.global.TypeError); // strict mode
+  t.throws(() => r.evaluate('Infinity = 4'), TypeError); // strict mode
   t.equal(r.evaluate('Infinity'), Infinity);
 
-  t.throws(() => r.evaluate('NaN = 4'), r.global.TypeError);
+  t.throws(() => r.evaluate('NaN = 4'), TypeError);
   t.notEqual(r.evaluate('NaN'), 4);
 
-  t.throws(() => r.evaluate('undefined = 4'), r.global.TypeError);
+  t.throws(() => r.evaluate('undefined = 4'), TypeError);
   t.equal(r.evaluate('undefined'), undefined);
 });
