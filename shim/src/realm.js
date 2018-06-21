@@ -1,9 +1,7 @@
 import { createRealmFacade } from './realmFacade';
 import { createNewUnsafeRec, createCurrentUnsafeRec } from './unsafeRec';
 import { createSafeEvaluator, createFunctionEvaluator } from './evaluators';
-import { getStdLib } from './stdlib';
-import { getSharedIntrinsics } from './intrinsics';
-import { create, defineProperties, freeze } from './commons';
+import { create, defineProperty, defineProperties, freeze } from './commons';
 
 // Create a registry to mimic a private static members on the realm classes.
 // We define it in the same module and do not export it.
@@ -71,28 +69,52 @@ function setRealmRecForRealmInstance(realm, realmRec) {
   RealmRecForRealmInstance.set(realm, realmRec);
 }
 
-// initialize the global variables for the new Realm
-function setDefaultBindings(realmRec) {
-  const descs = getStdLib(realmRec);
-  defineProperties(realmRec.safeGlobal, descs);
+// Initialize the global variables for the new Realm.
+function setDefaultBindings(unsafeGlobalDescs, safeGlobal, safeEval, safeFunction) {
+  defineProperties(safeGlobal, unsafeGlobalDescs);
+
+  defineProperty(safeGlobal, 'eval', {
+    value: safeEval,
+    writable: true,
+    configurable: true
+  });
+
+  defineProperty(safeGlobal, 'Function', {
+    value: safeFunction,
+    writable: true,
+    configurable: true
+  });
 }
 
 function createRealmRec(unsafeRec) {
-  const sharedIntrinsics = getSharedIntrinsics(unsafeRec);
-  const safeGlobal = create(sharedIntrinsics.ObjectPrototype);
+  const { unsafeGlobalDescs, unsafeGlobal } = unsafeRec;
 
+  const safeGlobal = create(unsafeGlobal.Object.prototype);
   const safeEval = createSafeEvaluator(unsafeRec, safeGlobal);
   const safeFunction = createFunctionEvaluator(unsafeRec, safeEval);
 
+  setDefaultBindings(unsafeGlobalDescs, safeGlobal, safeEval, safeFunction);
+
   const realmRec = freeze({
-    sharedIntrinsics,
     safeGlobal,
     safeEval,
     safeFunction
   });
 
-  setDefaultBindings(realmRec);
   return realmRec;
+}
+
+// Define newRealm onto new unsafeGlobalDescs, so it can be defined in
+// the safeGlobal like the rest of the shared globals.
+function createRealmGlobalObject(unsafeRec) {
+  // eslint-disable-next-line no-use-before-define
+  const Realm = createRealmFacade(unsafeRec, BaseRealm);
+  unsafeRec.unsafeGlobalDescs.Realm = {
+    value: Realm,
+    writable: true,
+    configurable: true
+  };
+  return Realm;
 }
 
 class BaseRealm {
@@ -132,14 +154,10 @@ class BaseRealm {
       // The unsafe record is returned with its constructors repaired.
       unsafeRec = createNewUnsafeRec();
 
-      // Define newRealm onto new unsafeGlobal, so it can be copied onto the
-      // safeGlobal like the rest of the intrinsics.
-      const newRealm = createRealmFacade(unsafeRec, BaseRealm);
-      unsafeRec.unsafeGlobal.Realm = newRealm;
-
-      // todo: make a library function named 'register', add more checking
-      // todo: use 'newRealm' as the key, not 'newRealm.prototype'
-      setUnsafeRecForRealm(newRealm, unsafeRec);
+      // Define Realm onto new unsafeGlobalDescs, so it can be copied onto the
+      // safeGlobal like the rest of the .
+      const Realm = createRealmGlobalObject(unsafeRec);
+      setUnsafeRecForRealm(Realm, unsafeRec);
     } else {
       // note this would leak the parent TypeError, from which the child can
       // access .prototype and the parent's intrinsics, except that the Realm
@@ -168,6 +186,5 @@ class BaseRealm {
 const currentUnsafeRec = createCurrentUnsafeRec();
 const Realm = createRealmFacade(currentUnsafeRec, BaseRealm);
 setUnsafeRecForRealm(Realm, currentUnsafeRec);
-currentUnsafeRec.unsafeGlobal.Realm = Realm;
 
 export default Realm;
