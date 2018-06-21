@@ -17,10 +17,10 @@ test('confinement evaluation constructor', t => {
 
   t.throws(() => {
     r.evaluate('({}).constructor.constructor("return this")()');
-  }, r.global.Error);
+  }, Error);
   t.throws(() => {
     r.evaluate('Error.__proto__.constructor("return this")()');
-  }, r.global.Error);
+  }, Error);
 });
 
 test('confinement evaluation eval', t => {
