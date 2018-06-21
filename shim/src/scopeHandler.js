@@ -31,7 +31,7 @@ export class ScopeHandler {
     }
 
     if (prop === Symbol.unscopables) {
-      // safe to return a primal realm Object here because the only code that
+      // Safe to return a primal realm Object here because the only code that
       // can do a get() on a non-string is the internals of with() itself,
       // and the only thing it does is to look for properties on it. User
       // code cannot do a lookup on non-strings.
@@ -44,6 +44,16 @@ export class ScopeHandler {
     }
     // Prevent the lookup for other properties.
     return undefined;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  set(target, prop, value) {
+    // Set the value on the shadow. The target itself is an empty
+    // object that is only used to prevent a froxen eval property.
+    // eslint-disable-next-line no-proto
+    target.__proto__[prop] = value;
+    // Return true after successful set.
+    return true;
   }
 
   // we need has() to return false for some names to prevent the lookup  from

@@ -2,16 +2,17 @@
 // https://github.com/v8/v8/blob/master/src/builtins/builtins-function.cc
 
 import {
-  defineProperty,
-  setPrototypeOf,
-  getPrototypeOf,
-  getOwnPropertyNames,
-  getOwnPropertyDescriptors,
-  arrayPush,
-  arrayPop,
-  arrayJoin,
   apply,
+  arrayJoin,
+  arrayPop,
+  arrayPush,
+  create,
+  defineProperty,
+  getOwnPropertyDescriptors,
+  getOwnPropertyNames,
+  getPrototypeOf,
   regexpMatch,
+  setPrototypeOf,
   stringIncludes
 } from './commons';
 import { ScopeHandler } from './scopeHandler';
@@ -107,10 +108,14 @@ export function createSafeEvaluator(unsafeRec, safeGlobal) {
 
   // This proxy has several functions:
   // 1. works with the sentinel to alternate between direct eval and confined eval.
-  // 2. shadows all properties of the hidden global by declaring them as undefined.
-  // 3. resolves all existing properties of the sandboxed global.
+  // 2. shadows all properties of the unsafe global by declaring them as undefined.
+  // 3. resolves all existing properties of the safe global.
+  // 4. uses an empty object as the target, with the safe global as its prototype,
+  // to bypass a proxy invariant that would prevent alternating between different
+  // values of eval if the user was to freeze the eval property on the safe global.
   const scopeHandler = new ScopeHandler(unsafeRec);
-  const scopeProxy = new Proxy(safeGlobal, scopeHandler);
+  const scopeTarget = create(safeGlobal);
+  const scopeProxy = new Proxy(scopeTarget, scopeHandler);
 
   const optimizableGlobals = getOptimizableGlobals(safeGlobal);
   const scopedEvaluatorFactory = createScopedEvaluatorFactory(unsafeRec, optimizableGlobals);
@@ -188,7 +193,8 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
     // function body. We coerce the body into a real string above to prevent
     // someone from passing an object with a toString() that returns a safe
     // string the first time, but an evil string the second time.
-    new unsafeFunction(functionBody); // eslint-disable-line
+    // eslint-disable-next-line no-new, new-cap
+    new unsafeFunction(functionBody);
 
     if (apply(stringIncludes, functionParams, [')'])) {
       // If the formal parameters string include ) - an illegal
