@@ -33,7 +33,7 @@ function getOptimizableGlobals(safeGlobal) {
     // involve unicode characters. We use 'apply' rather than /../.match() in
     // case RegExp has been poisoned.
 
-    if (!apply(regexpMatch, identifierPattern, [name])) continue;
+    if (!regexpMatch(identifierPattern, name)) continue;
 
     // getters will not have .writable, don't let the falsyness of
     // 'undefined' trick us: test with === false, not ! . However descriptors
@@ -53,13 +53,13 @@ function getOptimizableGlobals(safeGlobal) {
     if ('set' in desc) continue;
 
     // protect against post-initialization corruption of primal realm Array
-    apply(arrayPush, constants, [name]);
+    arrayPush(constants, name);
   }
   return constants;
 }
 
 function buildOptimizer(constants) {
-  return `const {${apply(arrayJoin, constants, [','])}} = arguments[0];`;
+  return `const {${arrayJoin(constants, ',')}} = arguments[0];`;
 }
 
 function createScopedEvaluatorFactory(unsafeRec, constants) {
@@ -159,12 +159,6 @@ export function createSafeEvaluator(unsafeRec, safeGlobal) {
   assert(getPrototypeOf(safeEval).constructor !== Function, 'hide Function');
   assert(getPrototypeOf(safeEval).constructor !== unsafeFunction, 'hide unsafeFunction');
 
-  // todo: we might not need 'unsafeGlobal.Symbol'.. just 'Symbol', since
-  // Symbols are === across realms
-
-  // note: eval.toString usually shares a method with
-  // Function.prototype.toString, but ours has a different method
-
   // note: be careful to not leak our primal Function.prototype by setting
   // this to a plain arrow function. Now that we have safeEval, use it.
   defineProperty(safeEval, 'toString', {
@@ -185,8 +179,8 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
   const { unsafeFunction, unsafeGlobal } = unsafeRec;
 
   const safeFunction = function Function(...params) {
-    const functionBody = `${apply(arrayPop, params, [])}` || '';
-    let functionParams = `${apply(arrayJoin, params, [','])}`;
+    const functionBody = `${arrayPop(params)}` || '';
+    let functionParams = `${arrayJoin(params, ',')}`;
 
     // Is this a real functionBody, or is someone attempting an injection
     // attack? This will throw a SyntaxError if the string is not actually a
@@ -196,7 +190,7 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
     // eslint-disable-next-line no-new, new-cap
     new unsafeFunction(functionBody);
 
-    if (apply(stringIncludes, functionParams, [')'])) {
+    if (stringIncludes(functionParams, ')')) {
       // If the formal parameters string include ) - an illegal
       // character - it may make the combined function expression
       // compile. We avoid this problem by checking for this early on.
@@ -234,7 +228,7 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
   // todo: write a test case
 
   // Provide a custom output without overwriting the Function.prototype.toString
-  // which is called by some libraries.
+  // which is called by some third-party libraries.
   defineProperty(safeFunction, 'toString', {
     value: safeEval("() => 'function Function() { [shim code] }'"),
     writable: false,
