@@ -80,3 +80,13 @@ primal realm. Might let us avoid the weakmaps?
 make the Realm *constructor* be the weakmap key, not the prototype?
 
 
+Two reasons why the function. constructor of the root realm should always throw:
+* the mike samuel attack: adversary-controlled data fed into an innocent
+  program can cause it to accidentally navigate to the root realm's funtion
+  constructor and then feed a string to it which is code, result is a mild
+  form of injection attack. The injection doesn't abuse authority, but it
+  causes unreviewed behavior in the realm
+* getting to the constructor via the .constructor link doesn't lead to a
+  compartment-speciifc behavior, so if it has any non-erroneous behavior at
+  all, it would be invisibly incompatible, which would cause confusion. if we
+  can't be compatible, we should thrrow an error.
