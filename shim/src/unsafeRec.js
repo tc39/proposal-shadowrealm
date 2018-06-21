@@ -1,4 +1,4 @@
-import { getUnsafeGlobalDescs } from './stdlib';
+import { getSharedGlobalDescs } from './stdlib';
 import { repairAccessors } from './accessors';
 import { repairFunctions } from './functions';
 import { freeze } from './commons';
@@ -50,11 +50,11 @@ const getNewUnsafeGlobal = isNode ? createNewUnsafeGlobalForNode : createNewUnsa
 // mix-and-match them from different contexts, that would enable some
 // attacks.
 function createUnsafeRec(unsafeGlobal) {
-  const unsafeGlobalDescs = getUnsafeGlobalDescs(unsafeGlobal);
+  const sharedGlobalDescs = getSharedGlobalDescs(unsafeGlobal);
 
   return freeze({
     unsafeGlobal,
-    unsafeGlobalDescs,
+    sharedGlobalDescs,
     unsafeEval: unsafeGlobal.eval,
     unsafeFunction: unsafeGlobal.Function
   });

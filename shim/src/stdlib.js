@@ -73,7 +73,7 @@ const sharedGlobalPropertyNames = [
   // 'Realm' // Comes from createRealmGlobalObject()
 ];
 
-export function getUnsafeGlobalDescs(unsafeGlobal) {
+export function getSharedGlobalDescs(unsafeGlobal) {
   const descriptors = {
     // *** 18.1 Value Properties of the Global Object
     Infinity: { value: Infinity },
