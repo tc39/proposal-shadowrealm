@@ -15,6 +15,7 @@ export function throwTantrum(s, err = undefined) {
     // eslint-disable-next-line no-console
     console.log(`${err.stack}`);
   }
+  debugger;
   throw msg;
 }
 
