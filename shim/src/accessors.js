@@ -9,7 +9,14 @@ import {
   getOwnPropertyDescriptor
 } from './commons';
 
-import { asPropertyName } from './utilities';
+// TOCTTOU and .asString() games could enable attacker to skip some
+// intermediate ancestors, so we stringify/propify this once, first.
+export function asPropertyName(prop) {
+  if (typeof prop === 'symbol') {
+    return prop;
+  }
+  return `${prop}`;
+}
 
 /**
  * Replace the legacy accessors of Object to comply with strict mode
@@ -19,7 +26,7 @@ import { asPropertyName } from './utilities';
 We need this repair, but would it be included when the real realms is
 integrated into the language. If not, what are we getting here?
 
-Also note that this changes the primal versions.  
+Also note that this changes the primal versions.
 
 On some platforms, the implementation of these functions act as if they are
 in sloppy mode: if they're invoked badly, they will expose the global object,
@@ -53,8 +60,8 @@ export function repairAccessors(unsafeRec) {
       }
     },
     __lookupGetter__: {
-      value(unfixedProp) {
-        const prop = asPropertyName(unfixedProp);
+      value(prop) {
+        prop = asPropertyName(prop);
         let base = this;
         let desc;
         while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
@@ -64,8 +71,8 @@ export function repairAccessors(unsafeRec) {
       }
     },
     __lookupSetter__: {
-      value(unfixedProp) {
-        const prop = asPropertyName(unfixedProp);
+      value(prop) {
+        prop = asPropertyName(prop);
         let base = this;
         let desc;
         while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {

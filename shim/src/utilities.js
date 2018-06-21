@@ -21,11 +21,3 @@ export function assert(condition, message) {
   }
 }
 
-// TOCTTOU and .asString() games could enable attacker to skip some
-// intermediate ancestors, so we stringify/propify this once, first.
-export function asPropertyName(s) {
-  if (typeof s === 'symbol') {
-    return s;
-  }
-  return `${s}`;
-}
