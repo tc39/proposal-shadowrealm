@@ -2,7 +2,6 @@
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/startSES.js
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/repairES5.js
 
-
 // We use this walker to scan for accidental leakage of primal-realm objects.
 // We don't use it in normal operation, but we export it for use in tests
 // (both automatic and manual).
@@ -93,4 +92,4 @@ export function walkObjects(start, visitor) {
   dequeue();
 
   return visitQueue;
-};
+}

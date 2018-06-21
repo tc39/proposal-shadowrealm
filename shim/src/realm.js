@@ -17,7 +17,6 @@ const RealmProto2UnsafeRec = new WeakMap();
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
 function buildChildRealm(BaseRealm) {
-
   const errorConstructors = new Map([
     ['EvalError', EvalError],
     ['RangeError', RangeError],
@@ -69,7 +68,7 @@ function buildChildRealm(BaseRealm) {
   class Realm {
     constructor(...args) {
       // todo: protect these 'apply' values
-      // use the constructor from BaseRealm, 
+      // use the constructor from BaseRealm,
       return doAndWrapError(() => Reflect.construct(BaseRealm, args, Realm));
     }
     /*get intrinsics() {
@@ -189,7 +188,7 @@ export default class Realm {
       // by an adversary.
 
       // note: this 'this' comes from the Reflect.construct call in the
-      // facade we build above, inside buildChildRealm(). 
+      // facade we build above, inside buildChildRealm().
 
       // todo: what if 'this' is e.g. Window but set to inherit from a Realm?
       // confused deputy / private field question. A: it can't be, we're in a

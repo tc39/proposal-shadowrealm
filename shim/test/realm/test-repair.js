@@ -11,7 +11,8 @@ protectedObjects.set((0, eval)('this'), 'global object');
 
 test('eval.toString', t => {
   const r = Realm.makeRootRealm();
-  t.end(); return;
+  t.end();
+  return;
 
   const p = r.evaluate('Object.prototype.__lookupGetter__.__proto__');
   t.equal(p, r.global.Function.prototype); // should be
@@ -20,7 +21,8 @@ test('eval.toString', t => {
 });
 
 test('scan', t => {
-  t.end(); return;
+  t.end();
+  return;
   const r = Realm.makeRootRealm();
   let failures = [];
 
@@ -30,7 +32,11 @@ test('scan', t => {
     //  failures.push(`object ${protectedObjects.get(obj)} shouldn't be available as ${pathForObject(obj)}`);
     //}
     if (primalObjects.has(obj)) {
-      failures.push(`primal object ${primalObjects.get(obj)} shouldn't be available in Realm as ${pathForObject(obj)}`);
+      failures.push(
+        `primal object ${primalObjects.get(obj)} shouldn't be available in Realm as ${pathForObject(
+          obj
+        )}`
+      );
     }
   }
 
@@ -55,11 +61,9 @@ test('scan', t => {
   t.end();
 });
 
-function thing() {
-}
-
 test('scan2', t => {
-  t.end(); return;
+  t.end();
+  return;
   const r = Realm.makeRootRealm();
   let failures = [];
 
@@ -78,7 +82,11 @@ test('scan2', t => {
     //  failures.push(`object ${protectedObjects.get(obj)} shouldn't be available as ${pathForObject(obj)}`);
     //}
     if (unsafeRecObjects.has(obj)) {
-      failures.push(`unsafeRec object ${unsafeRecObjects.get(obj)} shouldn't be available in Realm as ${pathForObject(obj)}`);
+      failures.push(
+        `unsafeRec object ${unsafeRecObjects.get(
+          obj
+        )} shouldn't be available in Realm as ${pathForObject(obj)}`
+      );
     }
   }
 
