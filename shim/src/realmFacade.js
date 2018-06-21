@@ -1,10 +1,13 @@
 // Note: do not import anything to this file to prevent using implicit
-// bindings.
+// dependencies.
 
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
 
 function buildChildRealm(BaseRealm) {
+  const { defineProperty, getOwnPropertyDescriptors } = Object;
+  const { apply, construct } = Reflect;
+
   const errorConstructors = new Map([
     ['EvalError', EvalError],
     ['RangeError', RangeError],
@@ -16,9 +19,9 @@ function buildChildRealm(BaseRealm) {
 
   // Like Realm.apply except that it catches anything thrown and rethrows it
   // as an Error from this realm
-  function doAndWrapError(thunk) {
+  function applyAndWrapError(target, thisArgument, ...args) {
     try {
-      return thunk();
+      return apply(target, thisArgument, args);
     } catch (err) {
       if (Object(err) !== err) {
         // err is a primitive value, which is safe to rethrow
@@ -51,18 +54,21 @@ function buildChildRealm(BaseRealm) {
     }
   }
 
-  const descs = Object.getOwnPropertyDescriptors(BaseRealm.prototype);
+  const descs = getOwnPropertyDescriptors(BaseRealm.prototype);
+  // eslint-disable-next-line camelcase
+  const descs_global_get = descs.global.get;
+  // eslint-disable-next-line camelcase
+  const descs_evaluate_value = descs.evaluate.value;
 
   class Realm {
     constructor(...args) {
-      return doAndWrapError(() => Reflect.construct(BaseRealm, args, Realm));
+      return applyAndWrapError(construct, undefined, BaseRealm, args, Realm);
     }
     get global() {
-      // todo: protect these 'apply' values
-      return doAndWrapError(() => descs.global.get.apply(this));
+      return applyAndWrapError(descs_global_get, this);
     }
     evaluate(...args) {
-      return doAndWrapError(() => descs.evaluate.value.apply(this, args));
+      return applyAndWrapError(descs_evaluate_value, this, args);
     }
     static makeRootRealm() {
       return new Realm();
@@ -76,7 +82,7 @@ function buildChildRealm(BaseRealm) {
     }
   }
 
-  Object.defineProperty(Realm.prototype, 'toString', {
+  defineProperty(Realm.prototype, 'toString', {
     value: () => 'function Realm() { [shim code] }',
     writable: false,
     enumerable: false,
