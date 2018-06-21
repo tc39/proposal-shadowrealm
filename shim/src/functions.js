@@ -18,6 +18,8 @@ function repairFunction(unsafeRec, functionName, functionDecl) {
 
   let FunctionInstance;
   try {
+    // todo: pass the whole functionDecl in, rather than building a template
+    // around it, make this look like createOptionalSyntax in intrinsics.js
     FunctionInstance = unsafeEval(`(${functionDecl}(){})`); // step 1
   } catch (e) {
     if (e instanceof unsafeGlobal.SyntaxError) {

@@ -123,6 +123,7 @@ export function createSafeEvaluator(unsafeRec, safeGlobal) {
   // binding.
   const safeEval = {
     eval(src) {
+      src = `${src}`;
       handler.useUnsafeEvaluator = true;
       let err;
       try {
