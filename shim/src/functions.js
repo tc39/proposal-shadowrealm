@@ -20,7 +20,7 @@ function repairFunction(unsafeRec, functionName, functionDecl) {
   try {
     // todo: pass the whole functionDecl in, rather than building a template
     // around it, make this look like createOptionalSyntax in intrinsics.js
-    FunctionInstance = unsafeEval(`(${functionDecl}(){})`); // step 1
+    FunctionInstance = unsafeEval(functionDecl); // step 1
   } catch (e) {
     if (e instanceof unsafeGlobal.SyntaxError) {
       // Prevent failure on platforms where generators are not supported.
@@ -70,11 +70,11 @@ export function repairFunctions(unsafeRec) {
   // via syntax, so it isn't sufficient to just replace global properties
   // with safe versions. Our main goal is to prevent access to the
   // unsafeFunction constructor through these starting points.
-  repairFunction(unsafeRec, 'Function', 'function');
+  repairFunction(unsafeRec, 'Function', '(function(){})');
   // "plain arrow functions" inherit from Function.prototype
-  repairFunction(unsafeRec, 'GeneratorFunction', 'function*');
-  repairFunction(unsafeRec, 'AsyncFunction', 'async function');
-  repairFunction(unsafeRec, 'AsyncGeneratorFunction', 'async function*');
+  repairFunction(unsafeRec, 'GeneratorFunction', '(function*(){})');
+  repairFunction(unsafeRec, 'AsyncFunction', '(async function(){})');
+  repairFunction(unsafeRec, 'AsyncGeneratorFunction', '(async function*(){})');
 }
 // note: this really wants to be part of the standard, because new
 // constructors may be added in the future, reachable from syntax, and this
