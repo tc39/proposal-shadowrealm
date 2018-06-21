@@ -1,6 +1,6 @@
 import test from 'tape';
-import Realm from '../../src/realm';
-import { walkObjects } from '../../src/scan';
+// import Realm from '../../src/realm';
+// import { walkObjects } from '../../src/scan';
 
 export const protectedObjects = new WeakMap();
 // todo: build this by walking Object or 'this' or something
@@ -9,20 +9,21 @@ protectedObjects.set(Function.prototype, 'Function.prototype');
 protectedObjects.set(eval, 'eval');
 protectedObjects.set((0, eval)('this'), 'global object');
 
-test('eval.toString', t => {
-  const r = Realm.makeRootRealm();
-  t.end();
-  return;
+// todo: these tests are disabled until we fix the underlying leaks in
+// accessors.js
 
+test('eval.toString', t => {
+  /*
+  const r = Realm.makeRootRealm();
   const p = r.evaluate('Object.prototype.__lookupGetter__.__proto__');
   t.equal(p, r.global.Function.prototype); // should be
   t.notEqual(p, Function.prototype);
+  */
   t.end();
 });
 
 test('scan', t => {
-  t.end();
-  return;
+  /*
   const r = Realm.makeRootRealm();
   let failures = [];
 
@@ -39,11 +40,13 @@ test('scan', t => {
       );
     }
   }
-
+  */
   /*
   const hideme = {};
-  r.evaluate('(a) => {this.a = a}')(hideme); */
+  r.evaluate('(a) => {this.a = a}')(hideme);
+  */
 
+  /*
   const realmObjects = walkObjects(r.global, check);
   //r.evaluate('this.a = {}');
   //const bad = r.evaluate('this.a.__proto__.__defineGetter__.__proto__');
@@ -57,13 +60,12 @@ test('scan', t => {
     }
     t.fail();
   }
-
+  */
   t.end();
 });
 
 test('scan2', t => {
-  t.end();
-  return;
+  /*
   const r = Realm.makeRootRealm();
   let failures = [];
 
@@ -99,6 +101,6 @@ test('scan2', t => {
     }
     t.fail();
   }
-
+  */
   t.end();
 });

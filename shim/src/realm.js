@@ -2,14 +2,7 @@ import { createNewUnsafeRec, createCurrentUnsafeRec } from './unsafeRec';
 import { createSafeEvaluator, createFunctionEvaluator } from './evaluators';
 import { getStdLib } from './stdlib';
 import { getSharedIntrinsics } from './intrinsics';
-import {
-  assign,
-  create,
-  defineProperty,
-  defineProperties,
-  freeze,
-  getPrototypeOf
-} from './commons';
+import { create, defineProperty, defineProperties, freeze, getPrototypeOf } from './commons';
 
 const Realm2RealmRec = new WeakMap();
 const RealmProto2UnsafeRec = new WeakMap();
@@ -71,9 +64,6 @@ function buildChildRealm(BaseRealm) {
       // use the constructor from BaseRealm,
       return doAndWrapError(() => Reflect.construct(BaseRealm, args, Realm));
     }
-    /*get intrinsics() {
-      return doAndWrapError(() => descs.intrinsics.get.apply(this));
-    }*/
     get global() {
       // todo: protect these 'apply' values
       return doAndWrapError(() => descs.global.get.apply(this));
@@ -203,7 +193,8 @@ export default class Realm {
       // When intrinics are not provided, we create a root realm
       // using the fresh set of new intrinics from a new context.
       unsafeRec = createNewUnsafeRec(); // this repairs the constructors too
-      //const newRealm = unsafeRec.unsafeEval(buildChildRealmString)(Realm);
+      // todo: maybe use:
+      // const newRealm = unsafeRec.unsafeEval(buildChildRealmString)(Realm);
       const newRealm = createRealmFacade(unsafeRec, Realm);
       // put new Realm onto new unsafeGlobal, so it can be copied onto the
       // safeGlobal like the rest of the intrinsics
@@ -224,15 +215,6 @@ export default class Realm {
     // the weakmap. Never say "this." anywhere.
     Realm2RealmRec.set(this, realmRec);
   }
-  /*get intrinsics() {
-    // todo: delete this, it's probably impossible to use safely
-    const realmRec = getRealmRecForRealm(this);
-    const intrinsics = realmRec.sharedIntrinsics;
-    // The object returned has its prototype
-    // match the ObjectPrototype of the realm.
-    const obj = create(intrinsics.ObjectPrototype);
-    return assign(obj, intrinsics);
-  }*/
   get global() {
     const { globalObject } = getRealmRecForRealm(this);
     return globalObject;

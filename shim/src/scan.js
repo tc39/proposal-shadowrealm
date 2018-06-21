@@ -6,7 +6,7 @@
 // We don't use it in normal operation, but we export it for use in tests
 // (both automatic and manual).
 
-import { freeze, getOwnPropertyDescriptors, getPrototypeOf, ownKeys } from './commons';
+import { getOwnPropertyDescriptors, getPrototypeOf, ownKeys } from './commons';
 
 export function walkObjects(start, visitor) {
   const visitQueue = new Map();
@@ -22,7 +22,7 @@ export function walkObjects(start, visitor) {
       // Ignore if already visited
       return;
     }
-    //visitQueue.set(val, [parent, childname]);
+    // visitQueue.set(val, [parent, childname]);
     if (typeof childname === 'symbol') {
       childname = '(symbol ??)';
     }
@@ -31,9 +31,10 @@ export function walkObjects(start, visitor) {
   }
 
   function pathForObject(obj) {
-    let seen = new Set();
-    let path = '';
     return visitQueue.get(obj);
+    /*
+    const seen = new Set();
+    let path = '';
     let oops = 1000;
     while (oops > 0) {
       oops -= 1;
@@ -50,14 +51,17 @@ export function walkObjects(start, visitor) {
     }
     console.log(`oops: ${path}`);
     return 'oops';
+    */
   }
 
   function process(_, obj) {
-    /*try {
+    /*
+    try {
       console.log(`processing ${obj}`);
     } catch (e) {
       console.log('processed something that does not want to be stringified');
-    }*/
+    }
+    */
     // Immediately freeze the object to ensure reactive
     // objects such as proxies won't add properties
     // during traversal, before they get frozen.
