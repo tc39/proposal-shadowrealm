@@ -50,7 +50,7 @@ export function getStdLib(realmRec) {
     'ReferenceError',
     'RegExp',
     'Set',
-    // 'SharedArrayBuffer' // Deprecated on Jan 5, 2018
+    // 'SharedArrayBuffer' // removed on Jan 5, 2018
     'String',
     'Symbol',
     'SyntaxError',
@@ -65,7 +65,7 @@ export function getStdLib(realmRec) {
 
     // *** 18.4 Other Properties of the Global Object
 
-    // 'Atomics', // Deprecated on Jan 5, 2018
+    // 'Atomics', // removed on Jan 5, 2018
     'JSON',
     'Math',
     'Reflect',

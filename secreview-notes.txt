@@ -1,0 +1,82 @@
+unscopables: with(foo) should not say that 'foo' has, e.g. hasOwnProperty
+
+ with(foo):
+   hasOwnProperty('bar') // should not use foo.hasOwnProperty
+
+document[Symbol.unscopables] === ['append', 'prepend']
+
+undeniables:
+ * Promise.prototype (via async function return value)
+ * Object.prototype
+ * Function.prototype
+ * AsyncFunction.prototype
+ * GeneratorFunction.prototype
+ * AsyncGeneratorFunction.prototype
+ * Array.prototype: Object.getPrototypeOf([])
+ * RegExp.prototype: Object.getPrototypeOf(//)
+ * Boolean ? : getPrototypeOf(Object(false))
+ * Number ?
+ * String ?
+
+
+unconscionables
+uncomprehensibles
+uncorrigibles
+
+
+
+buildOptimizer:
+* scan safeGlobal, find own properties which have valid variable names
+  (regexp) and whose descriptors say they're unwritable and unconfigurable
+  * "how hard could it be?" A: unicode.
+  * this is merely an optimization, so limiting ourselves to valid ASCII
+    variable names is ok.
+  * this also removes the potential injection attack from getting an array
+    with commas in the members
+
+
+test('function-unbalanced-comments', t => {
+  const r = Realm.makeRootRealm();
+  r.global.evil = 0;
+  const evilFunc = '// */this.evil = 666; function(a) { return b;\n ';
+  const f1 = new r.global.Function('a', '/*', evilFunc);
+  t.notEqual(r.global.evil, 666);
+  // we never actually invoke the function, we only parse it
+  t.end();
+});
+
+
+we need a full whitelist of paths that are allowed to be present on the
+global object: we should scan and delete everything that's not on the list.
+See caja src/com/google/caja/ses/whitelist.js . eg RegExp.$1
+
+markm keeps forgetting: the alternate function constructors do not need safe
+versions, even though we could make safe versions, because there is no place
+to put them. Because they're evaluators they have to be per-compartment, but
+they don't have global names, so there's no place to put them such that
+they're reachable from the compartment.
+
+todo: we have two enumerations of the alternate function constructors (one in
+functions.js and the other in instrinsics.js), document that they must be
+kept in sync
+
+handler: shadow a frozen eval inherited from the real target. proxy
+invariants only check the first level. make the proxy's target be an empty
+mutable object that inherits from the safe global. so the proxy can act as if
+it has the 'eval' property: the target doesn't commit to stability, so the
+proxy doesn't either. we need a set trap, which sets the value on the global
+rather than on the target. proxy is allowed to switch the value because the
+target doesn't commit to stability. user code gets access to safe global, but
+not to the proxy or the target. This also means we can change stdlib's
+.eval/.Function in the frozen-realm case to be non-writable non-configurable.
+todo: add tests that the user can freeze their global object.
+
+
+todo: rename the base Realm class to 'BaseRealm', don't expose it as the
+'Realm' in the primal realm, invoke the realm facade string (buildChildRealm)
+with the primal realm's 'eval()' to build the 'Realm' that we expose in the
+primal realm. Might let us avoid the weakmaps?
+
+make the Realm *constructor* be the weakmap key, not the prototype?
+
+

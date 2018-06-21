@@ -22,6 +22,14 @@ test('function-injection', t => {
   t.end();
 });
 
+test('function-reject-paren-default', t => {
+  // this ought to be accepted, but our shim is conservative about parenthesis
+  const r = Realm.makeRootRealm();
+  const goodFunc = 'return foo';
+  t.throws(() => new r.global.Function('foo, a = new Date(0)', goodFunc), r.global.SyntaxError);
+  t.end();
+});
+
 test('function-default-parameters', t => {
   const goodFunc = 'return a+1';
   const r = Realm.makeRootRealm();
@@ -43,5 +51,18 @@ test('function-destructuring-parameters', t => {
   const r = Realm.makeRootRealm();
   const f1 = new r.global.Function('{foo, bar}, baz', goodFunc);
   t.equal(f1({ foo: 1, bar: 2 }, 3), 6);
+  t.end();
+});
+
+test('function-legitimate-but-weird-parameters', t => {
+  const r = Realm.makeRootRealm();
+  const goodFunc = 'return foo + bar + baz';
+  const f1 = new r.global.Function('foo, bar', 'baz', goodFunc);
+  t.equal(f1(1, 2, 3), 6);
+
+  const goodFunc2 = 'return foo + bar[0] + bar[1]';
+  const f2 = new r.global.Function('foo, bar = [1', '2]', goodFunc2);
+  t.equal(f2(1), 4);
+
   t.end();
 });

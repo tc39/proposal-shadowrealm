@@ -1,6 +1,6 @@
-// Declare shorthand functions. Sharing these declarations accross modules
-// improves both consitency and minification. Unused declarations are dropped
-// by the tree shaking process.
+// Declare shorthand functions. Sharing these declarations across modules
+// improves both consistency and minification. Unused declarations are
+// dropped by the tree shaking process.
 
 export const {
   assign,
@@ -15,13 +15,17 @@ export const {
   setPrototypeOf
 } = Object;
 
-// TODO: if we use Reflect.* and it returns false, we should either inspect
-// the failure, or use Object.* instead.
-
 export const {
   apply,
-  deleteProperty,
-  ownKeys // similar but different than Object.ownKeys
+  ownKeys // this includes Symbols and unenumerables, unlike Object.keys()
 } = Reflect;
 
-export const objectHasOwnProperty = Object.prototype.hasOwnProperty;
+export const objectHasOwnProperty = Object.prototype.hasOwnProperty,
+  arrayPush = Array.prototype.push,
+  arrayPop = Array.prototype.pop,
+  arrayJoin = Array.prototype.join,
+  regexpMatch = RegExp.prototype.match,
+  stringIncludes = String.prototype.includes;
+
+// todo: define uncurrythis(), use to export stringIncludes/etc, use that
+// instead of 'apply'

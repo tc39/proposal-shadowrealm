@@ -1,5 +1,11 @@
 import { getPrototypeOf } from './commons';
 
+// todo: basically delete this entire file. but if frozen realms is
+// implemented on top of realms, then realms should provide both 1: stdlib
+// for child realms, and 2: a list of intrinsics such that deep-freezing
+// everything on the intrinsics list will freeze every possibly-reachable
+// primordial (including undeniables and things only available via syntax).
+
 /**
  * Get the intrinsics from Table 7 & Annex B
  * Named intrinsics: available as data properties of the global object.
@@ -9,7 +15,23 @@ import { getPrototypeOf } from './commons';
  * https://tc39.github.io/ecma262/#table-73
  */
 export function getSharedIntrinsics(unsafeRec) {
-  const { unsafeGlobal: g } = unsafeRec;
+  const { unsafeGlobal: g, unsafeEval } = unsafeRec;
+
+  function strictUnsafeEval(s) {
+    return unsafeEval(`'use strict'; ${s}`);
+  }
+
+  function createOptionalSyntax(s) {
+    try {
+      return strictUnsafeEval(s);
+    } catch (e) {
+      if (e instanceof g.SyntaxError) {
+        return undefined; // not present in this engine
+      }
+      // Re-throw
+      throw e;
+    }
+  }
 
   // the .constructor properties on evaluator intrinsics should already be
   // fixed by this point, due to the sanitize() call inside createUnsafeRec()
@@ -23,43 +45,23 @@ export function getSharedIntrinsics(unsafeRec) {
   const IteratorPrototype = getPrototypeOf(ArrayIteratorPrototype);
 
   // Ensure parsing doesn't fail on platforms that don't support Async Functions.
-  let AsyncFunctionInstance;
-  try {
-    AsyncFunctionInstance = g.eval('(async function(){})');
-  } catch (e) {
-    if (!(e instanceof g.SyntaxError)) {
-      // Re-throw
-      throw e;
-    }
-  }
+  const AsyncFunctionInstance = createOptionalSyntax('(async function(){})');
 
   // const AsyncFunction = AsyncFunctionInstance && AsyncFunctionInstance.constructor;
   const AsyncFunctionPrototype = AsyncFunctionInstance && getPrototypeOf(AsyncFunctionInstance);
 
   // Ensure parsing doesn't fail on platforms that don't support Generator Functions.
-  let GeneratorFunctionInstance;
-  try {
-    GeneratorFunctionInstance = g.eval('(function*(){})');
-  } catch (e) {
-    if (!(e instanceof g.SyntaxError)) {
-      // Re-throw
-      throw e;
-    }
-  }
+  const GeneratorFunctionInstance = createOptionalSyntax('(function*(){})');
+  // note: we don't reveal this because..
+  //  we don't need to add it to the new global (it's not in the stdlib)
+  //  if unrepaired then access to it would break confinement
+  //  the frozen realms shim will come up with it's own list of things to be frozen
   // const GeneratorFunction = GeneratorFunctionInstance && GeneratorFunctionInstance.constructor;
   const Generator = GeneratorFunctionInstance && getPrototypeOf(GeneratorFunctionInstance);
   const GeneratorPrototype = GeneratorFunctionInstance && Generator.prototype;
 
   // Ensure parsing doesn't fail on platforms that don't support Async Generator Functions.
-  let AsyncGeneratorFunctionInstance;
-  try {
-    AsyncGeneratorFunctionInstance = g.eval('(async function*(){})');
-  } catch (e) {
-    if (!(e instanceof g.SyntaxError)) {
-      // Re-throw
-      throw e;
-    }
-  }
+  const AsyncGeneratorFunctionInstance = createOptionalSyntax('(async function*(){})');
   // const AsyncGeneratorFunction =
   //  AsyncGeneratorFunctionInstance && AsyncGeneratorFunctionInstance.constructor;
   const AsyncGenerator =
@@ -69,6 +71,7 @@ export function getSharedIntrinsics(unsafeRec) {
   const AsyncIteratorPrototype =
     AsyncGeneratorFunctionInstance && getPrototypeOf(AsyncGeneratorPrototype);
   // const AsyncFromSyncIteratorPrototype = undefined; // Not reacheable.
+  // todo: add a test using 'caller' in sloppy mode to see if this is reachable
 
   const MapIteratorObject = new g.Map()[SymbolIterator]();
   const MapIteratorPrototype = getPrototypeOf(MapIteratorObject);
@@ -79,8 +82,8 @@ export function getSharedIntrinsics(unsafeRec) {
   const StringIteratorObject = new g.String()[SymbolIterator]();
   const StringIteratorPrototype = getPrototypeOf(StringIteratorObject);
 
-  const ThrowTypeError = g.eval(
-    '(function () { "use strict"; return Object.getOwnPropertyDescriptor(arguments, "callee").get; })()'
+  const ThrowTypeError = strictUnsafeEval(
+    '(function () { return Object.getOwnPropertyDescriptor(arguments, "callee").get; })()'
   );
 
   const TypedArray = getPrototypeOf(g.Int8Array);
@@ -311,7 +314,7 @@ export function getSharedIntrinsics(unsafeRec) {
     // This is in sharedIntrinsics because there's only one Realm constructor
     // per RootRealm even though there's one Realm instance per Realm.
     // Compartments use the Realm constructor from their parent RootRealm.
-    Realm: g.Realm
+    Realm: g.Realm // todo: look at order of creation/assigment
   };
 
   // sharedIntrinsics are per RootRealm
