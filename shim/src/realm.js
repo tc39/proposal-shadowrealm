@@ -184,24 +184,26 @@ export default class Realm {
       // confused deputy / private field question. A: it can't be, we're in a
       // constructor, and constructors can't be invoked directly as
       // functions, using a class protects us here
-      unsafeRec = RealmProto2UnsafeRec.get(getPrototypeOf(this));
+      unsafeRec = RealmProto2UnsafeRec.get(this.constructor);
     } else if (
       options.intrinsics === undefined &&
       options.isDirectEval === undefined &&
       options.transform === undefined
     ) {
-      // When intrinics are not provided, we create a root realm
-      // using the fresh set of new intrinics from a new context.
-      unsafeRec = createNewUnsafeRec(); // this repairs the constructors too
-      // todo: maybe use:
-      // const newRealm = unsafeRec.unsafeEval(buildChildRealmString)(Realm);
+      // In 'undefined' mode, intrinics are not provided, we create a root
+      // realm using the fresh set of new intrinics from a new context.
+
+      // The unsafe record is returned with its constructors repaired.
+      unsafeRec = createNewUnsafeRec();
+
+      // Define newRealm onto new unsafeGlobal, so it can be copied onto the
+      // safeGlobal like the rest of the intrinsics.
       const newRealm = createRealmFacade(unsafeRec, Realm);
-      // put new Realm onto new unsafeGlobal, so it can be copied onto the
-      // safeGlobal like the rest of the intrinsics
       unsafeRec.unsafeGlobal.Realm = newRealm;
+
       // todo: make a library function named 'register', add more checking
       // todo: use 'newRealm' as the key, not 'newRealm.prototype'
-      RealmProto2UnsafeRec.set(newRealm.prototype, unsafeRec);
+      RealmProto2UnsafeRec.set(newRealm, unsafeRec);
     } else {
       // note this would leak the parent TypeError, from which the child can
       // access .prototype and the parent's intrinsics, except that the Realm
@@ -235,13 +237,15 @@ export default class Realm {
   }
 }
 
-// Create the unsafeRec from the current realm (the realm where the
-// Realm shim is loaded and executed).
-RealmProto2UnsafeRec.set(Realm.prototype, createCurrentUnsafeRec());
-
 defineProperty(Realm.prototype, 'toString', {
   value: () => 'function Realm() { [shim code] }',
   writable: false,
   enumerable: false,
   configurable: true
 });
+
+
+// Create the unsafeRec from the current realm (the realm where the
+// Realm shim is loaded and executed).
+RealmProto2UnsafeRec.set(Realm, createCurrentUnsafeRec());
+
