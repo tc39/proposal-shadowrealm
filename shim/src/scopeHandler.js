@@ -1,7 +1,6 @@
 // todo needs comment
 
-// todo: rename to ScopeHandler
-export class Handler {
+export class ScopeHandler {
   // Properties stored on the handler are not available from the proxy.
 
   // the Proxy is only used by with(), so the Handler only needs to implement

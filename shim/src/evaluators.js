@@ -14,7 +14,7 @@ import {
   regexpMatch,
   stringIncludes
 } from './commons';
-import { Handler } from './handler';
+import { ScopeHandler } from './scopeHandler';
 import { assert, throwTantrum } from './utilities';
 
 const identifierPattern = /^[a-zA-Z_$][\w_$]*$/;
@@ -109,13 +109,12 @@ export function createSafeEvaluator(unsafeRec, safeGlobal) {
   // 1. works with the sentinel to alternate between direct eval and confined eval.
   // 2. shadows all properties of the hidden global by declaring them as undefined.
   // 3. resolves all existing properties of the sandboxed global.
-  const handler = new Handler(unsafeRec);
-  // rename to 'scopeProxy'
-  const proxy = new Proxy(safeGlobal, handler);
+  const scopeHandler = new ScopeHandler(unsafeRec);
+  const scopeProxy = new Proxy(safeGlobal, scopeHandler);
 
   const optimizableGlobals = getOptimizableGlobals(safeGlobal);
   const scopedEvaluatorFactory = createScopedEvaluatorFactory(unsafeRec, optimizableGlobals);
-  const scopedEvaluator = scopedEvaluatorFactory(proxy);
+  const scopedEvaluator = scopedEvaluatorFactory(scopeProxy);
 
   // We use the the concise method syntax to create an eval without a
   // [[Construct]] behavior (such that the invocation "new eval()" throws
@@ -124,7 +123,7 @@ export function createSafeEvaluator(unsafeRec, safeGlobal) {
   const safeEval = {
     eval(src) {
       src = `${src}`;
-      handler.useUnsafeEvaluator = true;
+      scopeHandler.useUnsafeEvaluator = true;
       let err;
       try {
         // Ensure that "this" resolves to the safe global.
@@ -136,8 +135,8 @@ export function createSafeEvaluator(unsafeRec, safeGlobal) {
       } finally {
         // belt and suspenders: the proxy switches this off immediately after
         // the first access, but just in case we clear it here too
-        if (handler.useUnsafeEvaluator !== false) {
-          handler.useUnsafeEvaluator = false;
+        if (scopeHandler.useUnsafeEvaluator !== false) {
+          scopeHandler.useUnsafeEvaluator = false;
           throwTantrum('handler sets useUnsafeEvaluator = false', err);
         }
       }
