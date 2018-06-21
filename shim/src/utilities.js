@@ -20,4 +20,3 @@ export function assert(condition, message) {
     throwTantrum(`failed to: ${message}`);
   }
 }
-

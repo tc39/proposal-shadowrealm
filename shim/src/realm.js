@@ -121,19 +121,19 @@ function createRealmFacade(unsafeRec, BaseRealm) {
 // initialize the global variables for the new Realm
 function setDefaultBindings(realmRec) {
   const descs = getStdLib(realmRec);
-  defineProperties(realmRec.globalObject, descs);
+  defineProperties(realmRec.safeGlobal, descs);
 }
 
 function createRealmRec(unsafeRec) {
   const sharedIntrinsics = getSharedIntrinsics(unsafeRec);
-  const globalObject = create(sharedIntrinsics.ObjectPrototype);
+  const safeGlobal = create(sharedIntrinsics.ObjectPrototype);
 
-  const safeEval = createSafeEvaluator(unsafeRec, globalObject);
+  const safeEval = createSafeEvaluator(unsafeRec, safeGlobal);
   const safeFunction = createFunctionEvaluator(unsafeRec, safeEval);
 
   const realmRec = freeze({
     sharedIntrinsics,
-    globalObject,
+    safeGlobal,
     safeEval,
     safeFunction
   });
@@ -218,8 +218,8 @@ export default class Realm {
     Realm2RealmRec.set(this, realmRec);
   }
   get global() {
-    const { globalObject } = getRealmRecForRealm(this);
-    return globalObject;
+    const { safeGlobal } = getRealmRecForRealm(this);
+    return safeGlobal;
   }
   evaluate(x) {
     const { safeEval } = getRealmRecForRealm(this);
