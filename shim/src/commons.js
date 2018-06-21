@@ -17,15 +17,16 @@ export const {
 
 export const {
   apply,
-  ownKeys // this includes Symbols and unenumerables, unlike Object.keys()
+  ownKeys // Reflect.ownKeys includes Symbols and unenumerables, unlike Object.keys()
 } = Reflect;
 
-export const objectHasOwnProperty = Object.prototype.hasOwnProperty,
-  arrayPush = Array.prototype.push,
-  arrayPop = Array.prototype.pop,
-  arrayJoin = Array.prototype.join,
-  regexpMatch = RegExp.prototype.match,
-  stringIncludes = String.prototype.includes;
+// See http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
+const bind = Function.prototype.bind;
+const uncurryThis = bind.bind(bind.call);
 
-// todo: define uncurrythis(), use to export stringIncludes/etc, use that
-// instead of 'apply'
+export const objectHasOwnProperty = uncurryThis(Object.prototype.hasOwnProperty),
+  arrayPush = uncurryThis(Array.prototype.push),
+  arrayPop = uncurryThis(Array.prototype.pop),
+  arrayJoin = uncurryThis(Array.prototype.join),
+  regexpMatch = uncurryThis(RegExp.prototype.match),
+  stringIncludes = uncurryThis(String.prototype.includes);
