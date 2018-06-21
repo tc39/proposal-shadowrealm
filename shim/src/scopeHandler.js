@@ -1,10 +1,16 @@
 // todo needs comment
 
+import { getPrototypeOf } from './commons';
+
 export class ScopeHandler {
   // Properties stored on the handler are not available from the proxy.
 
   // the Proxy is only used by with(), so the Handler only needs to implement
   // a few properties: has, get, set (which we leave at the default)
+
+  // todo: throw if any traps other than get/set/has are run (e.g.
+  // getOwnPropertyDescriptors, apply, getPrototypeOf) . Make this handler
+  // inherit from a second one whose 'get' property always throws.
 
   constructor(unsafeRec) {
     this.unsafeGlobal = unsafeRec.unsafeGlobal;
@@ -14,6 +20,8 @@ export class ScopeHandler {
     // eval done by the realm's code or if it is user-land invocation, so
     // we can react differently.
     this.useUnsafeEvaluator = false;
+
+    // todo: this.shadowTarget = getPrototypeOf(somehow_get_target)
   }
 
   get(target, prop) {
@@ -50,8 +58,8 @@ export class ScopeHandler {
   set(target, prop, value) {
     // Set the value on the shadow. The target itself is an empty
     // object that is only used to prevent a froxen eval property.
-    // eslint-disable-next-line no-proto
-    target.__proto__[prop] = value;
+    // todo: use this.shadowTarget, for speedup
+    getPrototypeOf(target)[prop] = value;
     // Return true after successful set.
     return true;
   }

@@ -18,6 +18,13 @@ test('confinement evaluation constructor', t => {
   t.throws(() => {
     r.evaluate('({}).constructor.constructor("return this")()');
   }, Error);
+
+  // Error is a function, so Error.__proto__ is Function.prototype . The
+  // unpatched Function.prototype.constructor used to point at the unsafe
+  // 'Function' object, which would provide access to the primal realm's
+  // globals, so it must be kept out of the hands of any child realm. We
+  // replace that '.constructor' with a safe replacement (which always
+  // throws). Here we test that this constructor has been replaced.
   t.throws(() => {
     r.evaluate('Error.__proto__.constructor("return this")()');
   }, Error);

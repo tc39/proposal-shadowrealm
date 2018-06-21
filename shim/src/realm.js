@@ -22,7 +22,7 @@ function getUnsafeRecForRealm(Realm) {
   return UnsafeRecForRealm.get(Realm);
 }
 
-function setUnsafeRecForRealm(Realm, unsafeRec) {
+function registerUnsafeRecForRealm(Realm, unsafeRec) {
   if (Object(Realm) !== Realm) {
     // Detect non-objects.
     throw new TypeError();
@@ -31,7 +31,7 @@ function setUnsafeRecForRealm(Realm, unsafeRec) {
   // todo: but shim should include a message
   if (UnsafeRecForRealm.has(Realm)) {
     // Attempt to change an existing unsafeRec on a Realm. Shoud not proceed.
-    throw new TypeError();
+    throw new TypeError(); // todo error string on all of these
   }
   UnsafeRecForRealm.set(Realm, unsafeRec);
 }
@@ -49,13 +49,13 @@ function getRealmRecForRealmInstance(realm) {
   // spec just says throw TypeError
   // todo: but shim should include a message
   if (!RealmRecForRealmInstance.has(realm)) {
-    // Realm instance has no realmRec. Shoud not proceed.
+    // Realm instance has no realmRec. Should not proceed.
     throw new TypeError();
   }
   return RealmRecForRealmInstance.get(realm);
 }
 
-function setRealmRecForRealmInstance(realm, realmRec) {
+function registerRealmRecForRealmInstance(realm, realmRec) {
   if (Object(realm) !== realm) {
     // Detect non-objects.
     throw new TypeError();
@@ -63,15 +63,15 @@ function setRealmRecForRealmInstance(realm, realmRec) {
   // spec just says throw TypeError
   // todo: but shim should include a message
   if (RealmRecForRealmInstance.has(realm)) {
-    // Attempt to change an existing realmRec on a realm instance. Shoud not proceed.
+    // Attempt to change an existing realmRec on a realm instance. Should not proceed.
     throw new TypeError();
   }
   RealmRecForRealmInstance.set(realm, realmRec);
 }
 
 // Initialize the global variables for the new Realm.
-function setDefaultBindings(unsafeGlobalDescs, safeGlobal, safeEval, safeFunction) {
-  defineProperties(safeGlobal, unsafeGlobalDescs);
+function setDefaultBindings(sharedGlobalDescs, safeGlobal, safeEval, safeFunction) {
+  defineProperties(safeGlobal, sharedGlobalDescs);
 
   defineProperty(safeGlobal, 'eval', {
     value: safeEval,
@@ -87,13 +87,13 @@ function setDefaultBindings(unsafeGlobalDescs, safeGlobal, safeEval, safeFunctio
 }
 
 function createRealmRec(unsafeRec) {
-  const { unsafeGlobalDescs, unsafeGlobal } = unsafeRec;
+  const { sharedGlobalDescs, unsafeGlobal } = unsafeRec;
 
   const safeGlobal = create(unsafeGlobal.Object.prototype);
   const safeEval = createSafeEvaluator(unsafeRec, safeGlobal);
   const safeFunction = createFunctionEvaluator(unsafeRec, safeEval);
 
-  setDefaultBindings(unsafeGlobalDescs, safeGlobal, safeEval, safeFunction);
+  setDefaultBindings(sharedGlobalDescs, safeGlobal, safeEval, safeFunction);
 
   const realmRec = freeze({
     safeGlobal,
@@ -104,18 +104,20 @@ function createRealmRec(unsafeRec) {
   return realmRec;
 }
 
-// Define newRealm onto new unsafeGlobalDescs, so it can be defined in
+// Define newRealm onto new sharedGlobalDescs, so it can be defined in
 // the safeGlobal like the rest of the shared globals.
 function createRealmGlobalObject(unsafeRec) {
   // eslint-disable-next-line no-use-before-define
   const Realm = createRealmFacade(unsafeRec, BaseRealm);
-  unsafeRec.unsafeGlobalDescs.Realm = {
+  unsafeRec.sharedGlobalDescs.Realm = {
     value: Realm,
     writable: true,
     configurable: true
   };
   return Realm;
 }
+
+// TODO: this no longer needs to be a class
 
 class BaseRealm {
   constructor(options) {
@@ -154,10 +156,10 @@ class BaseRealm {
       // The unsafe record is returned with its constructors repaired.
       unsafeRec = createNewUnsafeRec();
 
-      // Define Realm onto new unsafeGlobalDescs, so it can be copied onto the
+      // Define Realm onto new sharedGlobalDescs, so it can be copied onto the
       // safeGlobal like the rest of the .
       const Realm = createRealmGlobalObject(unsafeRec);
-      setUnsafeRecForRealm(Realm, unsafeRec);
+      registerUnsafeRecForRealm(Realm, unsafeRec);
     } else {
       // note this would leak the parent TypeError, from which the child can
       // access .prototype and the parent's intrinsics, except that the Realm
@@ -169,7 +171,7 @@ class BaseRealm {
 
     // note: we never invoke a method on 'this', we only use it as a key in
     // the weakmap. Never say "this." anywhere.
-    setRealmRecForRealmInstance(this, realmRec);
+    registerRealmRecForRealmInstance(this, realmRec);
   }
   get global() {
     const { safeGlobal } = getRealmRecForRealmInstance(this);
@@ -185,6 +187,6 @@ class BaseRealm {
 // where the Realm shim is loaded and executed).
 const currentUnsafeRec = createCurrentUnsafeRec();
 const Realm = createRealmFacade(currentUnsafeRec, BaseRealm);
-setUnsafeRecForRealm(Realm, currentUnsafeRec);
+registerUnsafeRecForRealm(Realm, currentUnsafeRec);
 
 export default Realm;

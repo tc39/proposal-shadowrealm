@@ -73,7 +73,7 @@ const sharedGlobalPropertyNames = [
   // 'Realm' // Comes from createRealmGlobalObject()
 ];
 
-export function getUnsafeGlobalDescs(unsafeGlobal) {
+export function getSharedGlobalDescs(unsafeGlobal) {
   const descriptors = {
     // *** 18.1 Value Properties of the Global Object
     Infinity: { value: Infinity },
@@ -83,6 +83,9 @@ export function getUnsafeGlobalDescs(unsafeGlobal) {
 
   for (const name of sharedGlobalPropertyNames) {
     descriptors[name] = {
+      // todo: if there's a get/accessor on the global, do we want to invoke
+      // it or throw an error?
+      // todo: get a descriptor here, so we can check
       value: unsafeGlobal[name],
       writable: true,
       configurable: true

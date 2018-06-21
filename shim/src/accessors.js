@@ -61,7 +61,7 @@ export function repairAccessors(unsafeRec) {
     },
     __lookupGetter__: {
       value(prop) {
-        prop = asPropertyName(prop);
+        prop = asPropertyName(prop); // sanitize property name/symbol
         let base = this;
         let desc;
         while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
@@ -72,7 +72,7 @@ export function repairAccessors(unsafeRec) {
     },
     __lookupSetter__: {
       value(prop) {
-        prop = asPropertyName(prop);
+        prop = asPropertyName(prop); // sanitize property name/symbol
         let base = this;
         let desc;
         while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
