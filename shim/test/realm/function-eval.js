@@ -66,3 +66,16 @@ test('function-legitimate-but-weird-parameters', t => {
 
   t.end();
 });
+
+test('frozen-eval', t => {
+  const r = Realm.makeRootRealm();
+
+  const desc = Object.getOwnPropertyDescriptor(r.global, 'eval');
+  desc.writable = false;
+  desc.configurable = false;
+  Object.defineProperty(r.global, 'eval', desc);
+
+  t.equal(r.evaluate('eval(1)'), 1);
+
+  t.end();
+});
