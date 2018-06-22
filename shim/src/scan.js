@@ -73,9 +73,11 @@ export function walkObjects(start, visitor) {
 
     enqueue(getPrototypeOf(obj), obj, '__proto__');
     const descs = getOwnPropertyDescriptors(obj);
-    ownKeys(descs).forEach(name => {
+    for (let name of ownKeys(descs)) {
+      // todo: all iteration needs uncurried forEach protection
       const desc = descs[name];
-      if ('value' in desc) {
+      if (hasOwnProperty(desc, 'value')) {
+        // todo uncurried form
         enqueue(desc.value, obj, name);
       } else {
         if (typeof name === 'symbol') {
@@ -84,7 +86,7 @@ export function walkObjects(start, visitor) {
         enqueue(desc.get, obj, `get ${name}`);
         enqueue(desc.set, obj, `set ${name}`);
       }
-    });
+    }
   }
 
   function dequeue() {
