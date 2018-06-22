@@ -5,6 +5,12 @@
 // never referenced again, because it closes over the wrong intrinsics
 
 function buildChildRealm(BaseRealm) {
+  // This Object and Reflect are brand new, from a new unsafeRec, so no user
+  // code has been run or had a chance to manipulate them. We extract these
+  // properties for brevity, not for security. Don't ever run this function
+  // *after* user code has had a chance to pollute its environment, or it
+  // could be used to gain access to BaseRealm and primal-realm Error
+  // objects.
   const { defineProperty, getOwnPropertyDescriptors } = Object;
   const { apply, construct } = Reflect;
 
