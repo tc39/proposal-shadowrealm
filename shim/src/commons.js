@@ -32,6 +32,7 @@ const uncurryThis = bind.bind(bind.call);
 // We also capture these for security: changes to Array.prototype after the
 // Realm shim runs shouldn't affect subsequent Realm operations.
 export const objectHasOwnProperty = uncurryThis(Object.prototype.hasOwnProperty),
+  arrayForEach = uncurryThis(Array.prototype.forEach),
   arrayPush = uncurryThis(Array.prototype.push),
   arrayPop = uncurryThis(Array.prototype.pop),
   arrayJoin = uncurryThis(Array.prototype.join),
