@@ -2,22 +2,6 @@
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/startSES.js
 // https://github.com/google/caja/blob/master/src/com/google/caja/ses/repairES5.js
 
-import {
-  getPrototypeOf,
-  defineProperty,
-  defineProperties,
-  getOwnPropertyDescriptor
-} from './commons';
-
-// TOCTTOU and .asString() games could enable attacker to skip some
-// intermediate ancestors, so we stringify/propify this once, first.
-export function asPropertyName(prop) {
-  if (typeof prop === 'symbol') {
-    return prop;
-  }
-  return `${prop}`;
-}
-
 /**
  * Replace the legacy accessors of Object to comply with strict mode
  * and ES2016 semantics, we do this by redefining them while in 'use strict'
@@ -35,15 +19,28 @@ this, and we need to include repairAccessors. E.g. Chrome in 2016.
 
 todo: It would be better to detect and only repair the functions that have
 the bug.
-
-todo: all of these leak access to the primal realm's Function.prototype, via
-e.g. Object.prototype.__lookupGetter__.__proto__
-
  */
-export function repairAccessors(unsafeRec) {
-  const { unsafeGlobal: g } = unsafeRec;
 
-  defineProperties(g.Object.prototype, {
+// todo: this file should be moved out to a separate repo and npm module
+
+// We use this function in two ways. We use it directly to fix the primal
+// realm's Object.prototype, and we convert it into a string to be executed
+// inside each new RootRealm to fix their Object.prototypes too. So don't
+// import anything from the outside.
+
+export function repairAccessors() {
+  const { getPrototypeOf, defineProperties, defineProperty, getOwnPropertyDescriptor } = Object;
+
+  // TOCTTOU and .asString() games could enable attacker to skip some
+  // intermediate ancestors, so we stringify/propify this once, first.
+  function asPropertyName(prop) {
+    if (typeof prop === 'symbol') {
+      return prop;
+    }
+    return `${prop}`;
+  }
+
+  defineProperties(Object.prototype, {
     __defineGetter__: {
       value(prop, func) {
         return defineProperty(this, prop, {
@@ -86,3 +83,5 @@ export function repairAccessors(unsafeRec) {
     }
   });
 }
+
+export const repairAccessorsShim = `${repairAccessors} repairAccessors();`;

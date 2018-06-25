@@ -1,5 +1,6 @@
 import test from 'tape';
-// import Realm from '../../src/realm';
+import Realm from '../../src/realm';
+import { getNewUnsafeGlobal } from '../../src/unsafeRec';
 // import { walkObjects } from '../../src/scan';
 
 export const protectedObjects = new WeakMap();
@@ -9,18 +10,51 @@ protectedObjects.set(Function.prototype, 'Function.prototype');
 protectedObjects.set(eval, 'eval');
 protectedObjects.set((0, eval)('this'), 'global object');
 
-// todo: these tests are disabled until we fix the underlying leaks in
-// accessors.js
-
 test('eval.toString', t => {
-  /*
   const r = Realm.makeRootRealm();
   const p = r.evaluate('Object.prototype.__lookupGetter__.__proto__');
-  t.equal(p, r.global.Function.prototype); // should be
+  t.equal(p, r.global.Function.prototype);
   t.notEqual(p, Function.prototype);
-  */
   t.end();
 });
+
+function testForBug(o) {
+  // on a fixed platform, this should throw
+  // eslint-disable-next-line no-restricted-properties, no-underscore-dangle
+  (0, o.prototype.__defineGetter__)('x', () => {});
+}
+
+test('fix the bug in which accessor methods leak the global', t => {
+  const unfixedGlobal = getNewUnsafeGlobal();
+  try {
+    testForBug(unfixedGlobal.Object);
+    // eslint-disable-next-line no-console
+    console.log('this platform has the bug');
+  } catch (e) {
+    if (e instanceof unfixedGlobal.TypeError) {
+      // eslint-disable-next-line no-console
+      console.log('this platform does not have the bug');
+    } else {
+      throw e; // some other problem
+    }
+  }
+
+  // first test that the primal realm was fixed: either as a side-effect of
+  // creating the Realm shim, or because it wasn't buggy in the first place
+  t.throws(() => testForBug(Object), TypeError);
+
+  // now test that the bug is fixed inside a new RootRealm too
+  const r = Realm.makeRootRealm();
+  t.throws(() => testForBug(r.global.Object), r.global.TypeError);
+
+  // and the fix we applied should not leak the unsafe Function
+  const p = r.evaluate('Object.prototype.__lookupGetter__.__proto__');
+  t.equal(p, r.global.Function.prototype);
+  t.notEqual(p, Function.prototype);
+  t.end();
+});
+
+// todo: rewrite and re-enable
 
 test('scan', t => {
   /*
