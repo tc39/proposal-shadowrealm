@@ -6,34 +6,34 @@ import { create, defineProperty, defineProperties, freeze, arrayConcat } from '.
 // Create a registry to mimic a private static members on the realm classes.
 // We define it in the same module and do not export it.
 
-const UnsafeRecForRealm = new WeakMap();
+const UnsafeRecForRealmClass = new WeakMap();
 
-function getUnsafeRecForRealm(Realm) {
-  if (Object(Realm) !== Realm) {
+function getUnsafeRecForRealmClass(RealmClass) {
+  if (Object(RealmClass) !== RealmClass) {
     // Detect non-objects.
-    throw new TypeError();
+    throw new TypeError('internal error: bad object, not a Realm constructor');
   }
   // spec just says throw TypeError
   // todo: but shim should include a message
-  if (!UnsafeRecForRealm.has(Realm)) {
-    // Realm has no unsafeRec. Shoud not proceed.
-    throw new TypeError();
+  if (!UnsafeRecForRealmClass.has(RealmClass)) {
+    // RealmClass has no unsafeRec. Shoud not proceed.
+    throw new TypeError('internal error: bad object');
   }
-  return UnsafeRecForRealm.get(Realm);
+  return UnsafeRecForRealmClass.get(RealmClass);
 }
 
-function registerUnsafeRecForRealm(Realm, unsafeRec) {
-  if (Object(Realm) !== Realm) {
+function registerUnsafeRecForRealmClass(RealmClass, unsafeRec) {
+  if (Object(RealmClass) !== RealmClass) {
     // Detect non-objects.
-    throw new TypeError();
+    throw new TypeError('internal error: bad object, not a Realm constructor');
   }
   // spec just says throw TypeError
   // todo: but shim should include a message
-  if (UnsafeRecForRealm.has(Realm)) {
+  if (UnsafeRecForRealmClass.has(RealmClass)) {
     // Attempt to change an existing unsafeRec on a Realm. Shoud not proceed.
-    throw new TypeError(); // todo error string on all of these
+    throw new TypeError('internal error: bad object');
   }
-  UnsafeRecForRealm.set(Realm, unsafeRec);
+  UnsafeRecForRealmClass.set(RealmClass, unsafeRec);
 }
 
 // Create a registry to mimic a private members on the realm imtances.
@@ -44,13 +44,15 @@ const RealmRecForRealmInstance = new WeakMap();
 function getRealmRecForRealmInstance(realm) {
   if (Object(realm) !== realm) {
     // Detect non-objects.
-    throw new TypeError();
+    throw new TypeError('bad object, not a Realm instance');
   }
   // spec just says throw TypeError
   // todo: but shim should include a message
   if (!RealmRecForRealmInstance.has(realm)) {
     // Realm instance has no realmRec. Should not proceed.
-    throw new TypeError();
+    throw new TypeError(
+      'bad object, use Realm.makeRootRealm() or .makeCompartment() instead of "new Realm"'
+    );
   }
   return RealmRecForRealmInstance.get(realm);
 }
@@ -58,13 +60,13 @@ function getRealmRecForRealmInstance(realm) {
 function registerRealmRecForRealmInstance(realm, realmRec) {
   if (Object(realm) !== realm) {
     // Detect non-objects.
-    throw new TypeError();
+    throw new TypeError('internal error: bad object, not a Realm instance');
   }
   // spec just says throw TypeError
   // todo: but shim should include a message
   if (RealmRecForRealmInstance.has(realm)) {
     // Attempt to change an existing realmRec on a realm instance. Should not proceed.
-    throw new TypeError();
+    throw new TypeError('internal error: Realm instance is already present');
   }
   RealmRecForRealmInstance.set(realm, realmRec);
 }
@@ -114,7 +116,7 @@ function initRootRealm(selfClass, self, options) {
 
   // todo: investigate attacks via Array.species
   const newShims = options.shims || [];
-  const { allShims: oldShims } = getUnsafeRecForRealm(selfClass);
+  const { allShims: oldShims } = getUnsafeRecForRealmClass(selfClass);
   // todo: this accepts newShims='string', but it should reject that
   const allShims = arrayConcat(oldShims, newShims);
 
@@ -125,7 +127,7 @@ function initRootRealm(selfClass, self, options) {
   // safeGlobal like the rest of the .
   // eslint-disable-next-line no-use-before-define
   const Realm = createRealmGlobalObject(unsafeRec);
-  registerUnsafeRecForRealm(Realm, unsafeRec);
+  registerUnsafeRecForRealmClass(Realm, unsafeRec);
 
   const realmRec = createRealmRec(unsafeRec);
   registerRealmRecForRealmInstance(self, realmRec);
@@ -144,7 +146,7 @@ function initCompartment(selfClass, self) {
   // In "inherit" mode, we create a compartment realm and inherit
   // the context since we share the intrinsics. We create a new
   // set to allow us to define eval() and Function() for the realm.
-  const unsafeRec = getUnsafeRecForRealm(selfClass);
+  const unsafeRec = getUnsafeRecForRealmClass(selfClass);
 
   const realmRec = createRealmRec(unsafeRec);
   registerRealmRecForRealmInstance(self, realmRec);
@@ -186,6 +188,6 @@ const Realm = createRealmFacade(currentUnsafeRec, {
   getRealmGlobal,
   realmEvaluate
 });
-registerUnsafeRecForRealm(Realm, currentUnsafeRec);
+registerUnsafeRecForRealmClass(Realm, currentUnsafeRec);
 
 export default Realm;
