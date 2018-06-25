@@ -117,11 +117,11 @@ function createRealmGlobalObject(unsafeRec) {
   return Realm;
 }
 
-// TODO: this no longer needs to be a class
-
-class BaseRealm {
-  constructor(options) {
+const BaseRealm = {
+  initialize(selfClass, self, options) {
     options = Object(options); // Todo: sanitize
+    // note: 'self' is the instance of the Realm, and 'selfClass' is the
+    // Realm constructor (facade) we build in buildChildRealm().
 
     let unsafeRec;
     if (
@@ -133,18 +133,7 @@ class BaseRealm {
       // the context since we share the intrinsics. We create a new
       // set to allow us to define eval() and Function() for the realm.
 
-      // Class constructor only has a [[Construct]] behavior and not
-      // a call behavior, therefore the use of "this" cannot be bound
-      // by an adversary.
-
-      // note: this 'this' comes from the Reflect.construct call in the
-      // facade we build above, inside buildChildRealm().
-
-      // todo: what if 'this' is e.g. Window but set to inherit from a Realm?
-      // confused deputy / private field question. A: it can't be, we're in a
-      // constructor, and constructors can't be invoked directly as
-      // functions, using a class protects us here
-      unsafeRec = getUnsafeRecForRealm(this.constructor);
+      unsafeRec = getUnsafeRecForRealm(selfClass);
     } else if (
       options.intrinsics === undefined &&
       options.isDirectEval === undefined &&
@@ -169,19 +158,17 @@ class BaseRealm {
     const realmRec = createRealmRec(unsafeRec);
     // todo: is this where we run shims? but only in RootRealms, not compartments
 
-    // note: we never invoke a method on 'this', we only use it as a key in
-    // the weakmap. Never say "this." anywhere.
-    registerRealmRecForRealmInstance(this, realmRec);
-  }
-  get global() {
-    const { safeGlobal } = getRealmRecForRealmInstance(this);
+    registerRealmRecForRealmInstance(self, realmRec);
+  },
+  getGlobal(self) {
+    const { safeGlobal } = getRealmRecForRealmInstance(self);
     return safeGlobal;
-  }
-  evaluate(x) {
-    const { safeEval } = getRealmRecForRealmInstance(this);
+  },
+  evaluate(self, x) {
+    const { safeEval } = getRealmRecForRealmInstance(self);
     return safeEval(x);
   }
-}
+};
 
 // Create the current unsafeRec from the current "primal" realm (the realm
 // where the Realm shim is loaded and executed).
