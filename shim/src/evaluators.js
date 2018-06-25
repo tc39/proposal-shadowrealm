@@ -180,7 +180,7 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
   const { unsafeFunction, unsafeGlobal } = unsafeRec;
 
   const safeFunction = function Function(...params) {
-    const functionBody = `${arrayPop(params)}` || '';
+    const functionBody = `${arrayPop(params) || ''}`;
     let functionParams = `${arrayJoin(params, ',')}`;
 
     // Is this a real functionBody, or is someone attempting an injection
