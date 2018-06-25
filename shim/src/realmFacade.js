@@ -33,7 +33,7 @@ function buildChildRealm(BaseRealm) {
         // err is a primitive value, which is safe to rethrow
         throw err;
       }
-      let eName, eMessage;
+      let eName, eMessage, eStack;
       try {
         // The child environment might seek to use 'err' to reach the
         // parent's intrinsics and corrupt them. `${err.name}` will cause
@@ -47,16 +47,21 @@ function buildChildRealm(BaseRealm) {
         // they aren't useful for an attack.
         eName = `${err.name}`;
         eMessage = `${err.message}`;
-        // eName and eMessage are now child-realm primitive strings, and safe
-        // to expose
+        eStack = `${err.stack}`;
+        // eName/eMessage/eStack are now child-realm primitive strings, and
+        // safe to expose
       } catch (ignored) {
         // if err.name.toString() throws, keep the (parent realm) Error away
         // from the child
         throw new Error('unknown error');
       }
       const ErrorConstructor = errorConstructors.get(eName) || Error;
-      // note: this drops the stack trace. todo: stringify and copy
-      throw new ErrorConstructor(eMessage);
+      try {
+        throw new ErrorConstructor(eMessage);
+      } catch (err2) {
+        err2.stack = eStack; // replace with the captured inner stack
+        throw err2;
+      }
     }
   }
 

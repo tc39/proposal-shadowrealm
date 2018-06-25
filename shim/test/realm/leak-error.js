@@ -81,3 +81,22 @@ test('eval() with non-parsable string should not leak SyntaxError', t => {
   t.ok(e instanceof r.global.SyntaxError);
   t.end();
 });
+
+test('eval() should yield useful stack trace', t => {
+  const r = Realm.makeRootRealm();
+  // t.throws() doesn't provide a way to look a e.stack
+  function outer8155() {
+    r.evaluate('function inner9184() { throw TypeError("yes1773"); } inner9184()');
+  }
+  try {
+    outer8155();
+    t.fail('should have thrown');
+  } catch (e) {
+    t.assert(e instanceof TypeError);
+    const stack = e.stack;
+    // stack should contain both inner and outer stacks
+    t.notEqual(stack.indexOf('outer8155'), -1); // outer
+    t.notEqual(stack.indexOf('inner9184'), -1); // inner
+  }
+  t.end();
+});
