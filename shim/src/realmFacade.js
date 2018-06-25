@@ -4,7 +4,7 @@
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
 
-function buildChildRealm(BaseRealm) {
+function buildChildRealm({ initRootRealm, initCompartment, getRealmGlobal, realmEvaluate }) {
   // This Object and Reflect are brand new, from a new unsafeRec, so no user
   // code has been run or had a chance to manipulate them. We extract these
   // properties for brevity, not for security. Don't ever run this function
@@ -64,20 +64,15 @@ function buildChildRealm(BaseRealm) {
     }
   }
 
-  const baseInitializeRootRealm = BaseRealm.initializeRootRealm;
-  const baseInitializeCompartment = BaseRealm.initializeCompartment;
-  const baseGetGlobal = BaseRealm.getGlobal;
-  const baseEvaluate = BaseRealm.evaluate;
-
   class Realm {
     static makeRootRealm(...args) {
       const r = new Realm();
-      callAndWrapError(baseInitializeRootRealm, Realm, r, ...args);
+      callAndWrapError(initRootRealm, Realm, r, ...args);
       return r;
     }
     static makeCompartment(...args) {
       const r = new Realm();
-      callAndWrapError(baseInitializeCompartment, Realm, r, ...args);
+      callAndWrapError(initCompartment, Realm, r, ...args);
       return r;
     }
 
@@ -90,11 +85,11 @@ function buildChildRealm(BaseRealm) {
       // baseGetGlobal immediately does a trademark check (it fails unless
       // this 'this' is present in a weakmap that is only populated with
       // legitimate Realm instances)
-      return callAndWrapError(baseGetGlobal, this);
+      return callAndWrapError(getRealmGlobal, this);
     }
     evaluate(...args) {
       // safe against strange 'this', as above
-      return callAndWrapError(baseEvaluate, this, ...args);
+      return callAndWrapError(realmEvaluate, this, ...args);
     }
   }
 
