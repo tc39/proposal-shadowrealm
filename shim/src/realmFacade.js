@@ -11,8 +11,7 @@ function buildChildRealm(BaseRealm) {
   // *after* user code has had a chance to pollute its environment, or it
   // could be used to gain access to BaseRealm and primal-realm Error
   // objects.
-  const { defineProperty, getOwnPropertyDescriptors } = Object;
-  const { apply, construct } = Reflect;
+  const { defineProperty } = Object;
 
   const errorConstructors = new Map([
     ['EvalError', EvalError],
@@ -25,9 +24,9 @@ function buildChildRealm(BaseRealm) {
 
   // Like Realm.apply except that it catches anything thrown and rethrows it
   // as an Error from this realm
-  function applyAndWrapError(target, thisArgument, ...args) {
+  function callAndWrapError(target, ...args) {
     try {
-      return apply(target, thisArgument, args);
+      return target(...args);
     } catch (err) {
       if (Object(err) !== err) {
         // err is a primitive value, which is safe to rethrow
@@ -65,21 +64,22 @@ function buildChildRealm(BaseRealm) {
     }
   }
 
-  const descs = getOwnPropertyDescriptors(BaseRealm.prototype);
   // eslint-disable-next-line camelcase
-  const descs_global_get = descs.global.get;
+  const baseInitialize = BaseRealm.initialize;
   // eslint-disable-next-line camelcase
-  const descs_evaluate_value = descs.evaluate.value;
+  const baseGetGlobal = BaseRealm.getGlobal;
+  // eslint-disable-next-line camelcase
+  const baseEvaluate = BaseRealm.evaluate;
 
   class Realm {
     constructor(...args) {
-      return applyAndWrapError(construct, undefined, BaseRealm, args, Realm);
+      return callAndWrapError(baseInitialize, Realm, this, ...args);
     }
     get global() {
-      return applyAndWrapError(descs_global_get, this);
+      return callAndWrapError(baseGetGlobal, this);
     }
     evaluate(...args) {
-      return applyAndWrapError(descs_evaluate_value, this, args);
+      return callAndWrapError(baseEvaluate, this, ...args);
     }
     static makeRootRealm() {
       return new Realm();
