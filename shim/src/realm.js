@@ -104,11 +104,59 @@ function createRealmRec(unsafeRec) {
   return realmRec;
 }
 
-// Define newRealm onto new sharedGlobalDescs, so it can be defined in
-// the safeGlobal like the rest of the shared globals.
-function createRealmGlobalObject(unsafeRec) {
+function initRootRealm(selfClass, self) {
+  // note: 'self' is the instance of the Realm, and 'selfClass' is the
+  // Realm constructor (facade) we build in buildChildRealm().
+
+  // In 'undefined' mode, intrinics are not provided, we create a root
+  // realm using the fresh set of new intrinics from a new context.
+
+  // The unsafe record is returned with its constructors repaired.
+  const unsafeRec = createNewUnsafeRec();
+
+  // Define Realm onto new sharedGlobalDescs, so it can be copied onto the
+  // safeGlobal like the rest of the .
   // eslint-disable-next-line no-use-before-define
-  const Realm = createRealmFacade(unsafeRec, BaseRealm);
+  const Realm = createRealmGlobalObject(unsafeRec);
+  registerUnsafeRecForRealm(Realm, unsafeRec);
+
+  const realmRec = createRealmRec(unsafeRec);
+  registerRealmRecForRealmInstance(self, realmRec);
+  // todo: is this where we run shims? but only in RootRealms, not compartments
+}
+
+function initCompartment(selfClass, self) {
+  // note: 'self' is the instance of the Realm, and 'selfClass' is the
+  // Realm constructor (facade) we build in buildChildRealm().
+
+  // In "inherit" mode, we create a compartment realm and inherit
+  // the context since we share the intrinsics. We create a new
+  // set to allow us to define eval() and Function() for the realm.
+  const unsafeRec = getUnsafeRecForRealm(selfClass);
+
+  const realmRec = createRealmRec(unsafeRec);
+  registerRealmRecForRealmInstance(self, realmRec);
+}
+
+function getRealmGlobal(self) {
+  const { safeGlobal } = getRealmRecForRealmInstance(self);
+  return safeGlobal;
+}
+
+function realmEvaluate(self, x) {
+  const { safeEval } = getRealmRecForRealmInstance(self);
+  return safeEval(x);
+}
+
+// Define Realm onto new sharedGlobalDescs, so it can be defined in the
+// safeGlobal like the rest of the shared globals.
+function createRealmGlobalObject(unsafeRec) {
+  const Realm = createRealmFacade(unsafeRec, {
+    initRootRealm,
+    initCompartment,
+    getRealmGlobal,
+    realmEvaluate
+  });
   unsafeRec.sharedGlobalDescs.Realm = {
     value: Realm,
     writable: true,
@@ -117,52 +165,15 @@ function createRealmGlobalObject(unsafeRec) {
   return Realm;
 }
 
-const BaseRealm = {
-  initializeRootRealm(selfClass, self) {
-    // note: 'self' is the instance of the Realm, and 'selfClass' is the
-    // Realm constructor (facade) we build in buildChildRealm().
-
-    // In 'undefined' mode, intrinics are not provided, we create a root
-    // realm using the fresh set of new intrinics from a new context.
-
-    // The unsafe record is returned with its constructors repaired.
-    const unsafeRec = createNewUnsafeRec();
-
-    // Define Realm onto new sharedGlobalDescs, so it can be copied onto the
-    // safeGlobal like the rest of the .
-    const Realm = createRealmGlobalObject(unsafeRec);
-    registerUnsafeRecForRealm(Realm, unsafeRec);
-
-    const realmRec = createRealmRec(unsafeRec);
-    registerRealmRecForRealmInstance(self, realmRec);
-    // todo: is this where we run shims? but only in RootRealms, not compartments
-  },
-  initializeCompartment(selfClass, self) {
-    // note: 'self' is the instance of the Realm, and 'selfClass' is the
-    // Realm constructor (facade) we build in buildChildRealm().
-
-    // In "inherit" mode, we create a compartment realm and inherit
-    // the context since we share the intrinsics. We create a new
-    // set to allow us to define eval() and Function() for the realm.
-    const unsafeRec = getUnsafeRecForRealm(selfClass);
-
-    const realmRec = createRealmRec(unsafeRec);
-    registerRealmRecForRealmInstance(self, realmRec);
-  },
-  getGlobal(self) {
-    const { safeGlobal } = getRealmRecForRealmInstance(self);
-    return safeGlobal;
-  },
-  evaluate(self, x) {
-    const { safeEval } = getRealmRecForRealmInstance(self);
-    return safeEval(x);
-  }
-};
-
 // Create the current unsafeRec from the current "primal" realm (the realm
 // where the Realm shim is loaded and executed).
 const currentUnsafeRec = createCurrentUnsafeRec();
-const Realm = createRealmFacade(currentUnsafeRec, BaseRealm);
+const Realm = createRealmFacade(currentUnsafeRec, {
+  initRootRealm,
+  initCompartment,
+  getRealmGlobal,
+  realmEvaluate
+});
 registerUnsafeRecForRealm(Realm, currentUnsafeRec);
 
 export default Realm;
