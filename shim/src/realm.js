@@ -1,7 +1,7 @@
 import { createRealmFacade } from './realmFacade';
 import { createNewUnsafeRec, createCurrentUnsafeRec } from './unsafeRec';
 import { createSafeEvaluator, createFunctionEvaluator } from './evaluators';
-import { create, defineProperty, defineProperties, freeze } from './commons';
+import { create, defineProperty, defineProperties, freeze, arrayConcat } from './commons';
 
 // Create a registry to mimic a private static members on the realm classes.
 // We define it in the same module and do not export it.
@@ -104,15 +104,22 @@ function createRealmRec(unsafeRec) {
   return realmRec;
 }
 
-function initRootRealm(selfClass, self) {
+function initRootRealm(selfClass, self, options) {
+  options = Object(options); // Todo: sanitize
   // note: 'self' is the instance of the Realm, and 'selfClass' is the
   // Realm constructor (facade) we build in buildChildRealm().
 
   // In 'undefined' mode, intrinics are not provided, we create a root
   // realm using the fresh set of new intrinics from a new context.
 
+  // todo: investigate attacks via Array.species
+  const newShims = options.shims || [];
+  const { allShims: oldShims } = getUnsafeRecForRealm(selfClass);
+  // todo: this accepts newShims='string', but it should reject that
+  const allShims = arrayConcat(oldShims, newShims);
+
   // The unsafe record is returned with its constructors repaired.
-  const unsafeRec = createNewUnsafeRec();
+  const unsafeRec = createNewUnsafeRec(allShims);
 
   // Define Realm onto new sharedGlobalDescs, so it can be copied onto the
   // safeGlobal like the rest of the .
@@ -122,7 +129,12 @@ function initRootRealm(selfClass, self) {
 
   const realmRec = createRealmRec(unsafeRec);
   registerRealmRecForRealmInstance(self, realmRec);
-  // todo: is this where we run shims? but only in RootRealms, not compartments
+  // Now run all shims in the new RootRealm. We don't do this for
+  // compartments
+  for (const s of allShims) {
+    // eslint-disable-next-line no-use-before-define
+    realmEvaluate(self, s);
+  }
 }
 
 function initCompartment(selfClass, self) {

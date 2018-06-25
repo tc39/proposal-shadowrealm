@@ -49,14 +49,15 @@ const getNewUnsafeGlobal = isNode ? createNewUnsafeGlobalForNode : createNewUnsa
 // tied to a set of intrinsics, aka the "undeniables". If it were possible to
 // mix-and-match them from different contexts, that would enable some
 // attacks.
-function createUnsafeRec(unsafeGlobal) {
+function createUnsafeRec(unsafeGlobal, allShims) {
   const sharedGlobalDescs = getSharedGlobalDescs(unsafeGlobal);
 
   return freeze({
     unsafeGlobal,
     sharedGlobalDescs,
     unsafeEval: unsafeGlobal.eval,
-    unsafeFunction: unsafeGlobal.Function
+    unsafeFunction: unsafeGlobal.Function,
+    allShims
   });
 }
 
@@ -71,9 +72,9 @@ function sanitizeUnsafeRec(unsafeRec) {
 
 // Create a new unsafeRec from a brand new context, with new intrinsics and a
 // new global object
-export function createNewUnsafeRec() {
+export function createNewUnsafeRec(allShims) {
   const unsafeGlobal = getNewUnsafeGlobal();
-  const unsafeRec = createUnsafeRec(unsafeGlobal);
+  const unsafeRec = createUnsafeRec(unsafeGlobal, allShims);
   sanitizeUnsafeRec(unsafeRec);
   return unsafeRec;
 }
@@ -82,7 +83,7 @@ export function createNewUnsafeRec() {
 // being parsed and executed, aka the "Primal Realm"
 export function createCurrentUnsafeRec() {
   const unsafeGlobal = (0, eval)(unsafeGlobalSrc);
-  const unsafeRec = createUnsafeRec(unsafeGlobal);
+  const unsafeRec = createUnsafeRec(unsafeGlobal, []); // todo: fixAccessors here
   sanitizeUnsafeRec(unsafeRec);
   return unsafeRec;
 }
