@@ -25,6 +25,7 @@ function getOptimizableGlobals(safeGlobal) {
   const descs = getOwnPropertyDescriptors(safeGlobal);
 
   for (const name of getOwnPropertyNames(descs)) {
+    // todo: protect, use uncurried forEach
     const desc = descs[name];
     if (typeof name !== 'string') continue; // ignore Symbols
 
