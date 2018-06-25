@@ -40,7 +40,7 @@ test('identity eval', t => {
 
 // Function is realm-specific
 test('identity Function', t => {
-  t.plan(4);
+  t.plan(5);
 
   const r = Realm.makeRootRealm();
 
@@ -48,4 +48,7 @@ test('identity Function', t => {
   t.ok(r.evaluate('Function instanceof Object'));
   t.notOk(r.evaluate('Function') instanceof Function);
   t.notOk(r.evaluate('Function') instanceof Object);
+
+  const f = r.evaluate('function x(a, b) { return a+b; }; x');
+  t.ok(f instanceof r.global.Function);
 });
