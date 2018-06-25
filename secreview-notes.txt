@@ -90,3 +90,22 @@ Two reasons why the function. constructor of the root realm should always throw:
   compartment-speciifc behavior, so if it has any non-erroneous behavior at
   all, it would be invisibly incompatible, which would cause confusion. if we
   can't be compatible, we should thrrow an error.
+
+
+To protect the __defineGetter__ etc in accessors.js, first build the shimming
+mechanism, then copy the source code of accessors.js into a shim that we
+always apply. tricky: we need to include it in the root, but since shims are
+inherited, we must avoid injecting it twice.
+
+Do we need to provide two different kinds of shims? Ones that run in
+rootrealms, a second that only run in compartments? 'Promise' is the example.
+A: no.
+
+shims:
+ * e.g. adding Promise to environment that lacks them: need to run in the
+   rootrealm, but compartment globals also need that name
+ * let compartment global inherit from its rootrealm's global?
+  * but not if it's not frozen
+ * maybe just copy *all* the properties of the rootrealm's global onto the
+   compartment's global. use the whitelist to populate the rootrealm's global
+  * we like this one
