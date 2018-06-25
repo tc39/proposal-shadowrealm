@@ -118,46 +118,35 @@ function createRealmGlobalObject(unsafeRec) {
 }
 
 const BaseRealm = {
-  initialize(selfClass, self, options) {
-    options = Object(options); // Todo: sanitize
+  initializeRootRealm(selfClass, self) {
     // note: 'self' is the instance of the Realm, and 'selfClass' is the
     // Realm constructor (facade) we build in buildChildRealm().
 
-    let unsafeRec;
-    if (
-      options.intrinsics === 'inherit' &&
-      options.isDirectEval === 'inherit' &&
-      options.transform === 'inherit'
-    ) {
-      // In "inherit" mode, we create a compartment realm and inherit
-      // the context since we share the intrinsics. We create a new
-      // set to allow us to define eval() and Function() for the realm.
+    // In 'undefined' mode, intrinics are not provided, we create a root
+    // realm using the fresh set of new intrinics from a new context.
 
-      unsafeRec = getUnsafeRecForRealm(selfClass);
-    } else if (
-      options.intrinsics === undefined &&
-      options.isDirectEval === undefined &&
-      options.transform === undefined
-    ) {
-      // In 'undefined' mode, intrinics are not provided, we create a root
-      // realm using the fresh set of new intrinics from a new context.
+    // The unsafe record is returned with its constructors repaired.
+    const unsafeRec = createNewUnsafeRec();
 
-      // The unsafe record is returned with its constructors repaired.
-      unsafeRec = createNewUnsafeRec();
+    // Define Realm onto new sharedGlobalDescs, so it can be copied onto the
+    // safeGlobal like the rest of the .
+    const Realm = createRealmGlobalObject(unsafeRec);
+    registerUnsafeRecForRealm(Realm, unsafeRec);
 
-      // Define Realm onto new sharedGlobalDescs, so it can be copied onto the
-      // safeGlobal like the rest of the .
-      const Realm = createRealmGlobalObject(unsafeRec);
-      registerUnsafeRecForRealm(Realm, unsafeRec);
-    } else {
-      // note this would leak the parent TypeError, from which the child can
-      // access .prototype and the parent's intrinsics, except that the Realm
-      // facade catches all errors and translates them into local Error types
-      throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
-    }
     const realmRec = createRealmRec(unsafeRec);
+    registerRealmRecForRealmInstance(self, realmRec);
     // todo: is this where we run shims? but only in RootRealms, not compartments
+  },
+  initializeCompartment(selfClass, self) {
+    // note: 'self' is the instance of the Realm, and 'selfClass' is the
+    // Realm constructor (facade) we build in buildChildRealm().
 
+    // In "inherit" mode, we create a compartment realm and inherit
+    // the context since we share the intrinsics. We create a new
+    // set to allow us to define eval() and Function() for the realm.
+    const unsafeRec = getUnsafeRecForRealm(selfClass);
+
+    const realmRec = createRealmRec(unsafeRec);
     registerRealmRecForRealmInstance(self, realmRec);
   },
   getGlobal(self) {

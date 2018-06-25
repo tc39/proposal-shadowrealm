@@ -64,32 +64,37 @@ function buildChildRealm(BaseRealm) {
     }
   }
 
-  // eslint-disable-next-line camelcase
-  const baseInitialize = BaseRealm.initialize;
-  // eslint-disable-next-line camelcase
+  const baseInitializeRootRealm = BaseRealm.initializeRootRealm;
+  const baseInitializeCompartment = BaseRealm.initializeCompartment;
   const baseGetGlobal = BaseRealm.getGlobal;
-  // eslint-disable-next-line camelcase
   const baseEvaluate = BaseRealm.evaluate;
 
   class Realm {
-    constructor(...args) {
-      return callAndWrapError(baseInitialize, Realm, this, ...args);
+    static makeRootRealm(...args) {
+      const r = new Realm();
+      callAndWrapError(baseInitializeRootRealm, Realm, r, ...args);
+      return r;
     }
+    static makeCompartment(...args) {
+      const r = new Realm();
+      callAndWrapError(baseInitializeCompartment, Realm, r, ...args);
+      return r;
+    }
+
+    // we omit the constructor because it is empty. All the personalization
+    // takes place in one of the two static methods,
+    // makeRootRealm/makeCompartment
+
     get global() {
+      // this is safe against being called with strange 'this' because
+      // baseGetGlobal immediately does a trademark check (it fails unless
+      // this 'this' is present in a weakmap that is only populated with
+      // legitimate Realm instances)
       return callAndWrapError(baseGetGlobal, this);
     }
     evaluate(...args) {
+      // safe against strange 'this', as above
       return callAndWrapError(baseEvaluate, this, ...args);
-    }
-    static makeRootRealm() {
-      return new Realm();
-    }
-    static makeCompartment() {
-      return new Realm({
-        transform: 'inherit',
-        isDirectEval: 'inherit',
-        intrinsics: 'inherit'
-      });
     }
   }
 
