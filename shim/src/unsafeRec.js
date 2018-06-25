@@ -1,5 +1,6 @@
+// this module must never be importable outside the Realm shim itself
 import { getSharedGlobalDescs } from './stdlib';
-import { repairAccessors } from './accessors';
+import { repairAccessors, repairAccessorsShim } from './accessors';
 import { repairFunctions } from './functions';
 import { freeze } from './commons';
 
@@ -41,7 +42,11 @@ function createNewUnsafeGlobalForBrowser() {
   return unsafeGlobal;
 }
 
-const getNewUnsafeGlobal = isNode ? createNewUnsafeGlobalForNode : createNewUnsafeGlobalForBrowser;
+// we only export this so test-repair.js can get an unrepaired
+// Object.prototype, to sense if this platform has the buggy behavior
+export const getNewUnsafeGlobal = isNode
+  ? createNewUnsafeGlobalForNode
+  : createNewUnsafeGlobalForBrowser;
 
 // The unsafeRec is shim-specific. It acts as the mechanism to obtain a fresh
 // set of intrinsics together with their associated eval and Function
@@ -66,8 +71,8 @@ function sanitizeUnsafeRec(unsafeRec) {
   // Ensures that neither the legacy accessors nor the function constructors
   // can be used to escape the confinement of the evaluators to execute in the
   // context.
-  repairAccessors(unsafeRec);
   repairFunctions(unsafeRec);
+  // we repair the accessors by injecting a shim string, so it gets the right types
 }
 
 // Create a new unsafeRec from a brand new context, with new intrinsics and a
@@ -83,7 +88,8 @@ export function createNewUnsafeRec(allShims) {
 // being parsed and executed, aka the "Primal Realm"
 export function createCurrentUnsafeRec() {
   const unsafeGlobal = (0, eval)(unsafeGlobalSrc);
-  const unsafeRec = createUnsafeRec(unsafeGlobal, []); // todo: fixAccessors here
-  sanitizeUnsafeRec(unsafeRec);
+  const unsafeRec = createUnsafeRec(unsafeGlobal, [repairAccessorsShim]);
+  // sanitizeUnsafeRec(unsafeRec); // todo: markm not sure we want to repair functions
+  repairAccessors();
   return unsafeRec;
 }
