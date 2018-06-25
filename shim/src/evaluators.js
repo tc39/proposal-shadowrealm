@@ -226,7 +226,6 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
   // Ensure that any function created in any compartment in a root realm is an
   // instance of Function in any compartment of the same root ralm.
   defineProperty(safeFunction, 'prototype', { value: unsafeFunction.prototype });
-  // todo: write a test case
 
   // Provide a custom output without overwriting the Function.prototype.toString
   // which is called by some third-party libraries.

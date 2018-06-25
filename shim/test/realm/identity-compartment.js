@@ -50,10 +50,11 @@ test('identity eval', t => {
 
 // Function is realm-specific
 test('identity Function', t => {
-  t.plan(8);
+  t.plan(11);
 
   const r1 = Realm.makeRootRealm();
   const r2 = r1.global.Realm.makeCompartment();
+  const r3 = r1.global.Realm.makeCompartment();
 
   t.ok(r2.evaluate('Function instanceof Function'));
   t.ok(r2.evaluate('Function instanceof Object'));
@@ -63,4 +64,9 @@ test('identity Function', t => {
   t.notOk(r2.evaluate('Function') instanceof Object);
   t.notEqual(r2.evaluate('Function'), r1.evaluate('Function'));
   t.notEqual(r2.evaluate('Function'), Function);
+
+  const f2 = r2.evaluate('function x(a, b) { return a+b; }; x');
+  t.ok(f2 instanceof r1.global.Function);
+  t.ok(f2 instanceof r2.global.Function);
+  t.ok(f2 instanceof r3.global.Function);
 });
