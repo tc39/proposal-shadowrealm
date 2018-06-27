@@ -6,8 +6,8 @@
     "scripts": {
         "build": "ecmarkup spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
         "watch": "ecmarkup --watch spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
-        "shim:build": "yarn shim:build:dev && yarn shim:build:prod",
-        "shim:watch": "yarn run shim:build:dev --watch",
+        "shim:build": "npm run shim:build:dev && npm run shim:build:prod",
+        "shim:watch": "npm run shim:build:dev --watch",
         "shim:build:dev": "cross-env NODE_ENV=development rollup -c shim/rollup.config.js",
         "shim:build:prod": "cross-env NODE_ENV=production rollup -c shim/rollup.config.js",
         "shim:lint": "eslint ./shim/src/**/*.js ./shim/test/**/*.js",

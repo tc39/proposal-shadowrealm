@@ -16,7 +16,7 @@ The current implementation has 3 main limitations:
 git clone https://github.com/tc39/proposal-realms.git
 cd proposal-realms
 npm install
-npm run build-shim
+npm run shim:build
 ```
 
 This will install the necessary dependencies and build the shim locally.
