@@ -164,7 +164,7 @@ class BaseRealm {
       // note this would leak the parent TypeError, from which the child can
       // access .prototype and the parent's intrinsics, except that the Realm
       // facade catches all errors and translates them into local Error types
-      throw new TypeError('Realm only supports undefined or "inherited" intrinsics.');
+      throw new TypeError('Realm only supports undefined or "inherit" intrinsics.');
     }
     const realmRec = createRealmRec(unsafeRec);
     // todo: is this where we run shims? but only in RootRealms, not compartments
