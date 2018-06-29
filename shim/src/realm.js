@@ -1,6 +1,11 @@
 import { createRealmFacade } from './realmFacade';
 import { createNewUnsafeRec, createCurrentUnsafeRec } from './unsafeRec';
-import { createSafeEvaluator, createFunctionEvaluator } from './evaluators';
+import {
+  createSafeEvaluatorFactory,
+  createSafeEvaluator,
+  createSafeEvaluatorWhichTakesEndowments,
+  createFunctionEvaluator
+} from './evaluators';
 import { create, defineProperty, defineProperties, freeze, arrayConcat } from './commons';
 
 // Create a registry to mimic a private static members on the realm classes.
@@ -88,7 +93,11 @@ function createRealmRec(unsafeRec) {
   const { sharedGlobalDescs, unsafeGlobal } = unsafeRec;
 
   const safeGlobal = create(unsafeGlobal.Object.prototype);
-  const safeEval = createSafeEvaluator(unsafeRec, safeGlobal);
+  const safeEvaluatorFactory = createSafeEvaluatorFactory(unsafeRec, safeGlobal);
+  const safeEval = createSafeEvaluator(safeEvaluatorFactory);
+  const safeEvalWhichTakesEndowments = createSafeEvaluatorWhichTakesEndowments(
+    safeEvaluatorFactory
+  );
   const safeFunction = createFunctionEvaluator(unsafeRec, safeEval);
 
   setDefaultBindings(sharedGlobalDescs, safeGlobal, safeEval, safeFunction);
@@ -96,6 +105,7 @@ function createRealmRec(unsafeRec) {
   const realmRec = freeze({
     safeGlobal,
     safeEval,
+    safeEvalWhichTakesEndowments,
     safeFunction
   });
 
@@ -153,9 +163,12 @@ function getRealmGlobal(self) {
   return safeGlobal;
 }
 
-function realmEvaluate(self, x) {
-  const { safeEval } = getRealmRecForRealmInstance(self);
-  return safeEval(x);
+function realmEvaluate(self, x, endowments = {}) {
+  // todo: don't pass in primal-realm objects like {}, for safety. OTOH its
+  // properties are copied onto the new global 'target'.
+  // todo: figure out a way to membrane away the contents to safety.
+  const { safeEvalWhichTakesEndowments } = getRealmRecForRealmInstance(self);
+  return safeEvalWhichTakesEndowments(x, endowments);
 }
 
 // Define Realm onto new sharedGlobalDescs, so it can be defined in the
