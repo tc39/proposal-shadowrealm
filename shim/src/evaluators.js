@@ -108,73 +108,79 @@ function createScopedEvaluatorFactory(unsafeRec, constants) {
   `);
 }
 
-export function createSafeEvaluator(unsafeRec, safeGlobal) {
+export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
   const { unsafeFunction } = unsafeRec;
 
-  // This proxy has several functions:
-  // 1. works with the sentinel to alternate between direct eval and confined eval.
-  // 2. shadows all properties of the unsafe global by declaring them as undefined.
-  // 3. resolves all existing properties of the safe global.
-  // 4. uses an empty object as the target, with the safe global as its prototype,
-  // to bypass a proxy invariant that would prevent alternating between different
-  // values of eval if the user was to freeze the eval property on the safe global.
   const scopeHandler = new ScopeHandler(unsafeRec);
-  const scopeTarget = create(safeGlobal);
-  const scopeProxy = new Proxy(scopeTarget, scopeHandler);
-
   const optimizableGlobals = getOptimizableGlobals(safeGlobal);
   const scopedEvaluatorFactory = createScopedEvaluatorFactory(unsafeRec, optimizableGlobals);
-  const scopedEvaluator = scopedEvaluatorFactory(scopeProxy);
 
-  // We use the the concise method syntax to create an eval without a
-  // [[Construct]] behavior (such that the invocation "new eval()" throws
-  // TypeError: eval is not a constructor"), but which still accepts a 'this'
-  // binding.
-  const safeEval = {
-    eval(src) {
-      src = `${src}`;
-      rejectImportExpressions(src);
-      scopeHandler.useUnsafeEvaluator = true;
-      let err;
-      try {
-        // Ensure that "this" resolves to the safe global.
-        return apply(scopedEvaluator, safeGlobal, [src]);
-      } catch (e) {
-        // stash the child-code error in hopes of debugging the internal failure
-        err = e;
-        throw e;
-      } finally {
-        // belt and suspenders: the proxy switches this off immediately after
-        // the first access, but just in case we clear it here too
-        if (scopeHandler.useUnsafeEvaluator !== false) {
-          scopeHandler.useUnsafeEvaluator = false;
-          throwTantrum('handler sets useUnsafeEvaluator = false', err);
+  function factory(endowments) {
+    const scopeTarget = create(safeGlobal, getOwnPropertyDescriptors(endowments));
+    const scopeProxy = new Proxy(scopeTarget, scopeHandler);
+    const scopedEvaluator = scopedEvaluatorFactory(scopeProxy);
+
+    // We use the the concise method syntax to create an eval without a
+    // [[Construct]] behavior (such that the invocation "new eval()" throws
+    // TypeError: eval is not a constructor"), but which still accepts a
+    // 'this' binding.
+    const safeEval = {
+      eval(src) {
+        src = `${src}`;
+        rejectImportExpressions(src);
+        scopeHandler.useUnsafeEvaluator = true;
+        let err;
+        try {
+          // Ensure that "this" resolves to the safe global.
+          return apply(scopedEvaluator, safeGlobal, [src]);
+        } catch (e) {
+          // stash the child-code error in hopes of debugging the internal failure
+          err = e;
+          throw e;
+        } finally {
+          // belt and suspenders: the proxy switches this off immediately after
+          // the first access, but just in case we clear it here too
+          if (scopeHandler.useUnsafeEvaluator !== false) {
+            scopeHandler.useUnsafeEvaluator = false;
+            throwTantrum('handler sets useUnsafeEvaluator = false', err);
+          }
         }
       }
-    }
-  }.eval;
+    }.eval;
 
-  // safeEval's prototype is currently the primal realm's Function.prototype,
-  // which we must not let escape. To make 'eval instanceof Function' be true
-  // inside the realm, we need to point it at the RootRealm's value.
+    // safeEval's prototype is currently the primal realm's
+    // Function.prototype, which we must not let escape. To make 'eval
+    // instanceof Function' be true inside the realm, we need to point it at
+    // the RootRealm's value.
 
-  // Ensure that eval from any compartment in a root realm is an
-  // instance of Function in any compartment of the same root realm.
-  setPrototypeOf(safeEval, unsafeFunction.prototype);
+    // Ensure that eval from any compartment in a root realm is an instance
+    // of Function in any compartment of the same root realm.
+    setPrototypeOf(safeEval, unsafeFunction.prototype);
 
-  assert(getPrototypeOf(safeEval).constructor !== Function, 'hide Function');
-  assert(getPrototypeOf(safeEval).constructor !== unsafeFunction, 'hide unsafeFunction');
+    assert(getPrototypeOf(safeEval).constructor !== Function, 'hide Function');
+    assert(getPrototypeOf(safeEval).constructor !== unsafeFunction, 'hide unsafeFunction');
 
-  // note: be careful to not leak our primal Function.prototype by setting
-  // this to a plain arrow function. Now that we have safeEval, use it.
-  defineProperty(safeEval, 'toString', {
-    value: safeEval("() => 'function eval() { [shim code] }'"),
-    writable: false,
-    enumerable: false,
-    configurable: true
-  });
+    // note: be careful to not leak our primal Function.prototype by setting
+    // this to a plain arrow function. Now that we have safeEval, use it.
+    defineProperty(safeEval, 'toString', {
+      value: safeEval("() => 'function eval() { [shim code] }'"),
+      writable: false,
+      enumerable: false,
+      configurable: true
+    });
 
-  return safeEval;
+    return safeEval;
+  }
+
+  return factory;
+}
+
+export function createSafeEvaluator(safeEvaluatorFactory) {
+  return safeEvaluatorFactory({});
+}
+
+export function createSafeEvaluatorWhichTakesEndowments(safeEvaluatorFactory) {
+  return (x, endowments) => safeEvaluatorFactory(endowments)(x);
 }
 
 /**

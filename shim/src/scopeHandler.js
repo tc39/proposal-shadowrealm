@@ -11,7 +11,7 @@
 // * hide the unsafeGlobal which lives on the scope chain above the 'with'
 // * ensure the Proxy invariants despite some global properties being frozen
 
-import { getPrototypeOf } from './commons';
+import { getPrototypeOf, objectHasOwnProperty } from './commons';
 
 export class ScopeHandler {
   // Properties stored on the handler are not available from the proxy.
@@ -49,6 +49,7 @@ export class ScopeHandler {
       return target.eval;
     }
 
+    // todo: shim integrity, capture Symbol.unscopables
     if (prop === Symbol.unscopables) {
       // Safe to return a primal realm Object here because the only code that
       // can do a get() on a non-string is the internals of with() itself,
@@ -70,6 +71,10 @@ export class ScopeHandler {
     // Set the value on the shadow. The target itself is an empty
     // object that is only used to prevent a froxen eval property.
     // todo: use this.shadowTarget, for speedup
+    if (objectHasOwnProperty(target, prop)) {
+      // todo: shim integrity: TypeError, String
+      throw new TypeError(`do not modify endowments like ${String(prop)}`);
+    }
     getPrototypeOf(target)[prop] = value;
     // Return true after successful set.
     return true;
