@@ -21,6 +21,9 @@ import { assert, throwTantrum } from './utilities';
 
 const identifierPattern = /^[a-zA-Z_$][\w_$]*$/;
 
+// todo: think about how this interacts with endowments, check for conflicts
+// between the names being optimized and the ones added by endowments
+
 function getOptimizableGlobals(safeGlobal) {
   const constants = [];
   const descs = getOwnPropertyDescriptors(safeGlobal);
