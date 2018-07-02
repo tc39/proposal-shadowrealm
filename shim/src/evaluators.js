@@ -17,6 +17,7 @@ import {
   stringIncludes
 } from './commons';
 import { ScopeHandler } from './scopeHandler';
+import { rejectImportExpressions } from './block-imports';
 import { assert, throwTantrum } from './utilities';
 
 const identifierPattern = /^[a-zA-Z_$][\w_$]*$/;
@@ -132,6 +133,7 @@ export function createSafeEvaluator(unsafeRec, safeGlobal) {
   const safeEval = {
     eval(src) {
       src = `${src}`;
+      rejectImportExpressions(src);
       scopeHandler.useUnsafeEvaluator = true;
       let err;
       try {
