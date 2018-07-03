@@ -1,4 +1,15 @@
-// todo needs comment
+// the ScopeHandler manages a Proxy which serves as the global scope for the
+// safeEvaluator operation (the Proxy is the argument of a 'with' binding).
+// As described in createSafeEvaluator(), it has several functions:
+// * allow the very first (and only the very first) use of 'eval' to map to
+//   the real (unsafe) eval function, so it acts as a 'direct eval' and can
+//   access its lexical scope (which maps to the 'with' binding, which the
+//   ScopeHandler also controls)
+// * ensure that all subsequent uses of 'eval' map to the safeEvaluator,
+//   which lives as the 'eval' property of the safeGlobal
+// * route all other property lookups at the safeGlobal
+// * hide the unsafeGlobal which lives on the scope chain above the 'with'
+// * ensure the Proxy invariants despite some global properties being frozen
 
 import { getPrototypeOf } from './commons';
 

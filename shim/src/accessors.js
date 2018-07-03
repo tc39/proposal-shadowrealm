@@ -36,6 +36,9 @@ this, and we need to include repairAccessors. E.g. Chrome in 2016.
 todo: It would be better to detect and only repair the functions that have
 the bug.
 
+todo: all of these leak access to the primal realm's Function.prototype, via
+e.g. Object.prototype.__lookupGetter__.__proto__
+
  */
 export function repairAccessors(unsafeRec) {
   const { unsafeGlobal: g } = unsafeRec;
