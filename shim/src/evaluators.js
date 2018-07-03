@@ -12,6 +12,7 @@ import {
   getOwnPropertyNames,
   getPrototypeOf,
   regexpMatch,
+  arrayForEach,
   setPrototypeOf,
   stringIncludes
 } from './commons';
@@ -24,17 +25,16 @@ function getOptimizableGlobals(safeGlobal) {
   const constants = [];
   const descs = getOwnPropertyDescriptors(safeGlobal);
 
-  for (const name of getOwnPropertyNames(descs)) {
-    // todo: protect, use uncurried forEach
+  arrayForEach(getOwnPropertyNames(descs), name => {
     const desc = descs[name];
-    if (typeof name !== 'string') continue; // ignore Symbols
+    if (typeof name !== 'string') return; // ignore Symbols
 
     // admit many (but not all) legal variable names: starts with letter/_/$,
     // continues with letter/digit/_/$ . It will reject many legal names that
     // involve unicode characters. We use 'apply' rather than /../.match() in
     // case RegExp has been poisoned.
 
-    if (!regexpMatch(identifierPattern, name)) continue;
+    if (!regexpMatch(identifierPattern, name)) return;
 
     // getters will not have .writable, don't let the falsyness of
     // 'undefined' trick us: test with === false, not ! . However descriptors
@@ -43,19 +43,19 @@ function getOptimizableGlobals(safeGlobal) {
     // 'get/set/enumerable/configurable', while data properties have
     // 'value/writable/enumerable/configurable'.
 
-    if (desc.configurable !== false) continue;
-    if (desc.writable !== false) continue;
+    if (desc.configurable !== false) return;
+    if (desc.writable !== false) return;
 
     // Check for accessor properties: we don't want to optimize these,
     // they're obviously non-constant. Setter-only accessors will still have
     // a 'get' property, but it will be 'undefined', so we only have to test
     // for 'get', not 'set'
-    if ('get' in desc) continue;
-    if ('set' in desc) continue;
+    if ('get' in desc) return;
+    if ('set' in desc) return;
 
     // protect against post-initialization corruption of primal realm Array
     arrayPush(constants, name);
-  }
+  });
   return constants;
 }
 
