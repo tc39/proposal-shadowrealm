@@ -1,6 +1,15 @@
 import test from 'tape';
 import Realm from '../../src/realm';
 
+test('function-no-body', t => {
+  const r = Realm.makeRootRealm();
+  const f1 = new r.global.Function();
+  const src = f1.toString();
+  t.notOk(src.includes('undefined'));
+  t.equal(f1(), undefined);
+  t.end();
+});
+
 test('function-injection', t => {
   const goodFunc = 'return a+1';
   const r = Realm.makeRootRealm();
