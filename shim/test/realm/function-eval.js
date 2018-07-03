@@ -31,6 +31,41 @@ test('function-injection', t => {
   t.end();
 });
 
+test('function-injection-2', t => {
+  const r = Realm.makeRootRealm();
+  let flag = false;
+  r.global.target = function() {
+    flag = true;
+  };
+  function check(...args) {
+    t.throws(() => r.global.Function(...args), r.global.SyntaxError, args);
+    t.equal(flag, false);
+  }
+  function checkNotError(...args) {
+    r.global.Function(...args);
+    t.equal(flag, false);
+  }
+
+  // test cases from https://code.google.com/archive/p/google-caja/issues/1616
+  check(`}), target(), (function(){`);
+  check(`})); }); target(); (function(){ ((function(){ `);
+
+  // and from https://bugs.chromium.org/p/v8/issues/detail?id=2470
+  check('/*', '*/){');
+  check('', '});(function(){');
+  checkNotError('//', '//');
+  check('', `});print('1+1=' + (1+1));(function(){`);
+
+  // and from https://bugs.webkit.org/show_bug.cgi?id=106160
+  check('){});(function(', '');
+  check('', '});(function(){');
+  checkNotError('//', '//');
+  check('/*', '*/){');
+  check('}}; 1 * {a:{');
+
+  t.end();
+});
+
 test('function-reject-paren-default', t => {
   // this ought to be accepted, but our shim is conservative about parenthesis
   const r = Realm.makeRootRealm();
