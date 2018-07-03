@@ -40,6 +40,10 @@ function getOptimizableGlobals(safeGlobal) {
 
     if (!regexpMatch(identifierPattern, name)) return;
 
+    // todo: reject keywords, which pass the isIdentifier check, to block
+    // injection attacks. test should use a property name that is itself a
+    // full program
+
     // getters will not have .writable, don't let the falsyness of
     // 'undefined' trick us: test with === false, not ! . However descriptors
     // inherit from the (potentially poisoned) global object, so we might see
@@ -116,6 +120,14 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
   const scopedEvaluatorFactory = createScopedEvaluatorFactory(unsafeRec, optimizableGlobals);
 
   function factory(endowments) {
+    // todo (shim limitation): scan endowments, throw error if endowment
+    // overlaps with the const optimization (which would otherwise
+    // incorrectly shadow endowments), or if endowments includes 'eval'. Also
+    // prohibit accessor properties (to be able to consistently explain
+    // things in terms of shimming the global lexical scope).
+    // writeable-vs-nonwritable == let-vs-const, but there's no
+    // global-lexical-scope equivalent of an accessor, outside what we can
+    // explain/spec
     const scopeTarget = create(safeGlobal, getOwnPropertyDescriptors(endowments));
     const scopeProxy = new Proxy(scopeTarget, scopeHandler);
     const scopedEvaluator = scopedEvaluatorFactory(scopeProxy);

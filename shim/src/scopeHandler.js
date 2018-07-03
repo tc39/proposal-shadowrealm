@@ -69,8 +69,13 @@ export class ScopeHandler {
   // eslint-disable-next-line class-methods-use-this
   set(target, prop, value) {
     // Set the value on the shadow. The target itself is an empty
-    // object that is only used to prevent a froxen eval property.
+    // object that is only used to prevent a frozen eval property.
     // todo: use this.shadowTarget, for speedup
+
+    // new todo: allow modifications when target.hasOwnProperty(prop) and it
+    // is writable, assuming we've already rejected overlap (see
+    // createSafeEvaluatorFactory.factory). This TypeError gets replaced with
+    // target[prop] = value
     if (objectHasOwnProperty(target, prop)) {
       // todo: shim integrity: TypeError, String
       throw new TypeError(`do not modify endowments like ${String(prop)}`);
