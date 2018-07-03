@@ -46,8 +46,6 @@ function getRealmRecForRealmInstance(realm) {
     // Detect non-objects.
     throw new TypeError('bad object, not a Realm instance');
   }
-  // spec just says throw TypeError
-  // todo: but shim should include a message
   if (!RealmRecForRealmInstance.has(realm)) {
     // Realm instance has no realmRec. Should not proceed.
     throw new TypeError(
@@ -62,8 +60,6 @@ function registerRealmRecForRealmInstance(realm, realmRec) {
     // Detect non-objects.
     throw new TypeError('internal error: bad object, not a Realm instance');
   }
-  // spec just says throw TypeError
-  // todo: but shim should include a message
   if (RealmRecForRealmInstance.has(realm)) {
     // Attempt to change an existing realmRec on a realm instance. Should not proceed.
     throw new TypeError('internal error: Realm instance is already present');
@@ -133,9 +129,9 @@ function initRootRealm(selfClass, self, options) {
   registerRealmRecForRealmInstance(self, realmRec);
   // Now run all shims in the new RootRealm. We don't do this for
   // compartments
-  for (const s of allShims) {
+  for (const shim of allShims) {
     // eslint-disable-next-line no-use-before-define
-    realmEvaluate(self, s);
+    realmEvaluate(self, shim);
   }
 }
 

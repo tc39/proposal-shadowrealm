@@ -84,4 +84,4 @@ export function repairAccessors() {
   });
 }
 
-export const repairAccessorsShim = `${repairAccessors} repairAccessors();`;
+export const repairAccessorsShim = `(${repairAccessors})();`;
