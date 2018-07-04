@@ -18,9 +18,9 @@ You can view the spec rendered as [HTML](https://rawgit.com/tc39/proposal-realms
 
 ### Shim/Polyfill [![License][license-image]][license-url] [![Build Status][travis-svg]][travis-url]
 
-A shim implementation of the Realm API can be found [here](shim/).
+A shim implementation of the Realm API can be found under the [shim folder](shim/).
 
-You can play around with the current version of the shim in a Realm [here](https://rawgit.com/tc39/proposal-realms/master/shim/examples/simple.html).
+You can play around with the current version of the shim with the [Realm playground](https://rawgit.com/tc39/proposal-realms/master/shim/examples/simple.html).
 
 # Realms
 
