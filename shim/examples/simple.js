@@ -3,7 +3,7 @@
 
 // basic sanity check: they all should output true
 // Root realm
-const r1 = new Realm();
+const r1 = Realm.makeRootRealm();
 console.log(1.1, r1.evaluate('JSON'));
 console.log(1.2, r1.evaluate('JSON') !== JSON);
 console.log(1.3, r1.evaluate('JSON') === r1.evaluate('JSON'));
@@ -11,7 +11,7 @@ console.log(1.4, r1.evaluate('JSON') === r1.evaluate('eval("JSON")'));
 console.log(1.5, r1.evaluate('eval instanceof Function'));
 
 // Root realm vs root realm
-const r2 = new Realm();
+const r2 = Realm.makeRootRealm();
 console.log(2.1, r2.evaluate('JSON'));
 console.log(2.2, r2.evaluate('JSON') !== JSON);
 console.log(2.3, r2.evaluate('JSON') === r2.evaluate('JSON'));
@@ -30,7 +30,7 @@ console.log(3.5, r1.evaluate('eval instanceof Function'));
 console.log(3.6, r3.evaluate('JSON') === r1.evaluate('JSON'));
 console.log(3.7, r3.evaluate('eval("JSON")') === r1.evaluate('eval("JSON")'));
 
-const r = new Realm();
+const r = Realm.makeRootRealm();
 
 document.getElementById('run').addEventListener('click', () => {
   const sourceText = document.getElementById('sourceText').value;
