@@ -81,5 +81,3 @@ export function repairAccessors() {
   makeLookupAccessor('__lookupGetter__', 'get');
   makeLookupAccessor('__lookupSetter__', 'set');
 }
-
-export const repairAccessorsShim = `(${repairAccessors})();`;
