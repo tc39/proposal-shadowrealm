@@ -86,5 +86,3 @@ export function repairAccessors() {
     }
   });
 }
-
-export const repairAccessorsShim = `(${repairAccessors})();`;

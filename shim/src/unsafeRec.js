@@ -1,6 +1,6 @@
 // this module must never be importable outside the Realm shim itself
 import { getSharedGlobalDescs } from './stdlib';
-import { repairAccessors, repairAccessorsShim } from './accessors';
+import { repairAccessors } from './accessors';
 import { repairFunctions } from './functions';
 import { freeze } from './commons';
 
@@ -66,30 +66,23 @@ function createUnsafeRec(unsafeGlobal, allShims) {
   });
 }
 
-// todo: NEEDS COMMENT
-function sanitizeUnsafeRec(unsafeRec) {
-  // Ensures that neither the legacy accessors nor the function constructors
-  // can be used to escape the confinement of the evaluators to execute in the
-  // context.
-  repairFunctions(unsafeRec);
-  // we repair the accessors by injecting a shim string, so it gets the right types
-}
+const repairAccessorsShim = `"use strict"; (${repairAccessors})();`;
+const repairFunctionsShim = `"use strict"; (${repairFunctions})();`;
 
 // Create a new unsafeRec from a brand new context, with new intrinsics and a
 // new global object
 export function createNewUnsafeRec(allShims) {
   const unsafeGlobal = getNewUnsafeGlobal();
-  const unsafeRec = createUnsafeRec(unsafeGlobal, allShims);
-  sanitizeUnsafeRec(unsafeRec);
-  return unsafeRec;
+  unsafeGlobal.eval(repairAccessorsShim);
+  unsafeGlobal.eval(repairFunctionsShim);
+  return createUnsafeRec(unsafeGlobal, allShims);
 }
 
 // Create a new unsafeRec from the current context, where the Realm shim is
 // being parsed and executed, aka the "Primal Realm"
 export function createCurrentUnsafeRec() {
   const unsafeGlobal = (0, eval)(unsafeGlobalSrc);
-  const unsafeRec = createUnsafeRec(unsafeGlobal, [repairAccessorsShim]);
-  // sanitizeUnsafeRec(unsafeRec); // todo: markm not sure we want to repair functions
   repairAccessors();
-  return unsafeRec;
+  repairFunctions();
+  return createUnsafeRec(unsafeGlobal, []);
 }
