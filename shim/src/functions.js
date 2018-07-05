@@ -13,6 +13,10 @@ import { defineProperty, defineProperties, getPrototypeOf, setPrototypeOf } from
  * 4. Replace its prototype property's constructor with itself
  * 5. Replace its [[Prototype]] slot with the noop constructor of Function
  */
+
+// todo: This function is serialized and evaluated outside of the primal
+// realms and it currently can't contain code coverage metrics.
+/* istanbul ignore file */
 function repairFunction(unsafeRec, functionName, functionDecl) {
   const { unsafeEval, unsafeFunction, unsafeGlobal } = unsafeRec;
 

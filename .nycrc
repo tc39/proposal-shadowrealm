@@ -1,0 +1,12 @@
+{
+  "include": [
+    "shim/src/**/*.js"
+  ],
+  "check-coverage": true,
+  "per-file": false,
+  "statements": 82,
+  "branches": 62,
+  "functions": 92,
+  "lines": 84,
+  "cache": false
+}

@@ -28,6 +28,9 @@ the bug.
 // inside each new RootRealm to fix their Object.prototypes too. So don't
 // import anything from the outside.
 
+// todo: This function is serialized and evaluated outside of the primal
+// realms and it currently can't contain code coverage metrics.
+/* istanbul ignore file */
 export function repairAccessors() {
   const { getPrototypeOf, defineProperties, defineProperty, getOwnPropertyDescriptor } = Object;
 
