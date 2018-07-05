@@ -12,7 +12,8 @@
         "shim:build:prod": "cross-env NODE_ENV=production rollup -c shim/rollup.config.js",
         "shim:lint": "eslint ./shim/src/**/*.js ./shim/test/**/*.js",
         "shim:prettier": "prettier --config ./shim/.prettierrc --write ./shim/src/**/*.js ./shim/test/**/*.js",
-        "shim:test": "tape -r esm ./shim/test/**/*.js"
+        "shim:test": "tape -r esm ./shim/test/**/*.js",
+        "shim:coverage": "nyc --require esm tape ./shim/test/**/*.js | tap-nyc"
     },
     "repository": {
         "type": "git",
@@ -49,10 +50,12 @@
         "eslint-plugin-prettier": "^2.6.0",
         "esm": "^3.0.37",
         "forever": "^0.15.2",
+        "nyc": "^12.0.2",
         "prettier": "^1.12.1",
         "rollup": "^0.58.2",
         "rollup-plugin-babel-minify": "^4.0.0",
         "rollup-watch": "^3.2.2",
+        "tap-nyc": "^1.0.3",
         "tape": "^4.9.0"
     }
 }

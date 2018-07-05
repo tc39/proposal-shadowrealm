@@ -101,6 +101,9 @@ function createScopedEvaluatorFactory(unsafeRec, constants) {
   // back to 'false', so any instances of 'eval' in that string will get the
   // safe evaluator.
 
+  // todo: This function is serialized and evaluated outside of the primal
+  // realms and it currently can't contain code coverage metrics.
+  /* istanbul ignore next */
   return unsafeFunction(`
     with (arguments[0]) {
       ${optimizer}

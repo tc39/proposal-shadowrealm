@@ -4,6 +4,9 @@
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
 
+// todo: This function is serialized and evaluated outside of the primal
+// realms and it currently can't contain code coverage metrics.
+/* istanbul ignore next */
 function buildChildRealm({ initRootRealm, initCompartment, getRealmGlobal, realmEvaluate }) {
   // This Object and Reflect are brand new, from a new unsafeRec, so no user
   // code has been run or had a chance to manipulate them. We extract these
