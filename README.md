@@ -16,7 +16,12 @@ This proposal is at stage 2 of [the TC39 Process](https://tc39.github.io/process
 
 You can view the spec rendered as [HTML](https://rawgit.com/tc39/proposal-realms/master/index.html).
 
-### Shim/Polyfill [![License][license-image]][license-url] [![Build Status][travis-svg]][travis-url]
+### Shim/Polyfill
+[![Build Status][travis-svg]][travis-url]
+[![Coverage Status][coveralls-svg]][coveralls-url]
+[![dependency status][deps-svg]][deps-url]
+[![dev dependency status][dev-deps-svg]][dev-deps-url]
+[![License][license-image]][license-url]
 
 A shim implementation of the Realm API can be found under the [shim folder](shim/).
 
@@ -172,6 +177,11 @@ Alternative, you can use `npm run watch`.
 
 [travis-svg]: https://travis-ci.com/tc39/proposal-realms.svg?branch=master
 [travis-url]: https://travis-ci.com/tc39/proposal-realms
+[coveralls-svg]: https://coveralls.io/repos/github/tc39/proposal-realms/badge.svg?branch=master
+[coveralls-url]: https://coveralls.io/github/tc39/proposal-realms?branch=master
+[deps-svg]: https://david-dm.org/tc39/proposal-realms.svg
+[deps-url]: https://david-dm.org/tc39/proposal-realms
+[dev-deps-svg]: https://david-dm.org/tc39/proposal-realms/dev-status.svg
+[dev-deps-url]: https://david-dm.org/tc39/proposal-realms#info=devDependencies
 [license-image]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [license-url]: shim/LICENSE
-

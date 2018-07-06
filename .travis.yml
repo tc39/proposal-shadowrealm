@@ -5,17 +5,25 @@ node_js:
   - "8"
   - "7"
   - "6"
+
 sudo: false
 
+install:
+  - npm install
+
 script:
-  - yarn shim:lint
-  - yarn shim:build
-  - yarn shim:test
+  - npm run shim:lint
+  - npm run shim:build
+  - npm run shim:test
+
+after_success:
+  - npm run shim:coverage && npm run shim:coveralls
 
 branches:
   only:
     - master
 
 matrix:
+  fast_finish: true
   allow_failures:
     - node_js: "6"

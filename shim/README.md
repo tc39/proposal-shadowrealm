@@ -1,4 +1,10 @@
-# Realm Shim [![License][license-image]][license-url] [![Build Status][travis-svg]][travis-url]
+# Realm Shim
+[![Build Status][travis-svg]][travis-url]
+[![Coverage Status][coveralls-svg]][coveralls-url]
+[![dependency status][deps-svg]][deps-url]
+[![dev dependency status][dev-deps-svg]][dev-deps-url]
+[![License][license-image]][license-url]
+
 
 This folder contains a shim implementation of the Realm API specified in this repo.
 
@@ -97,6 +103,12 @@ r.global.JSON === JSON; // true
 
 [travis-svg]: https://travis-ci.com/tc39/proposal-realms.svg?branch=master
 [travis-url]: https://travis-ci.com/tc39/proposal-realms
+[coveralls-svg]: https://coveralls.io/repos/github/tc39/proposal-realms/badge.svg?branch=master
+[coveralls-url]: https://coveralls.io/github/tc39/proposal-realms?branch=master
+[deps-svg]: https://david-dm.org/tc39/proposal-realms.svg
+[deps-url]: https://david-dm.org/tc39/proposal-realms
+[dev-deps-svg]: https://david-dm.org/tc39/proposal-realms/dev-status.svg
+[dev-deps-url]: https://david-dm.org/tc39/proposal-realms#info=devDependencies
 [license-image]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [license-url]: LICENSE
 
