@@ -182,6 +182,6 @@ Alternative, you can use `npm run watch`.
 [deps-svg]: https://david-dm.org/tc39/proposal-realms.svg
 [deps-url]: https://david-dm.org/tc39/proposal-realms
 [dev-deps-svg]: https://david-dm.org/tc39/proposal-realms/dev-status.svg
-[dev-deps-url]: https://david-dm.org/tc39/proposal-realms#info=devDependencies
+[dev-deps-url]: https://david-dm.org/tc39/proposal-realms?type=dev
 [license-image]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [license-url]: shim/LICENSE
