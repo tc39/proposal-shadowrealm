@@ -73,6 +73,7 @@ function buildChildRealm({ initRootRealm, initCompartment, getRealmGlobal, realm
       callAndWrapError(initRootRealm, Realm, r, ...args);
       return r;
     }
+
     static makeCompartment(...args) {
       const r = new Realm();
       callAndWrapError(initCompartment, Realm, r, ...args);
@@ -90,6 +91,7 @@ function buildChildRealm({ initRootRealm, initCompartment, getRealmGlobal, realm
       // legitimate Realm instances)
       return callAndWrapError(getRealmGlobal, this);
     }
+
     evaluate(...args) {
       // safe against strange 'this', as above
       return callAndWrapError(realmEvaluate, this, ...args);
