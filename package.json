@@ -13,7 +13,8 @@
         "shim:lint": "eslint ./shim/src/**/*.js ./shim/test/**/*.js",
         "shim:prettier": "prettier --config ./shim/.prettierrc --write ./shim/src/**/*.js ./shim/test/**/*.js",
         "shim:test": "tape -r esm ./shim/test/**/*.js",
-        "shim:coverage": "nyc --require esm tape ./shim/test/**/*.js | tap-nyc"
+        "shim:coverage": "nyc --require esm tape ./shim/test/**/*.js | tap-nyc",
+        "shim:coveralls": "nyc report --reporter=text-lcov | coveralls"
     },
     "repository": {
         "type": "git",
@@ -41,21 +42,22 @@
         "babel-eslint": "^6.1.2",
         "babel-minify": "^0.4.3",
         "babel-preset-es2016": "^6.24.1",
+        "coveralls": "^3.0.2",
         "cross-env": "^3.2.4",
         "ecmarkup": "latest",
         "eslint": "^4.19.1",
         "eslint-config-airbnb-base": "^12.1.0",
         "eslint-config-prettier": "^2.9.0",
-        "eslint-plugin-import": "^2.12.0",
-        "eslint-plugin-prettier": "^2.6.0",
-        "esm": "^3.0.37",
+        "eslint-plugin-import": "^2.13.0",
+        "eslint-plugin-prettier": "^2.6.2",
+        "esm": "^3.0.62",
         "forever": "^0.15.2",
         "nyc": "^12.0.2",
-        "prettier": "^1.12.1",
+        "prettier": "^1.13.7",
         "rollup": "^0.58.2",
         "rollup-plugin-babel-minify": "^4.0.0",
         "rollup-watch": "^3.2.2",
         "tap-nyc": "^1.0.3",
-        "tape": "^4.9.0"
+        "tape": "^4.9.1"
     }
 }
