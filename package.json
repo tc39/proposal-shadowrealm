@@ -10,10 +10,10 @@
         "shim:watch": "npm run shim:build:dev --watch",
         "shim:build:dev": "cross-env NODE_ENV=development rollup -c shim/rollup.config.js",
         "shim:build:prod": "cross-env NODE_ENV=production rollup -c shim/rollup.config.js",
-        "shim:lint": "eslint ./shim/src/**/*.js ./shim/test/**/*.js",
-        "shim:prettier": "prettier --config ./shim/.prettierrc --write ./shim/src/**/*.js ./shim/test/**/*.js",
-        "shim:test": "tape -r esm ./shim/test/**/*.js",
-        "shim:coverage": "nyc --require esm tape ./shim/test/**/*.js | tap-nyc",
+        "shim:lint": "eslint ./shim/src/**/**/*.js ./shim/test/**/**/*.js",
+        "shim:prettier": "prettier --config ./shim/.prettierrc --write ./shim/src/**/**/*.js ./shim/test/**/**/*.js",
+        "shim:test": "tape -r esm ./shim/test/**/**/*.js",
+        "shim:coverage": "nyc --require esm tape ./shim/test/**/**/*.js | tap-nyc",
         "shim:coveralls": "nyc report --reporter=text-lcov | coveralls"
     },
     "repository": {
