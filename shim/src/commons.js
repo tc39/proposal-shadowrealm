@@ -38,6 +38,7 @@ const uncurryThis = fn => (thisArg, ...args) => apply(fn, thisArg, args);
 // Realm shim runs shouldn't affect subsequent Realm operations.
 export const objectHasOwnProperty = uncurryThis(Object.prototype.hasOwnProperty),
   arrayForEach = uncurryThis(Array.prototype.forEach),
+  arrayFilter = uncurryThis(Array.prototype.filter),
   arrayPush = uncurryThis(Array.prototype.push),
   arrayPop = uncurryThis(Array.prototype.pop),
   arrayJoin = uncurryThis(Array.prototype.join),
