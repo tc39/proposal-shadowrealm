@@ -57,6 +57,7 @@
         "rollup": "^0.62.0",
         "rollup-plugin-babel-minify": "^5.0.0",
         "rollup-watch": "^4.3.1",
+        "sinon": "^6.1.3",
         "tap-nyc": "^1.0.3",
         "tape": "^4.9.1"
     }
