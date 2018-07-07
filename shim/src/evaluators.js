@@ -4,15 +4,14 @@
 import {
   apply,
   arrayJoin,
+  arrayFilter,
   arrayPop,
-  arrayPush,
   create,
   defineProperty,
   getOwnPropertyDescriptors,
   getOwnPropertyNames,
   getPrototypeOf,
   regexpMatch,
-  arrayForEach,
   setPrototypeOf,
   stringIncludes
 } from './commons';
@@ -20,54 +19,50 @@ import { ScopeHandler } from './scopeHandler';
 import { rejectImportExpressions } from './block-imports';
 import { assert, throwTantrum } from './utilities';
 
+// admit many (but not all) legal variable names: starts with letter/_/$,
+// continues with letter/digit/_/$ . It will reject many legal names that
+// involve unicode characters. We use 'apply' rather than /../.match() in
+// case RegExp has been poisoned.
 const identifierPattern = /^[a-zA-Z_$][\w_$]*$/;
 
 // todo: think about how this interacts with endowments, check for conflicts
 // between the names being optimized and the ones added by endowments
 
 function getOptimizableGlobals(safeGlobal) {
-  const constants = [];
   const descs = getOwnPropertyDescriptors(safeGlobal);
 
-  arrayForEach(getOwnPropertyNames(descs), name => {
+  const constants = arrayFilter(getOwnPropertyNames(descs), name => {
+    // Ensure we have a valid identifier.
+    // getOwnPropertyNames does ignore Symbols so we don't need this extra check:
+    // typeof name === 'string' &&
+    if (!regexpMatch(identifierPattern, name)) {
+      return false;
+    }
+
     const desc = descs[name];
-    if (typeof name !== 'string') return; // ignore Symbols
-
-    // admit many (but not all) legal variable names: starts with letter/_/$,
-    // continues with letter/digit/_/$ . It will reject many legal names that
-    // involve unicode characters. We use 'apply' rather than /../.match() in
-    // case RegExp has been poisoned.
-
-    if (!regexpMatch(identifierPattern, name)) return;
-
-    // todo: reject keywords, which pass the isIdentifier check, to block
-    // injection attacks. test should use a property name that is itself a
-    // full program
-
-    // getters will not have .writable, don't let the falsyness of
-    // 'undefined' trick us: test with === false, not ! . However descriptors
-    // inherit from the (potentially poisoned) global object, so we might see
-    // extra properties which weren't really there. Accessor properties have
-    // 'get/set/enumerable/configurable', while data properties have
-    // 'value/writable/enumerable/configurable'.
-
-    if (desc.configurable !== false) return;
-    if (desc.writable !== false) return;
-
-    // Check for accessor properties: we don't want to optimize these,
-    // they're obviously non-constant. Setter-only accessors will still have
-    // a 'get' property, but it will be 'undefined', so we only have to test
-    // for 'get', not 'set'
-    if ('get' in desc) return;
-    if ('set' in desc) return;
-
-    // protect against post-initialization corruption of primal realm Array
-    arrayPush(constants, name);
+    return (
+      //
+      // getters will not have .writable, don't let the falsyness of
+      // 'undefined' trick us: test with === false, not ! . However descriptors
+      // inherit from the (potentially poisoned) global object, so we might see
+      // extra properties which weren't really there. Accessor properties have
+      // 'get/set/enumerable/configurable', while data properties have
+      // 'value/writable/enumerable/configurable'.
+      desc.configurable === true &&
+      desc.writable === true &&
+      //
+      // Check for accessor properties: we don't want to optimize these,
+      // they're obviously non-constant. Value properties can't have
+      // accessors at the same time, so this check is sufficient.
+      'value' in desc
+    );
   });
+
   return constants;
 }
 
 function buildOptimizer(constants) {
+  if (constants.length === 0) return '';
   return `const {${arrayJoin(constants, ',')}} = arguments[0];`;
 }
 
