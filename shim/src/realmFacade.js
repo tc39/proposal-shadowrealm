@@ -4,7 +4,7 @@
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
 
-// todo: This function is serialized and evaluated outside of the primal
+// todo: This function is stringified and evaluated outside of the primal
 // realms and it currently can't contain code coverage metrics.
 /* istanbul ignore next */
 function buildChildRealm({ initRootRealm, initCompartment, getRealmGlobal, realmEvaluate }) {

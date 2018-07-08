@@ -16,7 +16,7 @@
 
 // todo: this file should be moved out to a separate repo and npm module.
 
-// todo: This function is serialized and evaluated outside of the primal
+// todo: This function is stringified and evaluated outside of the primal
 // realms and it currently can't contain code coverage metrics.
 /* istanbul ignore file */
 export function repairAccessors() {
