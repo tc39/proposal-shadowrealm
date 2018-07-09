@@ -21,9 +21,10 @@
 /* istanbul ignore file */
 export function repairAccessors() {
   const {
-    getPrototypeOf,
     defineProperty,
+    defineProperties,
     getOwnPropertyDescriptor,
+    getPrototypeOf,
     prototype: objectPrototype
   } = Object;
 
@@ -32,52 +33,78 @@ export function repairAccessors() {
   // so we need to repair these for security. Thus it is our responsibility to fix
   // this, and we need to include repairAccessors. E.g. Chrome in 2016.
 
-  // todo: this shim should only be applied if the security bug is present.
+  try {
+    // Verify that the method is not callable.
+    // eslint-disable-next-line no-restricted-properties, no-underscore-dangle
+    objectPrototype.__lookupGetter__('dummy');
+  } catch (ignore) {
+    // Throws, no need to patch.
+    return;
+  }
 
-  function makeDefineAccessor(method, accessor) {
-    defineProperty(objectPrototype, method, {
-      value(prop, func) {
-        const result = defineProperty(this, prop, {
-          [accessor]: func,
+  function toObject(obj) {
+    if (obj === undefined || obj === null) {
+      throw new TypeError(`can't convert undefined or null to object`);
+    }
+    return Object(obj);
+  }
+
+  function asPropertyName(obj) {
+    if (typeof obj === 'symbol') {
+      return obj;
+    }
+    return `${obj}`;
+  }
+
+  function aFunction(obj, accessor) {
+    if (typeof obj !== 'function') {
+      throw TypeError(`invalid ${accessor} usage`);
+    }
+    return obj;
+  }
+
+  defineProperties(objectPrototype, {
+    __defineGetter__: {
+      value: function __defineGetter__(prop, func) {
+        const O = toObject(this);
+        defineProperty(O, prop, {
+          get: aFunction(func, 'getter'),
           enumerable: true,
           configurable: true
         });
-        // Note that we cannot assume that defineProperty reports failure by throwing.
-        // To fix an obscure problem (link needed), defineProperty is now allowed to
-        // report failure by returning false as well.
-        if (result === false) {
-          throw new TypeError(`Cannot redefine property: ${[prop]}`);
-        }
       }
-    });
-  }
-
-  makeDefineAccessor('__defineGetter__', 'get');
-  makeDefineAccessor('__defineSetter__', 'set');
-
-  // TOCTTOU and .asString() games could enable attacker to skip some
-  // intermediate ancestors, so we stringify/propify this once, first.
-  function asPropertyName(prop) {
-    if (typeof prop === 'symbol') {
-      return prop;
-    }
-    return `${prop}`;
-  }
-
-  function makeLookupAccessor(method, accessor) {
-    defineProperty(objectPrototype, method, {
-      value(prop) {
-        prop = asPropertyName(prop); // sanitize property name/symbol
-        let base = this;
+    },
+    __defineSetter__: {
+      value: function __defineSetter__(prop, func) {
+        const O = toObject(this);
+        defineProperty(O, prop, {
+          set: aFunction(func, 'setter'),
+          enumerable: true,
+          configurable: true
+        });
+      }
+    },
+    __lookupGetter__: {
+      value: function __lookupGetter__(prop) {
+        let O = toObject(this);
+        prop = asPropertyName(prop);
         let desc;
-        while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
-          base = getPrototypeOf(base);
+        while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
+          O = getPrototypeOf(O);
         }
-        return desc && desc[accessor];
+        return desc && desc.get;
       }
-    });
-  }
-
-  makeLookupAccessor('__lookupGetter__', 'get');
-  makeLookupAccessor('__lookupSetter__', 'set');
+    },
+    __lookupSetter__: {
+      value: function __lookupSetter__(prop) {
+        let O = toObject(this);
+        prop = asPropertyName(prop);
+        let desc;
+        while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
+          O = getPrototypeOf(O);
+        }
+        return desc && desc.set;
+      }
+    }
+  });
 }

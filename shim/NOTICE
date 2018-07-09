@@ -5,4 +5,5 @@ This product includes software developed at TC39 (http://ecma-international.org/
 Includes modified work from:
 - Aura Locker Service Copyright 2015 Salesforce.com Inc under the Apache 2.0 license (https://github.com/forcedotcom/aura)
 - Caja Copyright 2011 Google Inc under the Apache 2.0 license (https://github.com/google/caja)
+- CoreJS Copyright (c) 2014-2018 Denis Pushkarev under the MIT license (https://github.com/zloirock/core-js)
 - V8 Copyright 2008 Google Inc under the BSD license (https://github.com/v8/v8)
