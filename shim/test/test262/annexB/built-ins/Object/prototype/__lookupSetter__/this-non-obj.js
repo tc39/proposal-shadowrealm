@@ -10,13 +10,12 @@ info: |
 import test from 'tape';
 import Realm from '../../../../../../../src/realm';
 
-test('test262/annexB/built-ins/Object/prototype/__defineSetter__/this-non-obj.js', t => {
+test('test262/annexB/built-ins/Object/prototype/__lookupSetter__/this-non-obj.js', t => {
   t.plan(4);
 
   const test = () => {
     // eslint-disable-next-line no-restricted-properties, no-underscore-dangle
-    const __defineSetter__ = Object.prototype.__defineSetter__;
-    const noop = function() {};
+    const __lookupGetter__ = Object.prototype.__lookupGetter__;
     let toStringCount = 0;
     const key = {
       toString() {
@@ -24,12 +23,11 @@ test('test262/annexB/built-ins/Object/prototype/__defineSetter__/this-non-obj.js
       }
     };
 
-    // eslint-disable-next-line no-restricted-properties, no-underscore-dangle
-    t.equal(typeof __defineSetter__, 'function');
+    t.equal(typeof __lookupGetter__, 'function');
 
     t.throws(
       () => {
-        __defineSetter__.call(undefined, key, noop);
+        __lookupGetter__.call(undefined, key);
       },
       TypeError,
       'undefined'
@@ -37,7 +35,7 @@ test('test262/annexB/built-ins/Object/prototype/__defineSetter__/this-non-obj.js
 
     t.throws(
       () => {
-        __defineSetter__.call(null, key, noop);
+        __lookupGetter__.call(null, key);
       },
       TypeError,
       'null'
