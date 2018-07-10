@@ -36,8 +36,12 @@ function createNewUnsafeGlobalForBrowser() {
 
   document.body.appendChild(iframe);
   const unsafeGlobal = iframe.contentWindow.eval(unsafeGlobalSrc);
-  // todo: we keep the iframe attached. At one point, removing the iframe
-  // caused its global object to lose its intrinsics. todo: re-test this.
+
+  // We keep the iframe attached to the DOM because removing it
+  // causes its global object to lose intrinsics, its eval()
+  // function to evaluate code, etc.
+
+  // TODO: can we remove and garbage-collect the iframes?
 
   return unsafeGlobal;
 }
