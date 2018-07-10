@@ -24,14 +24,19 @@ export const {
   ownKeys // Reflect.ownKeys includes Symbols and unenumerables, unlike Object.keys()
 } = Reflect;
 
-// See http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
-// which only lives at http://web.archive.org/web/20160805225710/http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
-// (the native call is about 10x faster on FF than chrome)
-// this version of uncurryThis is about 100x slower on FF, equal on chrome, 2x slower on Safari
-// const bind = Function.prototype.bind;
-// const uncurryThis = bind.bind(bind.call);
-
-// this version is about 10x slower on FF, equal on chrome, 2x slower on Safari
+/**
+ * uncurryThis()
+ * See http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
+ * which only lives at http://web.archive.org/web/20160805225710/http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
+ *
+ * Performance:
+ * 1. The native call is about 10x faster on FF than chrome
+ * 2. The version using Function.bind() is about 100x slower on FF, equal on chrome, 2x slower on Safari
+ * 3. The version using a spread and Reflect.apply() is about 10x slower on FF, equal on chrome, 2x slower on Safari
+ *
+ * const bind = Function.prototype.bind;
+ * const uncurryThis = bind.bind(bind.call);
+ */
 const uncurryThis = fn => (thisArg, ...args) => apply(fn, thisArg, args);
 
 // We also capture these for security: changes to Array.prototype after the
