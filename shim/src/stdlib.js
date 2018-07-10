@@ -1,3 +1,6 @@
+import { getOwnPropertyDescriptor } from './commons';
+import { assert } from './utilities';
+
 // All the following stdlib items have the same name on both our intrinsics
 // object and on the global object. Unlike Infinity/NaN/undefined, these
 // should all be writable and configurable.
@@ -82,14 +85,18 @@ export function getSharedGlobalDescs(unsafeGlobal) {
   };
 
   for (const name of sharedGlobalPropertyNames) {
-    descriptors[name] = {
-      // todo: if there's a get/accessor on the global, do we want to invoke
-      // it or throw an error?
-      // todo: get a descriptor here, so we can check
-      value: unsafeGlobal[name],
-      writable: true,
-      configurable: true
-    };
+    const desc = getOwnPropertyDescriptor(unsafeGlobal, name);
+    if (desc) {
+      // Abort if an accessor is found on the unsafe global object instead of a
+      // data property. We should never get into this non standard situation.
+      assert('value' in desc, `unexpected accessor on global property: ${name}`);
+
+      descriptors[name] = {
+        value: desc.value,
+        writable: true,
+        configurable: true
+      };
+    }
   }
 
   return descriptors;
