@@ -16,7 +16,7 @@ import {
   setPrototypeOf,
   stringIncludes
 } from './commons';
-import { ScopeHandler } from './scopeHandler';
+import { createScopeHandler } from './scopeHandler';
 import { rejectImportExpressions } from './block-imports';
 import { assert, throwTantrum } from './utilities';
 
@@ -113,7 +113,7 @@ function createScopedEvaluatorFactory(unsafeRec, constants) {
 export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
   const { unsafeFunction } = unsafeRec;
 
-  const scopeHandler = new ScopeHandler(unsafeRec);
+  const scopeHandler = createScopeHandler(unsafeRec);
   const optimizableGlobals = getOptimizableGlobals(safeGlobal);
   const scopedEvaluatorFactory = createScopedEvaluatorFactory(unsafeRec, optimizableGlobals);
 
@@ -138,7 +138,7 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
       eval(src) {
         src = `${src}`;
         rejectImportExpressions(src);
-        scopeHandler.useUnsafeEvaluator = true;
+        scopeHandler.allowUnsafeEvaluatorOnce();
         let err;
         try {
           // Ensure that "this" resolves to the safe global.
@@ -149,10 +149,9 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
           throw e;
         } finally {
           // belt and suspenders: the proxy switches this off immediately after
-          // the first access, but just in case we clear it here too
-          if (scopeHandler.useUnsafeEvaluator !== false) {
-            scopeHandler.useUnsafeEvaluator = false;
-            throwTantrum('handler sets useUnsafeEvaluator = false', err);
+          // the first access, but if that's not the case we abort.
+          if (scopeHandler.unsafeEvaluatorAllowed()) {
+            throwTantrum('handler did not revoke useUnsafeEvaluator', err);
           }
         }
       }
