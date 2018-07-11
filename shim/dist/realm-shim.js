@@ -259,9 +259,10 @@
   /* istanbul ignore file */
   function repairAccessors() {
     const {
-      getPrototypeOf,
       defineProperty,
+      defineProperties,
       getOwnPropertyDescriptor,
+      getPrototypeOf,
       prototype: objectPrototype
     } = Object;
 
@@ -270,54 +271,80 @@
     // so we need to repair these for security. Thus it is our responsibility to fix
     // this, and we need to include repairAccessors. E.g. Chrome in 2016.
 
-    // todo: this shim should only be applied if the security bug is present.
+    try {
+      // Verify that the method is not callable.
+      // eslint-disable-next-line no-restricted-properties, no-underscore-dangle
+      objectPrototype.__lookupGetter__('dummy');
+    } catch (ignore) {
+      // Throws, no need to patch.
+      return;
+    }
 
-    function makeDefineAccessor(method, accessor) {
-      defineProperty(objectPrototype, method, {
-        value(prop, func) {
-          const result = defineProperty(this, prop, {
-            [accessor]: func,
+    function toObject(obj) {
+      if (obj === undefined || obj === null) {
+        throw new TypeError(`can't convert undefined or null to object`);
+      }
+      return Object(obj);
+    }
+
+    function asPropertyName(obj) {
+      if (typeof obj === 'symbol') {
+        return obj;
+      }
+      return `${obj}`;
+    }
+
+    function aFunction(obj, accessor) {
+      if (typeof obj !== 'function') {
+        throw TypeError(`invalid ${accessor} usage`);
+      }
+      return obj;
+    }
+
+    defineProperties(objectPrototype, {
+      __defineGetter__: {
+        value: function __defineGetter__(prop, func) {
+          const O = toObject(this);
+          defineProperty(O, prop, {
+            get: aFunction(func, 'getter'),
             enumerable: true,
             configurable: true
           });
-          // Note that we cannot assume that defineProperty reports failure by throwing.
-          // To fix an obscure problem (link needed), defineProperty is now allowed to
-          // report failure by returning false as well.
-          if (result === false) {
-            throw new TypeError(`Cannot redefine property: ${[prop]}`);
-          }
         }
-      });
-    }
-
-    makeDefineAccessor('__defineGetter__', 'get');
-    makeDefineAccessor('__defineSetter__', 'set');
-
-    // TOCTTOU and .asString() games could enable attacker to skip some
-    // intermediate ancestors, so we stringify/propify this once, first.
-    function asPropertyName(prop) {
-      if (typeof prop === 'symbol') {
-        return prop;
-      }
-      return `${prop}`;
-    }
-
-    function makeLookupAccessor(method, accessor) {
-      defineProperty(objectPrototype, method, {
-        value(prop) {
-          prop = asPropertyName(prop); // sanitize property name/symbol
-          let base = this;
+      },
+      __defineSetter__: {
+        value: function __defineSetter__(prop, func) {
+          const O = toObject(this);
+          defineProperty(O, prop, {
+            set: aFunction(func, 'setter'),
+            enumerable: true,
+            configurable: true
+          });
+        }
+      },
+      __lookupGetter__: {
+        value: function __lookupGetter__(prop) {
+          let O = toObject(this);
+          prop = asPropertyName(prop);
           let desc;
-          while (base && !(desc = getOwnPropertyDescriptor(base, prop))) {
-            base = getPrototypeOf(base);
+          while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
+            O = getPrototypeOf(O);
           }
-          return desc && desc[accessor];
+          return desc && desc.get;
         }
-      });
-    }
-
-    makeLookupAccessor('__lookupGetter__', 'get');
-    makeLookupAccessor('__lookupSetter__', 'set');
+      },
+      __lookupSetter__: {
+        value: function __lookupSetter__(prop) {
+          let O = toObject(this);
+          prop = asPropertyName(prop);
+          let desc;
+          while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
+            O = getPrototypeOf(O);
+          }
+          return desc && desc.set;
+        }
+      }
+    });
   }
 
   // Adapted from SES/Caja
@@ -441,21 +468,25 @@
     ownKeys // Reflect.ownKeys includes Symbols and unenumerables, unlike Object.keys()
   } = Reflect;
 
-  // See http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
-  // which only lives at http://web.archive.org/web/20160805225710/http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
-  // (the native call is about 10x faster on FF than chrome)
-  // this version of uncurryThis is about 100x slower on FF, equal on chrome, 2x slower on Safari
-  // const bind = Function.prototype.bind;
-  // const uncurryThis = bind.bind(bind.call);
-
-  // this version is about 10x slower on FF, equal on chrome, 2x slower on Safari
+  /**
+   * uncurryThis()
+   * See http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
+   * which only lives at http://web.archive.org/web/20160805225710/http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
+   *
+   * Performance:
+   * 1. The native call is about 10x faster on FF than chrome
+   * 2. The version using Function.bind() is about 100x slower on FF, equal on chrome, 2x slower on Safari
+   * 3. The version using a spread and Reflect.apply() is about 10x slower on FF, equal on chrome, 2x slower on Safari
+   *
+   * const bind = Function.prototype.bind;
+   * const uncurryThis = bind.bind(bind.call);
+   */
   const uncurryThis = fn => (thisArg, ...args) => apply(fn, thisArg, args);
 
   // We also capture these for security: changes to Array.prototype after the
   // Realm shim runs shouldn't affect subsequent Realm operations.
   const objectHasOwnProperty = uncurryThis(Object.prototype.hasOwnProperty),
-    arrayForEach = uncurryThis(Array.prototype.forEach),
-    arrayPush = uncurryThis(Array.prototype.push),
+    arrayFilter = uncurryThis(Array.prototype.filter),
     arrayPop = uncurryThis(Array.prototype.pop),
     arrayJoin = uncurryThis(Array.prototype.join),
     arrayConcat = uncurryThis(Array.prototype.concat),
@@ -496,8 +527,12 @@
 
     document.body.appendChild(iframe);
     const unsafeGlobal = iframe.contentWindow.eval(unsafeGlobalSrc);
-    // todo: we keep the iframe attached. At one point, removing the iframe
-    // caused its global object to lose its intrinsics. todo: re-test this.
+
+    // We keep the iframe attached to the DOM because removing it
+    // causes its global object to lose intrinsics, its eval()
+    // function to evaluate code, etc.
+
+    // TODO: can we remove and garbage-collect the iframes?
 
     return unsafeGlobal;
   }
@@ -715,54 +750,50 @@
 
   // Portions adapted from V8 - Copyright 2016 the V8 project authors.
 
+  // admit many (but not all) legal variable names: starts with letter/_/$,
+  // continues with letter/digit/_/$ . It will reject many legal names that
+  // involve unicode characters. We use 'apply' rather than /../.match() in
+  // case RegExp has been poisoned.
   const identifierPattern = /^[a-zA-Z_$][\w_$]*$/;
 
   // todo: think about how this interacts with endowments, check for conflicts
   // between the names being optimized and the ones added by endowments
 
   function getOptimizableGlobals(safeGlobal) {
-    const constants = [];
     const descs = getOwnPropertyDescriptors(safeGlobal);
 
-    arrayForEach(getOwnPropertyNames(descs), name => {
+    const constants = arrayFilter(getOwnPropertyNames(descs), name => {
+      // Ensure we have a valid identifier.
+      // getOwnPropertyNames does ignore Symbols so we don't need this extra check:
+      // typeof name === 'string' &&
+      if (!regexpMatch(identifierPattern, name)) {
+        return false;
+      }
+
       const desc = descs[name];
-      if (typeof name !== 'string') return; // ignore Symbols
-
-      // admit many (but not all) legal variable names: starts with letter/_/$,
-      // continues with letter/digit/_/$ . It will reject many legal names that
-      // involve unicode characters. We use 'apply' rather than /../.match() in
-      // case RegExp has been poisoned.
-
-      if (!regexpMatch(identifierPattern, name)) return;
-
-      // todo: reject keywords, which pass the isIdentifier check, to block
-      // injection attacks. test should use a property name that is itself a
-      // full program
-
-      // getters will not have .writable, don't let the falsyness of
-      // 'undefined' trick us: test with === false, not ! . However descriptors
-      // inherit from the (potentially poisoned) global object, so we might see
-      // extra properties which weren't really there. Accessor properties have
-      // 'get/set/enumerable/configurable', while data properties have
-      // 'value/writable/enumerable/configurable'.
-
-      if (desc.configurable !== false) return;
-      if (desc.writable !== false) return;
-
-      // Check for accessor properties: we don't want to optimize these,
-      // they're obviously non-constant. Setter-only accessors will still have
-      // a 'get' property, but it will be 'undefined', so we only have to test
-      // for 'get', not 'set'
-      if ('get' in desc) return;
-      if ('set' in desc) return;
-
-      // protect against post-initialization corruption of primal realm Array
-      arrayPush(constants, name);
+      return (
+        //
+        // getters will not have .writable, don't let the falsyness of
+        // 'undefined' trick us: test with === false, not ! . However descriptors
+        // inherit from the (potentially poisoned) global object, so we might see
+        // extra properties which weren't really there. Accessor properties have
+        // 'get/set/enumerable/configurable', while data properties have
+        // 'value/writable/enumerable/configurable'.
+        desc.configurable === true &&
+        desc.writable === true &&
+        //
+        // Check for accessor properties: we don't want to optimize these,
+        // they're obviously non-constant. Value properties can't have
+        // accessors at the same time, so this check is sufficient.
+        'value' in desc
+      );
     });
+
     return constants;
   }
 
   function buildOptimizer(constants) {
+    if (constants.length === 0) return '';
     return `const {${arrayJoin(constants, ',')}} = arguments[0];`;
   }
 
