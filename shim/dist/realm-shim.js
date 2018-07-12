@@ -220,13 +220,6 @@
     }
   }
 
-  // Remove metrics injected by code coverage.
-  // todo: remove in production
-  function stripCoverage(src) {
-    if (typeof __coverage__ === 'undefined') return src;
-    return src.replace(/cov_[^+]+\+\+[;,]/g, '');
-  }
-
   // All the following stdlib items have the same name on both our intrinsics
   // object and on the global object. Unlike Infinity/NaN/undefined, these
   // should all be writable and configurable.
@@ -473,7 +466,7 @@
         // Use Function() because eval() has issues with serializing functions under the esm module.
         // TODO: investigate esm distortion of source code.
         // eslint-disable-next-line no-new-func
-        FunctionInstance = Function(`return ${declaration}`)();
+        FunctionInstance = (0, eval)(declaration);
       } catch (e) {
         if (e instanceof SyntaxError) {
           // Prevent failure on platforms where async and/or generators are not supported.
@@ -486,7 +479,7 @@
 
       // Prevents the evaluation of source when calling constructor on the prototype of functions.
       // eslint-disable-next-line no-new-func
-      const TamedFunction = Function('throw new Error("Not available");');
+      const TamedFunction = Function('throw new TypeError("Not available");');
       defineProperty(TamedFunction, 'name', { value: name });
 
       // (new Error()).constructors does not inherit from Function, because Error
@@ -597,8 +590,12 @@
     });
   }
 
-  const repairAccessorsShim = stripCoverage(`"use strict"; (${repairAccessors})();`);
-  const repairFunctionsShim = stripCoverage(`"use strict"; (${repairFunctions})();`);
+  function strip(src) {
+    return src;
+  }
+
+  const repairAccessorsShim = strip(`"use strict"; (${repairAccessors})();`);
+  const repairFunctionsShim = strip(`"use strict"; (${repairFunctions})();`);
 
   // Create a new unsafeRec from a brand new context, with new intrinsics and a
   // new global object
