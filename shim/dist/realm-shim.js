@@ -139,6 +139,94 @@
     return unsafeEval(buildChildRealmString)(BaseRealm);
   }
 
+  // Declare shorthand functions. Sharing these declarations across modules
+  // improves both consistency and minification. Unused declarations are
+  // dropped by the tree shaking process.
+
+  // we capture these, not just for brevity, but for security. If any code
+  // modifies Object to change what 'assign' points to, the Realm shim would be
+  // corrupted.
+
+  const {
+    assign,
+    create,
+    defineProperties,
+    defineProperty,
+    freeze,
+    getOwnPropertyDescriptor,
+    getOwnPropertyDescriptors,
+    getOwnPropertyNames,
+    getPrototypeOf,
+    setPrototypeOf
+  } = Object;
+
+  const {
+    apply,
+    ownKeys // Reflect.ownKeys includes Symbols and unenumerables, unlike Object.keys()
+  } = Reflect;
+
+  /**
+   * uncurryThis()
+   * See http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
+   * which only lives at http://web.archive.org/web/20160805225710/http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
+   *
+   * Performance:
+   * 1. The native call is about 10x faster on FF than chrome
+   * 2. The version using Function.bind() is about 100x slower on FF, equal on chrome, 2x slower on Safari
+   * 3. The version using a spread and Reflect.apply() is about 10x slower on FF, equal on chrome, 2x slower on Safari
+   *
+   * const bind = Function.prototype.bind;
+   * const uncurryThis = bind.bind(bind.call);
+   */
+  const uncurryThis = fn => (thisArg, ...args) => apply(fn, thisArg, args);
+
+  // We also capture these for security: changes to Array.prototype after the
+  // Realm shim runs shouldn't affect subsequent Realm operations.
+  const objectHasOwnProperty = uncurryThis(Object.prototype.hasOwnProperty),
+    arrayFilter = uncurryThis(Array.prototype.filter),
+    arrayPop = uncurryThis(Array.prototype.pop),
+    arrayJoin = uncurryThis(Array.prototype.join),
+    arrayConcat = uncurryThis(Array.prototype.concat),
+    regexpMatch = uncurryThis(RegExp.prototype.match),
+    stringIncludes = uncurryThis(String.prototype.includes);
+
+  // we'd like to abandon, but we can't, so just scream and break a lot of
+  // stuff. However, since we aren't really aborting the process, be careful to
+  // not throw an Error object which could be captured by child-Realm code and
+  // used to access the (too-powerful) primal-realm Error object.
+
+  function throwTantrum(s, err = undefined) {
+    const msg = `please report internal shim error: ${s}`;
+
+    // note: we really do want to log these 'should never happen' things. there
+    // might be a better way to convince the linter, though.
+    // eslint-disable-next-line no-console
+    console.error(msg);
+    if (err) {
+      // eslint-disable-next-line no-console
+      console.error(`${err}`);
+      // eslint-disable-next-line no-console
+      console.error(`${err.stack}`);
+    }
+
+    // eslint-disable-next-line no-debugger
+    debugger;
+    throw msg;
+  }
+
+  function assert(condition, message) {
+    if (!condition) {
+      throwTantrum(message);
+    }
+  }
+
+  // Remove metrics injected by code coverage.
+  // todo: remove in production
+  function stripCoverage(src) {
+    if (typeof __coverage__ === 'undefined') return src;
+    return src.replace(/cov_[^+]+\+\+[;,]/g, '');
+  }
+
   // All the following stdlib items have the same name on both our intrinsics
   // object and on the global object. Unlike Infinity/NaN/undefined, these
   // should all be writable and configurable.
@@ -223,14 +311,18 @@
     };
 
     for (const name of sharedGlobalPropertyNames) {
-      descriptors[name] = {
-        // todo: if there's a get/accessor on the global, do we want to invoke
-        // it or throw an error?
-        // todo: get a descriptor here, so we can check
-        value: unsafeGlobal[name],
-        writable: true,
-        configurable: true
-      };
+      const desc = getOwnPropertyDescriptor(unsafeGlobal, name);
+      if (desc) {
+        // Abort if an accessor is found on the unsafe global object instead of a
+        // data property. We should never get into this non standard situation.
+        assert('value' in desc, `unexpected accessor on global property: ${name}`);
+
+        descriptors[name] = {
+          value: desc.value,
+          writable: true,
+          configurable: true
+        };
+      }
     }
 
     return descriptors;
@@ -253,10 +345,6 @@
    */
 
   // todo: this file should be moved out to a separate repo and npm module.
-
-  // todo: This function is stringified and evaluated outside of the primal
-  // realms and it currently can't contain code coverage metrics.
-  /* istanbul ignore file */
   function repairAccessors() {
     const {
       defineProperty,
@@ -355,20 +443,18 @@
   /**
    * This block replaces the original Function constructor, and the original
    * %GeneratorFunction% %AsyncFunction% and %AsyncGeneratorFunction%, with
-   * safe replacements that throw if invoked. 
+   * safe replacements that throw if invoked.
    *
-   * These are all reachable via syntax, so it isn't sufficient to just 
-   * replace global properties with safe versions. Our main goal is to prevent 
+   * These are all reachable via syntax, so it isn't sufficient to just
+   * replace global properties with safe versions. Our main goal is to prevent
    * access to the Function constructor through these starting points.
 
-   * After this block is done, the originals must no longer be reachable, unless 
-   * a copy has been made, and funtions can only be created by syntax (using eval) 
+   * After this block is done, the originals must no longer be reachable, unless
+   * a copy has been made, and funtions can only be created by syntax (using eval)
    * or by invoking a previously saved reference to the originals.
    */
 
-  // todo: This function is stringified and evaluated outside of the primal
-  // realms and it currently can't contain code coverage metrics.
-  /* istanbul ignore file */
+  // todo: this file should be moved out to a separate repo and npm module.
   function repairFunctions() {
     const { defineProperty, getPrototypeOf, setPrototypeOf } = Object;
 
@@ -435,63 +521,13 @@
     // constructors may be added in the future, reachable from syntax, and this
     // list must be updated to match.
 
-    repairFunction('Function', '(function(){})');
     // "plain arrow functions" inherit from Function.prototype
+
+    repairFunction('Function', '(function(){})');
     repairFunction('GeneratorFunction', '(function*(){})');
     repairFunction('AsyncFunction', '(async function(){})');
     repairFunction('AsyncGeneratorFunction', '(async function*(){})');
   }
-
-  // Declare shorthand functions. Sharing these declarations across modules
-  // improves both consistency and minification. Unused declarations are
-  // dropped by the tree shaking process.
-
-  // we capture these, not just for brevity, but for security. If any code
-  // modifies Object to change what 'assign' points to, the Realm shim would be
-  // corrupted.
-
-  const {
-    assign,
-    create,
-    defineProperties,
-    defineProperty,
-    freeze,
-    getOwnPropertyDescriptor,
-    getOwnPropertyDescriptors,
-    getOwnPropertyNames,
-    getPrototypeOf,
-    setPrototypeOf
-  } = Object;
-
-  const {
-    apply,
-    ownKeys // Reflect.ownKeys includes Symbols and unenumerables, unlike Object.keys()
-  } = Reflect;
-
-  /**
-   * uncurryThis()
-   * See http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
-   * which only lives at http://web.archive.org/web/20160805225710/http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
-   *
-   * Performance:
-   * 1. The native call is about 10x faster on FF than chrome
-   * 2. The version using Function.bind() is about 100x slower on FF, equal on chrome, 2x slower on Safari
-   * 3. The version using a spread and Reflect.apply() is about 10x slower on FF, equal on chrome, 2x slower on Safari
-   *
-   * const bind = Function.prototype.bind;
-   * const uncurryThis = bind.bind(bind.call);
-   */
-  const uncurryThis = fn => (thisArg, ...args) => apply(fn, thisArg, args);
-
-  // We also capture these for security: changes to Array.prototype after the
-  // Realm shim runs shouldn't affect subsequent Realm operations.
-  const objectHasOwnProperty = uncurryThis(Object.prototype.hasOwnProperty),
-    arrayFilter = uncurryThis(Array.prototype.filter),
-    arrayPop = uncurryThis(Array.prototype.pop),
-    arrayJoin = uncurryThis(Array.prototype.join),
-    arrayConcat = uncurryThis(Array.prototype.concat),
-    regexpMatch = uncurryThis(RegExp.prototype.match),
-    stringIncludes = uncurryThis(String.prototype.includes);
 
   // this module must never be importable outside the Realm shim itself
 
@@ -561,8 +597,8 @@
     });
   }
 
-  const repairAccessorsShim = `"use strict"; (${repairAccessors})();`;
-  const repairFunctionsShim = `"use strict"; (${repairFunctions})();`;
+  const repairAccessorsShim = stripCoverage(`"use strict"; (${repairAccessors})();`);
+  const repairFunctionsShim = stripCoverage(`"use strict"; (${repairFunctions})();`);
 
   // Create a new unsafeRec from a brand new context, with new intrinsics and a
   // new global object
@@ -718,36 +754,6 @@
     }
   }
 
-  // we'd like to abandon, but we can't, so just scream and break a lot of
-  // stuff. However, since we aren't really aborting the process, be careful to
-  // not throw an Error object which could be captured by child-Realm code and
-  // used to access the (too-powerful) primal-realm Error object.
-
-  function throwTantrum(s, err = undefined) {
-    const msg = `please report internal shim error: ${s}`;
-
-    // note: we really do want to log these 'should never happen' things. there
-    // might be a better way to convince the linter, though.
-    // eslint-disable-next-line no-console
-    console.error(msg);
-    if (err) {
-      // eslint-disable-next-line no-console
-      console.error(`${err}`);
-      // eslint-disable-next-line no-console
-      console.error(`${err.stack}`);
-    }
-
-    // eslint-disable-next-line no-debugger
-    debugger;
-    throw msg;
-  }
-
-  function assert(condition, message) {
-    if (!condition) {
-      throwTantrum(`failed to: ${message}`);
-    }
-  }
-
   // Portions adapted from V8 - Copyright 2016 the V8 project authors.
 
   // admit many (but not all) legal variable names: starts with letter/_/$,
@@ -827,9 +833,6 @@
     // back to 'false', so any instances of 'eval' in that string will get the
     // safe evaluator.
 
-    // todo: This function is stringified and evaluated outside of the primal
-    // realms and it currently can't contain code coverage metrics.
-    /* istanbul ignore next */
     return unsafeFunction(`
     with (arguments[0]) {
       ${optimizer}
