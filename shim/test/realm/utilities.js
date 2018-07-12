@@ -38,10 +38,10 @@ test('assert', t => {
   sinon.stub(console, 'error').callsFake();
 
   t.doesNotThrow(() => assert(true, 'foo'));
-  t.throws(() => assert(false, 'foo'), /^please report internal shim error: failed to: foo$/);
+  t.throws(() => assert(false, 'foo'), /^please report internal shim error: foo$/);
 
   t.equals(console.error.callCount, 1);
-  t.equals(console.error.getCall(0).args[0], 'please report internal shim error: failed to: foo');
+  t.equals(console.error.getCall(0).args[0], 'please report internal shim error: foo');
 
   console.error.restore();
 });

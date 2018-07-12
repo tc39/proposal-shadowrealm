@@ -1,4 +1,5 @@
 import test from 'tape';
+import sinon from 'sinon';
 import { getSharedGlobalDescs } from '../../src/stdlib';
 
 test('Global default values', t => {
@@ -32,7 +33,9 @@ test('Global default values', t => {
 });
 
 test('Global accessor throws', t => {
-  t.plan(1);
+  t.plan(3);
+
+  sinon.stub(console, 'error').callsFake();
 
   const mockGlobal = {};
   Object.defineProperty(mockGlobal, 'JSON', {
@@ -42,4 +45,9 @@ test('Global accessor throws', t => {
   });
 
   t.throws(() => getSharedGlobalDescs(mockGlobal), /unexpected accessor on global property: JSON/);
+
+  t.equals(console.error.callCount, 1);
+  t.equals(console.error.getCall(0).args[0], 'please report internal shim error: unexpected accessor on global property: JSON');
+
+  console.error.restore();
 });

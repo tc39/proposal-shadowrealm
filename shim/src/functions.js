@@ -6,20 +6,18 @@
 /**
  * This block replaces the original Function constructor, and the original
  * %GeneratorFunction% %AsyncFunction% and %AsyncGeneratorFunction%, with
- * safe replacements that throw if invoked. 
+ * safe replacements that throw if invoked.
  *
- * These are all reachable via syntax, so it isn't sufficient to just 
- * replace global properties with safe versions. Our main goal is to prevent 
+ * These are all reachable via syntax, so it isn't sufficient to just
+ * replace global properties with safe versions. Our main goal is to prevent
  * access to the Function constructor through these starting points.
 
- * After this block is done, the originals must no longer be reachable, unless 
- * a copy has been made, and funtions can only be created by syntax (using eval) 
+ * After this block is done, the originals must no longer be reachable, unless
+ * a copy has been made, and funtions can only be created by syntax (using eval)
  * or by invoking a previously saved reference to the originals.
  */
 
-// todo: This function is stringified and evaluated outside of the primal
-// realms and it currently can't contain code coverage metrics.
-/* istanbul ignore file */
+// todo: this file should be moved out to a separate repo and npm module.
 export function repairFunctions() {
   const { defineProperty, getPrototypeOf, setPrototypeOf } = Object;
 
@@ -86,8 +84,9 @@ export function repairFunctions() {
   // constructors may be added in the future, reachable from syntax, and this
   // list must be updated to match.
 
-  repairFunction('Function', '(function(){})');
   // "plain arrow functions" inherit from Function.prototype
+
+  repairFunction('Function', '(function(){})');
   repairFunction('GeneratorFunction', '(function*(){})');
   repairFunction('AsyncFunction', '(async function(){})');
   repairFunction('AsyncGeneratorFunction', '(async function*(){})');

@@ -24,6 +24,13 @@ export function throwTantrum(s, err = undefined) {
 
 export function assert(condition, message) {
   if (!condition) {
-    throwTantrum(`failed to: ${message}`);
+    throwTantrum(message);
   }
+}
+
+// Remove metrics injected by code coverage.
+// todo: remove in production
+export function stripCoverage(src) {
+  if (typeof __coverage__ === 'undefined') return src;
+  return src.replace(/cov_[^+]+\+\+[;,]/g, '');
 }
