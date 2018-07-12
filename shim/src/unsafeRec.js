@@ -77,9 +77,7 @@ function strip(src) {
   src = src.replace(/\(0,[^)]+\)/g, '(0, eval)');
 
   // Remove code coverage.
-  if (typeof __coverage__ !== 'undefined') {
-    src = src.replace(/cov_[^+]+\+\+[;,]/g, '');
-  }
+  src = src.replace(/cov_[^+]+\+\+[;,]/g, '');
 
   /* END_TESTS_ONLY */
   return src;

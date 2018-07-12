@@ -33,8 +33,6 @@ export function repairFunctions() {
   function repairFunction(name, declaration) {
     let FunctionInstance;
     try {
-      // Use Function() because eval() has issues with serializing functions under the esm module.
-      // TODO: investigate esm distortion of source code.
       // eslint-disable-next-line no-new-func
       FunctionInstance = (0, eval)(declaration);
     } catch (e) {

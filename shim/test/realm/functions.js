@@ -1,12 +1,13 @@
 import test from 'tape';
 import { repairFunctions } from '../../src/functions';
 
-/* eslint-disable no-restricted-properties, no-underscore-dangle */
-
 repairFunctions();
 
 test('Function.prototype.constructor', t => {
-  t.plan(3);
+  t.plan(4);
+
+  // eslint-disable-next-line no-new-func
+  t.doesNotThrow(() => Function(''));
 
   // eslint-disable-next-line no-proto
   t.throws(() => Error.__proto__.constructor(''), TypeError);
