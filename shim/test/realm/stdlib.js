@@ -46,8 +46,14 @@ test('Global accessor throws', t => {
 
   t.throws(() => getSharedGlobalDescs(mockGlobal), /unexpected accessor on global property: JSON/);
 
+  // eslint-disable-next-line no-console
   t.equals(console.error.callCount, 1);
-  t.equals(console.error.getCall(0).args[0], 'please report internal shim error: unexpected accessor on global property: JSON');
+  t.equals(
+    // eslint-disable-next-line no-console
+    console.error.getCall(0).args[0],
+    'please report internal shim error: unexpected accessor on global property: JSON'
+  );
 
+  // eslint-disable-next-line no-console
   console.error.restore();
 });

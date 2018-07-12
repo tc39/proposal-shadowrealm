@@ -36,7 +36,7 @@ export function repairFunctions() {
       // Use Function() because eval() has issues with serializing functions under the esm module.
       // TODO: investigate esm distortion of source code.
       // eslint-disable-next-line no-new-func
-      FunctionInstance = Function(`return ${declaration}`)();
+      FunctionInstance = (0, eval)(declaration);
     } catch (e) {
       if (e instanceof SyntaxError) {
         // Prevent failure on platforms where async and/or generators are not supported.
@@ -49,7 +49,7 @@ export function repairFunctions() {
 
     // Prevents the evaluation of source when calling constructor on the prototype of functions.
     // eslint-disable-next-line no-new-func
-    const TamedFunction = Function('throw new Error("Not available");');
+    const TamedFunction = Function('throw new TypeError("Not available");');
     defineProperty(TamedFunction, 'name', { value: name });
 
     // (new Error()).constructors does not inherit from Function, because Error

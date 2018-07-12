@@ -3,7 +3,6 @@ import { getSharedGlobalDescs } from './stdlib';
 import { repairAccessors } from './accessors';
 import { repairFunctions } from './functions';
 import { freeze } from './commons';
-import { stripCoverage } from './utilities';
 
 // A "context" is a fresh unsafe Realm as given to us by existing platforms.
 // We need this to implement the shim. However, when Realms land for real,
@@ -71,8 +70,23 @@ function createUnsafeRec(unsafeGlobal, allShims) {
   });
 }
 
-const repairAccessorsShim = stripCoverage(`"use strict"; (${repairAccessors})();`);
-const repairFunctionsShim = stripCoverage(`"use strict"; (${repairFunctions})();`);
+function strip(src) {
+  /* START_TESTS_ONLY */
+
+  // Restore eval.
+  src = src.replace(/\(0,[^)]+\)/g, '(0, eval)');
+
+  // Remove code coverage.
+  if (typeof __coverage__ !== 'undefined') {
+    src = src.replace(/cov_[^+]+\+\+[;,]/g, '');
+  }
+
+  /* END_TESTS_ONLY */
+  return src;
+}
+
+const repairAccessorsShim = strip(`"use strict"; (${repairAccessors})();`);
+const repairFunctionsShim = strip(`"use strict"; (${repairFunctions})();`);
 
 // Create a new unsafeRec from a brand new context, with new intrinsics and a
 // new global object
