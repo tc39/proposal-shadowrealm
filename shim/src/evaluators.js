@@ -11,6 +11,7 @@ import {
   getOwnPropertyDescriptors,
   getOwnPropertyNames,
   getPrototypeOf,
+  objectHasOwnProperty,
   regexpMatch,
   setPrototypeOf,
   stringIncludes
@@ -19,11 +20,10 @@ import { ScopeHandler } from './scopeHandler';
 import { rejectImportExpressions } from './block-imports';
 import { assert, throwTantrum } from './utilities';
 
-// admit many (but not all) legal variable names: starts with letter/_/$,
-// continues with letter/digit/_/$ . It will reject many legal names that
-// involve unicode characters. We use 'apply' rather than /../.match() in
-// case RegExp has been poisoned.
-const identifierPattern = /^[a-zA-Z_$][\w_$]*$/;
+// Admits many (but not all) legal variable names: starts with letter/_/$,
+// continues with letter/digit/_/$. It will reject many legal names that
+// involve unicode characters. \w is equivalent [a-zA-Z_0-9]
+const identifierPattern = /^[a-zA-Z_$][\w$]*$/;
 
 // todo: think about how this interacts with endowments, check for conflicts
 // between the names being optimized and the ones added by endowments
@@ -31,10 +31,11 @@ const identifierPattern = /^[a-zA-Z_$][\w_$]*$/;
 function getOptimizableGlobals(safeGlobal) {
   const descs = getOwnPropertyDescriptors(safeGlobal);
 
+  // getOwnPropertyNames does ignore Symbols so we don't need this extra check:
+  // typeof name === 'string' &&
   const constants = arrayFilter(getOwnPropertyNames(descs), name => {
-    // Ensure we have a valid identifier.
-    // getOwnPropertyNames does ignore Symbols so we don't need this extra check:
-    // typeof name === 'string' &&
+    // Ensure we have a valid identifier. We use regexpMatch rather than
+    // /../.match() to guard against the case where RegExp has been poisoned.
     if (!regexpMatch(identifierPattern, name)) {
       return false;
     }
@@ -42,19 +43,21 @@ function getOptimizableGlobals(safeGlobal) {
     const desc = descs[name];
     return (
       //
-      // getters will not have .writable, don't let the falsyness of
+      // The getters will not have .writable, don't let the falsyness of
       // 'undefined' trick us: test with === false, not ! . However descriptors
       // inherit from the (potentially poisoned) global object, so we might see
       // extra properties which weren't really there. Accessor properties have
       // 'get/set/enumerable/configurable', while data properties have
       // 'value/writable/enumerable/configurable'.
-      desc.configurable === true &&
-      desc.writable === true &&
+      desc.configurable === false &&
+      desc.writable === false &&
       //
-      // Check for accessor properties: we don't want to optimize these,
+      // Checks for accessor properties: we don't want to optimize these,
       // they're obviously non-constant. Value properties can't have
-      // accessors at the same time, so this check is sufficient.
-      'value' in desc
+      // accessors at the same time, so this check is sufficient. Using
+      // explicit own property deal with the case where
+      // Object.prototype has been poisoned.
+      objectHasOwnProperty(desc, 'value')
     );
   });
 
