@@ -48,5 +48,6 @@ export const objectHasOwnProperty = uncurryThis(Object.prototype.hasOwnProperty)
   arrayPop = uncurryThis(Array.prototype.pop),
   arrayJoin = uncurryThis(Array.prototype.join),
   arrayConcat = uncurryThis(Array.prototype.concat),
-  regexpMatch = uncurryThis(RegExp.prototype.match),
+  regexpTest = uncurryThis(RegExp.prototype.test),
+  stringMatch = uncurryThis(String.prototype.match),
   stringIncludes = uncurryThis(String.prototype.includes);
