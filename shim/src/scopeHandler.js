@@ -33,10 +33,6 @@ export function createScopeHandler(unsafeRec) {
   // realm's code or if it is user-land invocation, so we can react differently.
   let useUnsafeEvaluator = false;
 
-  // todo (optimization): keeping a reference to the shadow to avoid calling
-  // getPrototypeOf on the target every time the get trap is invoked
-  // const shadowTarget = getPrototypeOf(somehow_get_target)
-
   return {
     // The scope handler throws if any trap other than get/set/has are run
     // (e.g. getOwnPropertyDescriptors, apply, getPrototypeOf).
@@ -78,6 +74,7 @@ export function createScopeHandler(unsafeRec) {
       if (prop in target) {
         return target[prop];
       }
+
       // Prevent the lookup for other properties.
       return undefined;
     },
@@ -92,6 +89,10 @@ export function createScopeHandler(unsafeRec) {
         // todo: shim integrity: TypeError, String
         throw new TypeError(`do not modify endowments like ${String(prop)}`);
       }
+
+      // todo (optimization): keep a reference to the shadow avoids calling
+      // getPrototypeOf on the target every time the set trap is invoked,
+      // since safeGlobal === getPrototypeOf(target).
       getPrototypeOf(target)[prop] = value;
 
       // Return true after successful set.
@@ -120,21 +121,15 @@ export function createScopeHandler(unsafeRec) {
 
     has(target, prop) {
       // proxies stringify 'prop', so no TOCTTOU danger here
-      if (prop === 'eval') {
+
+      // unsafeGlobal: hide all properties of unsafeGlobal at the expense of 'typeof'
+      // being wrong for those properties. For example, in the browser, evaluating
+      // 'document = 3', will add a property to  safeGlobal instead of throwing a
+      // ReferenceError.
+      if (prop === 'eval' || prop in target || prop in unsafeGlobal) {
         return true;
       }
-      if (prop === 'arguments') {
-        return false;
-      }
-      if (prop in target) {
-        return true;
-      }
-      // hide all properties of unsafeGlobal at the expense of 'typeof' being
-      // wrong for those properties
-      if (prop in unsafeGlobal) {
-        // in browser, 'document = 3', this will add a property to your safeGlobal
-        return true;
-      }
+
       return false;
     }
   };

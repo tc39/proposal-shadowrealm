@@ -18,8 +18,11 @@ import { rejectImportExpressions } from './block-imports';
 import { assert, throwTantrum } from './utilities';
 
 function buildOptimizer(constants) {
+  // No need to build an oprimizer when there are no constants.
   if (constants.length === 0) return '';
-  return `const {${arrayJoin(constants, ',')}} = arguments[0];`;
+  // Use 'this' to avoid going through the scope proxy, which is unecessary
+  // since the optimizer only needs references to the safe global.
+  return `const {${arrayJoin(constants, ',')}} = this;`;
 }
 
 function createScopedEvaluatorFactory(unsafeRec, constants) {
@@ -70,7 +73,7 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
   const optimizableGlobals = getOptimizableGlobals(safeGlobal);
   const scopedEvaluatorFactory = createScopedEvaluatorFactory(unsafeRec, optimizableGlobals);
 
-  function factory(endowments) {
+  function factory(endowments = {}) {
     // todo (shim limitation): scan endowments, throw error if endowment
     // overlaps with the const optimization (which would otherwise
     // incorrectly shadow endowments), or if endowments includes 'eval'. Also
@@ -81,7 +84,7 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
     // explain/spec
     const scopeTarget = create(safeGlobal, getOwnPropertyDescriptors(endowments));
     const scopeProxy = new Proxy(scopeTarget, scopeHandler);
-    const scopedEvaluator = scopedEvaluatorFactory(scopeProxy);
+    const scopedEvaluator = apply(scopedEvaluatorFactory, safeGlobal, [scopeProxy]);
 
     // We use the the concise method syntax to create an eval without a
     // [[Construct]] behavior (such that the invocation "new eval()" throws
@@ -138,7 +141,7 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
 }
 
 export function createSafeEvaluator(safeEvaluatorFactory) {
-  return safeEvaluatorFactory({});
+  return safeEvaluatorFactory();
 }
 
 export function createSafeEvaluatorWhichTakesEndowments(safeEvaluatorFactory) {
@@ -184,6 +187,7 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
       functionParams += '\n/*``*/';
     }
 
+    // todo: fix `this` binding in Function().
     const src = `(function(${functionParams}){\n${functionBody}\n})`;
 
     return safeEval(src);
