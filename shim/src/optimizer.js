@@ -101,11 +101,11 @@ export function getOptimizableGlobals(safeGlobal) {
       desc.configurable === false &&
       desc.writable === false &&
       //
-      // Checks for accessor properties: we don't want to optimize these,
-      // they're obviously non-constant. Value properties can't have
-      // accessors at the same time, so this check is sufficient. Using
-      // explicit own property deal with the case where
-      // Object.prototype has been poisoned.
+      // Checks for data properties because they're the only ones we can
+      // optimize (accessors are most likely non-constant). Descriptors can't
+      // can't have accessors and value properties at the same time, therefore
+      // this check is sufficient. Using explicit own property deal with the
+      // case where Object.prototype has been poisoned.
       objectHasOwnProperty(desc, 'value')
     );
   });
