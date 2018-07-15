@@ -55,8 +55,8 @@ test('scope hander get', t => {
 
   const unsafeGlobal = { foo: {} };
   const unsafeEval = {};
-  const handler = createScopeHandler({ unsafeGlobal, unsafeEval });
   const safeGlobal = { eval: {}, bar: {} };
+  const handler = createScopeHandler({ unsafeGlobal, unsafeEval });
   const target = Object.create(safeGlobal);
 
   t.equal(handler.unsafeEvaluatorAllowed(), false); // initial
@@ -82,8 +82,8 @@ test('scope hander et', t => {
   t.plan(4);
 
   const unsafeGlobal = {};
-  const handler = createScopeHandler({ unsafeGlobal });
   const safeGlobal = { bar: {} };
+  const handler = createScopeHandler({ unsafeGlobal }, safeGlobal);
   const endowments = { foo: {} };
   const target = Object.create(safeGlobal, Object.getOwnPropertyDescriptors(endowments));
 
