@@ -187,7 +187,7 @@
     arrayPop = uncurryThis(Array.prototype.pop),
     arrayJoin = uncurryThis(Array.prototype.join),
     arrayConcat = uncurryThis(Array.prototype.concat),
-    regexpMatch = uncurryThis(RegExp.prototype.match),
+    regexpTest = uncurryThis(RegExp.prototype.test),
     stringIncludes = uncurryThis(String.prototype.includes);
 
   // we'd like to abandon, but we can't, so just scream and break a lot of
@@ -613,6 +613,113 @@
     return createUnsafeRec(unsafeGlobal, []);
   }
 
+  // todo: think about how this interacts with endowments, check for conflicts
+  // between the names being optimized and the ones added by endowments
+
+  // Admits many (but not all) legal variable names: starts with letter/_/$,
+  // continues with letter/digit/_/$. It will reject many legal names that
+  // involve unicode characters. \w is equivalent [a-zA-Z_0-9]
+  const identifierPattern = /^[a-zA-Z_$][\w$]*$/;
+
+  const keywords = new Set([
+    // actual keywords
+    'await',
+    'break',
+    'case',
+    'catch',
+    'class',
+    'const',
+    'continue',
+    'debugger',
+    'default',
+    'delete',
+    'do',
+    'else',
+    'export',
+    'extends',
+    'finally',
+    'for',
+    'function',
+    'if',
+    'import',
+    'in',
+    'instanceof',
+    'new',
+    'return',
+    'super',
+    'switch',
+    'this',
+    'throw',
+    'try',
+    'typeof',
+    'var',
+    'void',
+    'while',
+    'with',
+    'yield',
+
+    // future reserved word
+    'enum',
+
+    // future reserved word in strict mode
+    'implements',
+    'package',
+    'protected',
+    'interface',
+    'private',
+    'public',
+
+    // contextual worth refusing
+    'let',
+    'async',
+    'arguments'
+  ]);
+
+  /**
+   * getOptimizableGlobals()
+   * What variable names might it bring into scope? These include all
+   * property names which can be variable names, including the names
+   * of inherited properties. It excludes symbols and names which are
+   * keywords. We drop symbols safely. Currently, this shim refuses
+   * service if any of the names are keywords or keyword-like. This is
+   * safe and only prevent performance optimization.
+   */
+  function getOptimizableGlobals(safeGlobal) {
+    const descs = getOwnPropertyDescriptors(safeGlobal);
+
+    // getOwnPropertyNames does ignore Symbols so we don't need this extra check:
+    // typeof name === 'string' &&
+    const constants = arrayFilter(getOwnPropertyNames(descs), name => {
+      // Ensure we have a valid identifier. We use regexpTest rather than
+      // /../.test() to guard against the case where RegExp has been poisoned.
+      if (name === 'eval' || keywords.has(name) || !regexpTest(identifierPattern, name)) {
+        return false;
+      }
+
+      const desc = descs[name];
+      return (
+        //
+        // The getters will not have .writable, don't let the falsyness of
+        // 'undefined' trick us: test with === false, not ! . However descriptors
+        // inherit from the (potentially poisoned) global object, so we might see
+        // extra properties which weren't really there. Accessor properties have
+        // 'get/set/enumerable/configurable', while data properties have
+        // 'value/writable/enumerable/configurable'.
+        desc.configurable === false &&
+        desc.writable === false &&
+        //
+        // Checks for data properties because they're the only ones we can
+        // optimize (accessors are most likely non-constant). Descriptors can't
+        // can't have accessors and value properties at the same time, therefore
+        // this check is sufficient. Using explicit own property deal with the
+        // case where Object.prototype has been poisoned.
+        objectHasOwnProperty(desc, 'value')
+      );
+    });
+
+    return constants;
+  }
+
   /**
    * alwaysThrowHandler is a proxy handler which throws on any trap called.
    * It's made from a proxy with a get trap that throws. Its target is
@@ -644,10 +751,6 @@
     // This flag allow us to determine if the eval() call is an done by the
     // realm's code or if it is user-land invocation, so we can react differently.
     let useUnsafeEvaluator = false;
-
-    // todo (optimization): keeping a reference to the shadow to avoid calling
-    // getPrototypeOf on the target every time the get trap is invoked
-    // const shadowTarget = getPrototypeOf(somehow_get_target)
 
     return {
       // The scope handler throws if any trap other than get/set/has are run
@@ -690,6 +793,7 @@
         if (prop in target) {
           return target[prop];
         }
+
         // Prevent the lookup for other properties.
         return undefined;
       },
@@ -704,6 +808,10 @@
           // todo: shim integrity: TypeError, String
           throw new TypeError(`do not modify endowments like ${String(prop)}`);
         }
+
+        // todo (optimization): keep a reference to the shadow avoids calling
+        // getPrototypeOf on the target every time the set trap is invoked,
+        // since safeGlobal === getPrototypeOf(target).
         getPrototypeOf(target)[prop] = value;
 
         // Return true after successful set.
@@ -732,21 +840,15 @@
 
       has(target, prop) {
         // proxies stringify 'prop', so no TOCTTOU danger here
-        if (prop === 'eval') {
+
+        // unsafeGlobal: hide all properties of unsafeGlobal at the expense of 'typeof'
+        // being wrong for those properties. For example, in the browser, evaluating
+        // 'document = 3', will add a property to  safeGlobal instead of throwing a
+        // ReferenceError.
+        if (prop === 'eval' || prop in target || prop in unsafeGlobal) {
           return true;
         }
-        if (prop === 'arguments') {
-          return false;
-        }
-        if (prop in target) {
-          return true;
-        }
-        // hide all properties of unsafeGlobal at the expense of 'typeof' being
-        // wrong for those properties
-        if (prop in unsafeGlobal) {
-          // in browser, 'document = 3', this will add a property to your safeGlobal
-          return true;
-        }
+
         return false;
       }
     };
@@ -774,53 +876,12 @@
 
   // Portions adapted from V8 - Copyright 2016 the V8 project authors.
 
-  // Admits many (but not all) legal variable names: starts with letter/_/$,
-  // continues with letter/digit/_/$. It will reject many legal names that
-  // involve unicode characters. \w is equivalent [a-zA-Z_0-9]
-  const identifierPattern = /^[a-zA-Z_$][\w$]*$/;
-
-  // todo: think about how this interacts with endowments, check for conflicts
-  // between the names being optimized and the ones added by endowments
-
-  function getOptimizableGlobals(safeGlobal) {
-    const descs = getOwnPropertyDescriptors(safeGlobal);
-
-    // getOwnPropertyNames does ignore Symbols so we don't need this extra check:
-    // typeof name === 'string' &&
-    const constants = arrayFilter(getOwnPropertyNames(descs), name => {
-      // Ensure we have a valid identifier. We use regexpMatch rather than
-      // /../.match() to guard against the case where RegExp has been poisoned.
-      if (!regexpMatch(identifierPattern, name)) {
-        return false;
-      }
-
-      const desc = descs[name];
-      return (
-        //
-        // The getters will not have .writable, don't let the falsyness of
-        // 'undefined' trick us: test with === false, not ! . However descriptors
-        // inherit from the (potentially poisoned) global object, so we might see
-        // extra properties which weren't really there. Accessor properties have
-        // 'get/set/enumerable/configurable', while data properties have
-        // 'value/writable/enumerable/configurable'.
-        desc.configurable === false &&
-        desc.writable === false &&
-        //
-        // Checks for accessor properties: we don't want to optimize these,
-        // they're obviously non-constant. Value properties can't have
-        // accessors at the same time, so this check is sufficient. Using
-        // explicit own property deal with the case where
-        // Object.prototype has been poisoned.
-        objectHasOwnProperty(desc, 'value')
-      );
-    });
-
-    return constants;
-  }
-
   function buildOptimizer(constants) {
+    // No need to build an oprimizer when there are no constants.
     if (constants.length === 0) return '';
-    return `const {${arrayJoin(constants, ',')}} = arguments[0];`;
+    // Use 'this' to avoid going through the scope proxy, which is unecessary
+    // since the optimizer only needs references to the safe global.
+    return `const {${arrayJoin(constants, ',')}} = this;`;
   }
 
   function createScopedEvaluatorFactory(unsafeRec, constants) {
@@ -871,7 +932,7 @@
     const optimizableGlobals = getOptimizableGlobals(safeGlobal);
     const scopedEvaluatorFactory = createScopedEvaluatorFactory(unsafeRec, optimizableGlobals);
 
-    function factory(endowments) {
+    function factory(endowments = {}) {
       // todo (shim limitation): scan endowments, throw error if endowment
       // overlaps with the const optimization (which would otherwise
       // incorrectly shadow endowments), or if endowments includes 'eval'. Also
@@ -882,7 +943,7 @@
       // explain/spec
       const scopeTarget = create(safeGlobal, getOwnPropertyDescriptors(endowments));
       const scopeProxy = new Proxy(scopeTarget, scopeHandler);
-      const scopedEvaluator = scopedEvaluatorFactory(scopeProxy);
+      const scopedEvaluator = apply(scopedEvaluatorFactory, safeGlobal, [scopeProxy]);
 
       // We use the the concise method syntax to create an eval without a
       // [[Construct]] behavior (such that the invocation "new eval()" throws
@@ -939,7 +1000,7 @@
   }
 
   function createSafeEvaluator(safeEvaluatorFactory) {
-    return safeEvaluatorFactory({});
+    return safeEvaluatorFactory();
   }
 
   function createSafeEvaluatorWhichTakesEndowments(safeEvaluatorFactory) {
@@ -985,6 +1046,7 @@
         functionParams += '\n/*``*/';
       }
 
+      // todo: fix `this` binding in Function().
       const src = `(function(${functionParams}){\n${functionBody}\n})`;
 
       return safeEval(src);
