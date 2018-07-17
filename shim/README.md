@@ -103,8 +103,8 @@ r.global.JSON === JSON; // true
 
 [travis-svg]: https://travis-ci.com/tc39/proposal-realms.svg?branch=master
 [travis-url]: https://travis-ci.com/tc39/proposal-realms
-[coveralls-svg]: https://coveralls.io/repos/github/tc39/proposal-realms/badge.svg?branch=master
-[coveralls-url]: https://coveralls.io/github/tc39/proposal-realms?branch=master
+[coveralls-svg]: https://coveralls.io/repos/github/tc39/proposal-realms/badge.svg
+[coveralls-url]: https://coveralls.io/github/tc39/proposal-realms
 [deps-svg]: https://david-dm.org/tc39/proposal-realms.svg
 [deps-url]: https://david-dm.org/tc39/proposal-realms
 [dev-deps-svg]: https://david-dm.org/tc39/proposal-realms/dev-status.svg
