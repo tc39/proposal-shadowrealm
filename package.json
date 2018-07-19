@@ -1,65 +1,64 @@
 {
-    "name": "ecma-proposal-realms",
-    "private": true,
-    "version": "1.0.0",
-    "description": "ECMAScript spec proposal for Realms API",
-    "scripts": {
-        "build": "ecmarkup spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
-        "watch": "ecmarkup --watch spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
-        "shim:build": "npm run shim:build:dev && npm run shim:build:prod",
-        "shim:watch": "npm run shim:build:dev --watch",
-        "shim:build:dev": "cross-env NODE_ENV=development rollup -c shim/rollup.config.js",
-        "shim:build:prod": "cross-env NODE_ENV=production rollup -c shim/rollup.config.js",
-        "shim:lint": "eslint ./shim/src/**/**/*.js ./shim/test/**/**/*.js",
-        "shim:prettier": "prettier --config ./shim/.prettierrc --write ./shim/src/**/**/*.js ./shim/test/**/**/*.js",
-        "shim:test": "tape -r esm ./shim/test/**/**/*.js",
-        "shim:coverage": "nyc --require esm tape ./shim/test/**/**/*.js | tap-nyc",
-        "shim:coveralls": "nyc report --reporter=text-lcov | coveralls"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/tc39/proposal-realms.git"
-    },
-    "main": "shim/src/main.js",
-    "keywords": [
-        "realms",
-        "ES8",
-        "ES2017",
-        "ECMAScript",
-        "ESNext",
-        "spec",
-        "proposal"
-    ],
-    "author": {
-        "name": "Dave Herman"
-    },
-    "license": "Apache 2.0",
-    "bugs": {
-        "url": "https://github.com/tc39/proposal-realms/issues"
-    },
-    "homepage": "https://github.com/tc39/proposal-realms#readme",
-    "devDependencies": {
-        "babel-eslint": "^8.2.5",
-        "babel-minify": "^0.4.3",
-        "babel-preset-es2016": "^6.24.1",
-        "coveralls": "^3.0.2",
-        "cross-env": "^5.2.0",
-        "ecmarkup": "^3.16.0",
-        "eslint": "^5.0.1",
-        "eslint-config-airbnb-base": "^13.0.0",
-        "eslint-config-prettier": "^2.9.0",
-        "eslint-plugin-import": "^2.13.0",
-        "eslint-plugin-prettier": "^2.6.2",
-        "esm": "^3.0.62",
-        "forever": "^0.15.2",
-        "nyc": "^12.0.2",
-        "prettier": "^1.13.7",
-        "rollup": "^0.62.0",
-        "rollup-plugin-babel-minify": "^5.0.0",
-        "rollup-plugin-strip-code": "^0.2.6",
-        "rollup-watch": "^4.3.1",
-        "sinon": "^6.1.3",
-        "tap-nyc": "^1.0.3",
-        "tape": "^4.9.1"
-    }
+  "name": "ecma-proposal-realms",
+  "version": "1.0.0",
+  "description": "ECMAScript spec proposal for Realms API",
+  "main": "shim/dist/realm-shim.js",
+  "module": "shim/src/main.js",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "TC39 Open Source Contributors"
+  },
+  "keywords": [
+    "realms",
+    "ES8",
+    "ES2017",
+    "ECMAScript",
+    "ESNext",
+    "spec",
+    "proposal"
+  ],
+  "homepage": "https://github.com/tc39/proposal-realms#readme",
+  "bugs": {
+    "url": "https://github.com/tc39/proposal-realms/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tc39/proposal-realms.git"
+  },
+  "scripts": {
+    "build": "ecmarkup spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
+    "watch": "ecmarkup --watch spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
+    "shim:lint": "eslint ./shim/src ./shim/test ./shim/examples",
+    "shim:prettier": "prettier --config ./shim/.prettierrc --write ./shim/src/**/**/*.js ./shim/test/**/**/*.js ./shim/examples/**/**/*.js",
+    "shim:test": "tape -r esm ./shim/test/**/**/*.js",
+    "shim:coverage": "nyc --require esm tape ./shim/test/**/**/*.js | tap-nyc",
+    "shim:coveralls": "nyc report --reporter=text-lcov | coveralls",
+    "shim:build": "npm run shim:build:dev && npm run shim:build:prod",
+    "shim:watch": "npm run shim:build:dev --watch",
+    "shim:build:dev": "cross-env NODE_ENV=development rollup -c shim/rollup.config.js",
+    "shim:build:prod": "cross-env NODE_ENV=production rollup -c shim/rollup.config.js"
+  },
+  "devDependencies": {
+    "babel-eslint": "^8.2.5",
+    "babel-minify": "^0.4.3",
+    "babel-preset-env": "^1.7.0",
+    "coveralls": "^3.0.2",
+    "cross-env": "^5.2.0",
+    "ecmarkup": "^3.16.0",
+    "eslint": "^5.0.1",
+    "eslint-config-airbnb-base": "^13.0.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-import": "^2.13.0",
+    "eslint-plugin-prettier": "^2.6.2",
+    "esm": "^3.0.62",
+    "nyc": "^12.0.2",
+    "prettier": "^1.13.7",
+    "rollup": "^0.62.0",
+    "rollup-plugin-babel-minify": "^5.0.0",
+    "rollup-plugin-strip-code": "^0.2.6",
+    "rollup-watch": "^4.3.1",
+    "sinon": "^6.1.3",
+    "tap-nyc": "^1.0.3",
+    "tape": "^4.9.1"
+  }
 }

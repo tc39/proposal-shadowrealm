@@ -1,5 +1,5 @@
 /* global Realm */
-/* eslint no-self-compare: "off" */
+/* eslint-disable no-self-compare, no-console */
 
 // basic sanity check: they all should output true
 // Root realm

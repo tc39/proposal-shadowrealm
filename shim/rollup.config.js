@@ -1,6 +1,6 @@
 import path from 'path';
 import minify from 'rollup-plugin-babel-minify';
-import stripCode from "rollup-plugin-strip-code"
+import stripCode from 'rollup-plugin-strip-code';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
