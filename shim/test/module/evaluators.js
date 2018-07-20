@@ -1,4 +1,5 @@
 import test from 'tape';
+import sinon from 'sinon';
 import {
   createSafeEvaluatorFactory,
   createSafeEvaluator,
@@ -7,12 +8,6 @@ import {
 } from '../../src/evaluators';
 
 const unsafeRecord = { unsafeGlobal: this, unsafeEval: eval, unsafeFunction: Function };
-
-// Mimic repairFunctions.
-// eslint-disable-next-line no-proto
-Function.__proto__.constructor = () => {
-  throw new Error();
-};
 
 test('createSafeEvaluator', t => {
   t.plan(27);
@@ -91,6 +86,12 @@ test('createSafeEvaluatorWhichTakesEndowments', t => {
 test('createFunctionEvaluator', t => {
   t.plan(6);
 
+  // Mimic repairFunctions.
+  // eslint-disable-next-line no-proto
+  sinon.stub(Function.__proto__, 'constructor').callsFake(() => {
+    throw new TypeError();
+  });
+
   const safeGlobal = Object.create(null, { foo: { value: 1 }, bar: { value: 2, writable: true } });
   const safeEval = createSafeEvaluator(createSafeEvaluatorFactory(unsafeRecord, safeGlobal));
   const safeFunction = createFunctionEvaluator(unsafeRecord, safeEval);
@@ -149,4 +150,7 @@ test('createFunctionEvaluator', t => {
 
   // t.equal(fn.foo, 1);
   // t.equal(fn.bar, 2);
+
+  // eslint-disable-next-line no-proto
+  Function.__proto__.constructor.restore();
 });

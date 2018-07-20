@@ -1,10 +1,10 @@
 import test from 'tape';
 import { repairFunctions } from '../../src/functions';
 
-repairFunctions();
-
 test('Function.prototype.constructor', t => {
   t.plan(4);
+
+  repairFunctions();
 
   // eslint-disable-next-line no-new-func
   t.doesNotThrow(() => Function(''));
@@ -19,6 +19,8 @@ test('Function.prototype.constructor', t => {
 
 test('AsyncFunction.constructor', t => {
   t.plan(1);
+
+  repairFunctions();
 
   try {
     const proto = Object.getPrototypeOf((0, eval)('(async function() {})'));
@@ -35,6 +37,8 @@ test('AsyncFunction.constructor', t => {
 test('GeneratorFunction.constructor', t => {
   t.plan(1);
 
+  repairFunctions();
+
   try {
     const proto = Object.getPrototypeOf((0, eval)('(function* () {})'));
     t.throws(() => proto.constructor(''), TypeError);
@@ -49,6 +53,8 @@ test('GeneratorFunction.constructor', t => {
 
 test('AsyncGeneratorFunction.constructor', t => {
   t.plan(1);
+
+  repairFunctions();
 
   try {
     const proto = Object.getPrototypeOf((0, eval)('(async function* () {})'));
