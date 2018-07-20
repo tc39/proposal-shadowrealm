@@ -1,13 +1,14 @@
-// Note: do not import anything to this file to prevent using implicit
-// dependencies.
+import { cleanupSource } from './utilities';
 
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
 
 // todo: This function is stringified and evaluated outside of the primal
 // realms and it currently can't contain code coverage metrics.
-/* istanbul ignore next */
-function buildChildRealm({ initRootRealm, initCompartment, getRealmGlobal, realmEvaluate }) {
+/* istanbul ignore file */
+export function buildChildRealm(BaseRealm) {
+  const { initRootRealm, initCompartment, getRealmGlobal, realmEvaluate } = BaseRealm;
+
   // This Object and Reflect are brand new, from a new unsafeRec, so no user
   // code has been run or had a chance to manipulate them. We extract these
   // properties for brevity, not for security. Don't ever run this function
@@ -111,7 +112,7 @@ function buildChildRealm({ initRootRealm, initCompartment, getRealmGlobal, realm
 // the parentheses means we don't bind the 'buildChildRealm' name inside the
 // child's namespace. this would accept an anonymous function declaration.
 // function expression (not a declaration) so it has a completion value.
-const buildChildRealmString = `'use strict'; (${buildChildRealm})`;
+const buildChildRealmString = cleanupSource(`'use strict'; (${buildChildRealm})`);
 
 export function createRealmFacade(unsafeRec, BaseRealm) {
   const { unsafeEval } = unsafeRec;

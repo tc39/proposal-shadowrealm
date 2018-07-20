@@ -2,6 +2,7 @@
 import { getSharedGlobalDescs } from './stdlib';
 import { repairAccessors } from './accessors';
 import { repairFunctions } from './functions';
+import { cleanupSource } from './utilities';
 import { freeze } from './commons';
 
 // A "context" is a fresh unsafe Realm as given to us by existing platforms.
@@ -70,21 +71,8 @@ function createUnsafeRec(unsafeGlobal, allShims) {
   });
 }
 
-function strip(src) {
-  /* START_TESTS_ONLY */
-
-  // Restore eval.
-  src = src.replace(/\(0,[^)]+\)/g, '(0, eval)');
-
-  // Remove code coverage.
-  src = src.replace(/cov_[^+]+\+\+[;,]/g, '');
-
-  /* END_TESTS_ONLY */
-  return src;
-}
-
-const repairAccessorsShim = strip(`"use strict"; (${repairAccessors})();`);
-const repairFunctionsShim = strip(`"use strict"; (${repairFunctions})();`);
+const repairAccessorsShim = cleanupSource(`"use strict"; (${repairAccessors})();`);
+const repairFunctionsShim = cleanupSource(`"use strict"; (${repairFunctions})();`);
 
 // Create a new unsafeRec from a brand new context, with new intrinsics and a
 // new global object

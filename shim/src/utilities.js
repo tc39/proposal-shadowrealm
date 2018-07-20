@@ -27,3 +27,17 @@ export function assert(condition, message) {
     throwTantrum(message);
   }
 }
+
+// Remove code modifications.
+export function cleanupSource(src) {
+  /* START_TESTS_ONLY */
+
+  // Restore eval which is modified by esm module.
+  src = src.replace(/\(0,[^)]+\)/g, '(0, eval)');
+
+  // Remove code coverage which is injexted by module nyc.
+  src = src.replace(/cov_[^+]+\+\+[;,]/g, '');
+
+  /* END_TESTS_ONLY */
+  return src;
+}

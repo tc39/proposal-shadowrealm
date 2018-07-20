@@ -1,6 +1,6 @@
 import test from 'tape';
 import sinon from 'sinon';
-import { throwTantrum, assert } from '../../src/utilities';
+import { throwTantrum, assert, cleanupSource } from '../../src/utilities';
 
 /* eslint-disable no-console */
 
@@ -44,4 +44,17 @@ test('assert', t => {
   t.equals(console.error.getCall(0).args[0], 'please report internal shim error: foo');
 
   console.error.restore();
+});
+
+test('cleanupSource', t => {
+  t.plan(2);
+
+  t.equals(
+    cleanupSource(`function() { cov_2kmyol0g2w[0]++;return true; }`),
+    'function() { return true; }'
+  );
+  t.equals(
+    cleanupSource(`function() { return (0, _123)('true'); }`),
+    `function() { return (0, eval)('true'); }`
+  );
 });
