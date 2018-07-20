@@ -2,7 +2,7 @@ import test from 'tape';
 import { getOptimizableGlobals } from '../../src/optimizer';
 
 test('getOptimizableGlobals', t => {
-  t.plan(18);
+  t.plan(20);
 
   t.deepEqual(getOptimizableGlobals({}), [], 'should return empty if no global');
 
@@ -44,7 +44,21 @@ test('getOptimizableGlobals', t => {
   t.deepEqual(
     getOptimizableGlobals(Object.create(null, { const: { value: true } })),
     [],
-    'should reject keyword'
+    'should reject reserved keyword'
+  );
+  t.deepEqual(
+    getOptimizableGlobals(
+      Object.create(null, { null: { value: true }, true: { value: true }, false: { value: true } })
+    ),
+    [],
+    'should reject literals (reserved)'
+  );
+  t.deepEqual(
+    getOptimizableGlobals(
+      Object.create(null, { this: { value: true }, arguments: { value: true } })
+    ),
+    [],
+    'should reject this and arguments'
   );
   t.deepEqual(
     getOptimizableGlobals(Object.create(null, { [Symbol.iterator]: { value: true } })),
@@ -66,7 +80,7 @@ test('getOptimizableGlobals', t => {
   t.deepEqual(
     getOptimizableGlobals(Object.create(null, { _123: { value: true } })),
     ['_123'],
-    'should return leading dash'
+    'should return leading underscore'
   );
   t.deepEqual(
     getOptimizableGlobals(Object.create(null, { $123: { value: true } })),
