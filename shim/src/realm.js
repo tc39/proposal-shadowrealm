@@ -6,6 +6,7 @@ import {
   createSafeEvaluatorWhichTakesEndowments,
   createFunctionEvaluator
 } from './evaluators';
+import { assert } from './utilities';
 import { create, defineProperty, defineProperties, freeze, arrayConcat } from './commons';
 
 // Create a registry to mimic a private static members on the realm classes.
@@ -14,30 +15,20 @@ import { create, defineProperty, defineProperties, freeze, arrayConcat } from '.
 const UnsafeRecForRealmClass = new WeakMap();
 
 function getUnsafeRecForRealmClass(RealmClass) {
-  if (Object(RealmClass) !== RealmClass) {
-    // Detect non-objects.
-    throw new TypeError('internal error: bad object, not a Realm constructor');
-  }
-  // spec just says throw TypeError
-  // todo: but shim should include a message
-  if (!UnsafeRecForRealmClass.has(RealmClass)) {
-    // RealmClass has no unsafeRec. Shoud not proceed.
-    throw new TypeError('internal error: bad object');
-  }
+  // Detect non-objects.
+  assert(Object(RealmClass) === RealmClass, 'bad object, not a Realm constructor');
+  // RealmClass has no unsafeRec. Shoud not proceed.
+  assert(UnsafeRecForRealmClass.has(RealmClass), 'Realm constructor has no record');
+
   return UnsafeRecForRealmClass.get(RealmClass);
 }
 
 function registerUnsafeRecForRealmClass(RealmClass, unsafeRec) {
-  if (Object(RealmClass) !== RealmClass) {
-    // Detect non-objects.
-    throw new TypeError('internal error: bad object, not a Realm constructor');
-  }
-  // spec just says throw TypeError
-  // todo: but shim should include a message
-  if (UnsafeRecForRealmClass.has(RealmClass)) {
-    // Attempt to change an existing unsafeRec on a Realm. Shoud not proceed.
-    throw new TypeError('internal error: bad object');
-  }
+  // Detect non-objects.
+  assert(Object(RealmClass) === RealmClass, 'bad object, not a Realm constructor');
+  // RealmClass already has unsafeRec. Shoud not proceed.
+  assert(!UnsafeRecForRealmClass.has(RealmClass), 'Realm constructor already has a record');
+
   UnsafeRecForRealmClass.set(RealmClass, unsafeRec);
 }
 
@@ -47,28 +38,20 @@ function registerUnsafeRecForRealmClass(RealmClass, unsafeRec) {
 const RealmRecForRealmInstance = new WeakMap();
 
 function getRealmRecForRealmInstance(realm) {
-  if (Object(realm) !== realm) {
-    // Detect non-objects.
-    throw new TypeError('bad object, not a Realm instance');
-  }
-  if (!RealmRecForRealmInstance.has(realm)) {
-    // Realm instance has no realmRec. Should not proceed.
-    throw new TypeError(
-      'bad object, use Realm.makeRootRealm() or .makeCompartment() instead of "new Realm"'
-    );
-  }
+  // Detect non-objects.
+  assert(Object(realm) === realm, 'bad object, not a Realm instance');
+  // Realm instance has no realmRec. Should not proceed.
+  assert(RealmRecForRealmInstance.has(realm), 'Realm instance has no record');
+
   return RealmRecForRealmInstance.get(realm);
 }
 
 function registerRealmRecForRealmInstance(realm, realmRec) {
-  if (Object(realm) !== realm) {
-    // Detect non-objects.
-    throw new TypeError('internal error: bad object, not a Realm instance');
-  }
-  if (RealmRecForRealmInstance.has(realm)) {
-    // Attempt to change an existing realmRec on a realm instance. Should not proceed.
-    throw new TypeError('internal error: Realm instance is already present');
-  }
+  // Detect non-objects.
+  assert(Object(realm) === realm, 'bad object, not a Realm instance');
+  // Attempt to change an existing realmRec on a realm instance. Should not proceed.
+  assert(!RealmRecForRealmInstance.has(realm), 'Realm instance already has a record');
+
   RealmRecForRealmInstance.set(realm, realmRec);
 }
 
