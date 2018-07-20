@@ -171,15 +171,17 @@ function realmEvaluate(self, x, endowments = {}) {
   return safeEvalWhichTakesEndowments(x, endowments);
 }
 
+const BaseRealm = {
+  initRootRealm,
+  initCompartment,
+  getRealmGlobal,
+  realmEvaluate
+};
+
 // Define Realm onto new sharedGlobalDescs, so it can be defined in the
 // safeGlobal like the rest of the shared globals.
 function createRealmGlobalObject(unsafeRec) {
-  const Realm = createRealmFacade(unsafeRec, {
-    initRootRealm,
-    initCompartment,
-    getRealmGlobal,
-    realmEvaluate
-  });
+  const Realm = createRealmFacade(unsafeRec, BaseRealm);
   unsafeRec.sharedGlobalDescs.Realm = {
     value: Realm,
     writable: true,
@@ -191,12 +193,7 @@ function createRealmGlobalObject(unsafeRec) {
 // Create the current unsafeRec from the current "primal" realm (the realm
 // where the Realm shim is loaded and executed).
 const currentUnsafeRec = createCurrentUnsafeRec();
-const Realm = createRealmFacade(currentUnsafeRec, {
-  initRootRealm,
-  initCompartment,
-  getRealmGlobal,
-  realmEvaluate
-});
+const Realm = createRealmFacade(currentUnsafeRec, BaseRealm);
 registerUnsafeRecForRealmClass(Realm, currentUnsafeRec);
 
 export default Realm;
