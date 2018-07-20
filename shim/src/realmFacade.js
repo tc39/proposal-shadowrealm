@@ -15,7 +15,7 @@ export function buildChildRealm(BaseRealm) {
   // *after* user code has had a chance to pollute its environment, or it
   // could be used to gain access to BaseRealm and primal-realm Error
   // objects.
-  const { defineProperty } = Object;
+  const { create, defineProperty } = Object;
 
   const errorConstructors = new Map([
     ['EvalError', EvalError],
@@ -69,14 +69,27 @@ export function buildChildRealm(BaseRealm) {
   }
 
   class Realm {
+    constructor() {
+      // The Realm constructor is not intended to be used with the new operator
+      // or to be subclassed. It may be used as the value of an extends clause
+      // of a class definition but a super call to the Realm constructor will
+      // cause an exception.
+
+      // When Realm is called as a function, an exception is also raised because
+      // a class constructor cannot be invoked without 'new'.
+      throw new TypeError('Realm is not a constructor');
+    }
+
     static makeRootRealm(...args) {
-      const r = new Realm();
+      // Bypass the constructor.
+      const r = create(Realm.prototype);
       callAndWrapError(initRootRealm, Realm, r, ...args);
       return r;
     }
 
     static makeCompartment(...args) {
-      const r = new Realm();
+      // Bypass the constructor.
+      const r = create(Realm.prototype);
       callAndWrapError(initCompartment, Realm, r, ...args);
       return r;
     }
