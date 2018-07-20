@@ -616,13 +616,23 @@
   // todo: think about how this interacts with endowments, check for conflicts
   // between the names being optimized and the ones added by endowments
 
-  // Admits many (but not all) legal variable names: starts with letter/_/$,
-  // continues with letter/digit/_/$. It will reject many legal names that
-  // involve unicode characters. \w is equivalent [a-zA-Z_0-9]
+  /**
+   * Simplified validation of indentifier names: may only contain alphanumeric
+   * characters (or "$" or "_"), and may not start with a digit. This is safe
+   * and does not reduces the compatibility of the shim. The motivation for
+   * this limitation was to decrease the complexity of the implementation,
+   * and to maintain a resonable level of performance.
+   * Note: \w is equivalent [a-zA-Z_0-9]
+   * See 11.6.1 Identifier Names
+   */
   const identifierPattern = /^[a-zA-Z_$][\w$]*$/;
 
+  /**
+   * In JavaScript you cannot use these reserved words as variables.
+   * See 11.6.1 Identifier Names
+   */
   const keywords = new Set([
-    // actual keywords
+    // 11.6.2.1 Keywords
     'await',
     'break',
     'case',
@@ -658,10 +668,14 @@
     'with',
     'yield',
 
-    // future reserved word
+    // Also reserved when parsing strict mode code
+    'let',
+    'static',
+
+    // 11.6.2.2 Future Reserved Words
     'enum',
 
-    // future reserved word in strict mode
+    // Also reserved when parsing strict mode code
     'implements',
     'package',
     'protected',
@@ -669,9 +683,14 @@
     'private',
     'public',
 
-    // contextual worth refusing
-    'let',
-    'async',
+    // Reserved but not mentioned in specs
+    'await',
+
+    'null',
+    'true',
+    'false',
+
+    'this',
     'arguments'
   ]);
 
