@@ -21,7 +21,6 @@
     "import/named": "error",
     "no-eval": "off",
     "prefer-destructuring": "off",
-    // TODOs - Temporarily disable rules, fix this progressively
     "no-param-reassign": "off",
     "no-cond-assign": "off",
     "func-names": "off",
@@ -39,8 +38,6 @@
     "no-prototype-builtins": "off",
     "no-continue": "off",
     "no-shadow": "off",
-    // Rules up for discussion
     "no-multi-assign": "off",
-    // TODOs - end
   }
 }
