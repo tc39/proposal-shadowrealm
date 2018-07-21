@@ -32,7 +32,7 @@ export function cleanupSource(src) {
   /* START_TESTS_ONLY */
 
   // Restore eval which is modified by esm module.
-  src = src.replace(/\(0, _[^)]+\)/g, '(0, eval)');
+  src = src.replace(/\(0,[^)]+\)/g, '(0, eval)');
 
   // Remove code coverage which is injected by nyc module.
   src = src.replace(/cov_[^+]+\+\+[;,]/g, '');
