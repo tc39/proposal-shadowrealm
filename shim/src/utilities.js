@@ -6,8 +6,7 @@
 export function throwTantrum(s, err = undefined) {
   const msg = `please report internal shim error: ${s}`;
 
-  // note: we really do want to log these 'should never happen' things. there
-  // might be a better way to convince the linter, though.
+  // we want to log these 'should never happen' things.
   // eslint-disable-next-line no-console
   console.error(msg);
   if (err) {
@@ -33,9 +32,9 @@ export function cleanupSource(src) {
   /* START_TESTS_ONLY */
 
   // Restore eval which is modified by esm module.
-  src = src.replace(/\(0,[^)]+\)/g, '(0, eval)');
+  src = src.replace(/\(0, _[^)]+\)/g, '(0, eval)');
 
-  // Remove code coverage which is injexted by module nyc.
+  // Remove code coverage which is injected by nyc module.
   src = src.replace(/cov_[^+]+\+\+[;,]/g, '');
 
   /* END_TESTS_ONLY */
