@@ -4,16 +4,47 @@
   (global.Realm = factory());
 }(this, (function () { 'use strict';
 
-  // Note: do not import anything to this file to prevent using implicit
-  // dependencies.
+  // we'd like to abandon, but we can't, so just scream and break a lot of
+  // stuff. However, since we aren't really aborting the process, be careful to
+  // not throw an Error object which could be captured by child-Realm code and
+  // used to access the (too-powerful) primal-realm Error object.
+
+  function throwTantrum(s, err = undefined) {
+    const msg = `please report internal shim error: ${s}`;
+
+    // note: we really do want to log these 'should never happen' things. there
+    // might be a better way to convince the linter, though.
+    // eslint-disable-next-line no-console
+    console.error(msg);
+    if (err) {
+      // eslint-disable-next-line no-console
+      console.error(`${err}`);
+      // eslint-disable-next-line no-console
+      console.error(`${err.stack}`);
+    }
+
+    // eslint-disable-next-line no-debugger
+    debugger;
+    throw msg;
+  }
+
+  function assert(condition, message) {
+    if (!condition) {
+      throwTantrum(message);
+    }
+  }
+
+  // Remove code modifications.
+  function cleanupSource(src) {
+    return src;
+  }
 
   // buildChildRealm is immediately turned into a string, and this function is
   // never referenced again, because it closes over the wrong intrinsics
 
-  // todo: This function is stringified and evaluated outside of the primal
-  // realms and it currently can't contain code coverage metrics.
-  /* istanbul ignore next */
-  function buildChildRealm({ initRootRealm, initCompartment, getRealmGlobal, realmEvaluate }) {
+  function buildChildRealm(BaseRealm) {
+    const { initRootRealm, initCompartment, getRealmGlobal, realmEvaluate } = BaseRealm;
+
     // This Object and Reflect are brand new, from a new unsafeRec, so no user
     // code has been run or had a chance to manipulate them. We extract these
     // properties for brevity, not for security. Don't ever run this function
@@ -104,8 +135,15 @@
       }
     }
 
-    defineProperty(Realm.prototype, 'toString', {
+    defineProperty(Realm, 'toString', {
       value: () => 'function Realm() { [shim code] }',
+      writable: false,
+      enumerable: false,
+      configurable: true
+    });
+
+    defineProperty(Realm.prototype, 'toString', {
+      value: () => '[object Realm]',
       writable: false,
       enumerable: false,
       configurable: true
@@ -117,7 +155,7 @@
   // the parentheses means we don't bind the 'buildChildRealm' name inside the
   // child's namespace. this would accept an anonymous function declaration.
   // function expression (not a declaration) so it has a completion value.
-  const buildChildRealmString = `'use strict'; (${buildChildRealm})`;
+  const buildChildRealmString = cleanupSource(`'use strict'; (${buildChildRealm})`);
 
   function createRealmFacade(unsafeRec, BaseRealm) {
     const { unsafeEval } = unsafeRec;
@@ -189,36 +227,6 @@
     arrayConcat = uncurryThis(Array.prototype.concat),
     regexpTest = uncurryThis(RegExp.prototype.test),
     stringIncludes = uncurryThis(String.prototype.includes);
-
-  // we'd like to abandon, but we can't, so just scream and break a lot of
-  // stuff. However, since we aren't really aborting the process, be careful to
-  // not throw an Error object which could be captured by child-Realm code and
-  // used to access the (too-powerful) primal-realm Error object.
-
-  function throwTantrum(s, err = undefined) {
-    const msg = `please report internal shim error: ${s}`;
-
-    // note: we really do want to log these 'should never happen' things. there
-    // might be a better way to convince the linter, though.
-    // eslint-disable-next-line no-console
-    console.error(msg);
-    if (err) {
-      // eslint-disable-next-line no-console
-      console.error(`${err}`);
-      // eslint-disable-next-line no-console
-      console.error(`${err.stack}`);
-    }
-
-    // eslint-disable-next-line no-debugger
-    debugger;
-    throw msg;
-  }
-
-  function assert(condition, message) {
-    if (!condition) {
-      throwTantrum(message);
-    }
-  }
 
   // All the following stdlib items have the same name on both our intrinsics
   // object and on the global object. Unlike Infinity/NaN/undefined, these
@@ -588,12 +596,8 @@
     });
   }
 
-  function strip(src) {
-    return src;
-  }
-
-  const repairAccessorsShim = strip(`"use strict"; (${repairAccessors})();`);
-  const repairFunctionsShim = strip(`"use strict"; (${repairFunctions})();`);
+  const repairAccessorsShim = cleanupSource(`"use strict"; (${repairAccessors})();`);
+  const repairFunctionsShim = cleanupSource(`"use strict"; (${repairFunctions})();`);
 
   // Create a new unsafeRec from a brand new context, with new intrinsics and a
   // new global object
@@ -1257,15 +1261,17 @@
     return safeEvalWhichTakesEndowments(x, endowments);
   }
 
+  const BaseRealm = {
+    initRootRealm,
+    initCompartment,
+    getRealmGlobal,
+    realmEvaluate
+  };
+
   // Define Realm onto new sharedGlobalDescs, so it can be defined in the
   // safeGlobal like the rest of the shared globals.
   function createRealmGlobalObject(unsafeRec) {
-    const Realm = createRealmFacade(unsafeRec, {
-      initRootRealm,
-      initCompartment,
-      getRealmGlobal,
-      realmEvaluate
-    });
+    const Realm = createRealmFacade(unsafeRec, BaseRealm);
     unsafeRec.sharedGlobalDescs.Realm = {
       value: Realm,
       writable: true,
@@ -1277,12 +1283,7 @@
   // Create the current unsafeRec from the current "primal" realm (the realm
   // where the Realm shim is loaded and executed).
   const currentUnsafeRec = createCurrentUnsafeRec();
-  const Realm = createRealmFacade(currentUnsafeRec, {
-    initRootRealm,
-    initCompartment,
-    getRealmGlobal,
-    realmEvaluate
-  });
+  const Realm = createRealmFacade(currentUnsafeRec, BaseRealm);
   registerUnsafeRecForRealmClass(Realm, currentUnsafeRec);
 
   return Realm;
