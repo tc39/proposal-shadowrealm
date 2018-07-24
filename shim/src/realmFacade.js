@@ -3,7 +3,10 @@ import { cleanupSource } from './utilities';
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
 
-export function buildChildRealm(BaseRealm) {
+// todo: This function is stringified and evaluated outside of the primal
+// realms and it currently can't contain code coverage metrics.
+/* istanbul ignore file */
+export function buildChildRealm(unsafeRec, BaseRealm) {
   const { initRootRealm, initCompartment, getRealmGlobal, realmEvaluate } = BaseRealm;
 
   // This Object and Reflect are brand new, from a new unsafeRec, so no user
@@ -80,14 +83,14 @@ export function buildChildRealm(BaseRealm) {
     static makeRootRealm(...args) {
       // Bypass the constructor.
       const r = create(Realm.prototype);
-      callAndWrapError(initRootRealm, Realm, r, ...args);
+      callAndWrapError(initRootRealm, unsafeRec, r, ...args);
       return r;
     }
 
     static makeCompartment(...args) {
       // Bypass the constructor.
       const r = create(Realm.prototype);
-      callAndWrapError(initCompartment, Realm, r, ...args);
+      callAndWrapError(initCompartment, unsafeRec, r, ...args);
       return r;
     }
 
@@ -148,5 +151,5 @@ export function createRealmFacade(unsafeRec, BaseRealm) {
   // values using the intrinsics of the realm's context.
 
   // Invoke the BaseRealm constructor with Realm as the prototype.
-  return unsafeEval(buildChildRealmString)(BaseRealm);
+  return unsafeEval(buildChildRealmString)(unsafeRec, BaseRealm);
 }
