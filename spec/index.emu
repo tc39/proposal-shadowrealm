@@ -9,7 +9,7 @@ stage: 0
 contributors: Dave Herman, Caridy Patiño, Mark Miller
 status: draft
 copyright: false
-location: https://rawgit.com/caridy/proposal-realms/master/index.html
+location: https://rawgit.com/tc39/proposal-realms/master/index.html
 </pre>
 
 <emu-table id="table-1" caption="Well-known Intrinsic Objects">
