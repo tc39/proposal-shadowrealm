@@ -82,7 +82,7 @@ test('Object#__defineSetter__', t => {
 });
 
 test('Object#__lookupGetter__', t => {
-  t.plan(11);
+  t.plan(14);
 
   t.equal(typeof __lookupGetter__, 'function');
   t.equal(__lookupGetter__.length, 1);
@@ -92,13 +92,22 @@ test('Object#__lookupGetter__', t => {
   t.equal({}.__lookupGetter__('key'), undefined, 'empty object');
   t.equal({ key: 42 }.__lookupGetter__('key'), undefined, 'data descriptor');
 
-  const object = {};
-  function setter() {}
-  object.__defineGetter__('key', setter);
+  const obj1 = {};
+  function setter1() {}
+  obj1.__defineGetter__('key', setter1);
 
-  t.equal(object.__lookupGetter__('key'), setter, 'own getter');
-  t.equal(create(object).__lookupGetter__('key'), setter, 'proto getter');
-  t.equal(create(object).__lookupGetter__('foo'), undefined, 'empty proto');
+  t.equal(obj1.__lookupGetter__('key'), setter1, 'own getter');
+  t.equal(create(obj1).__lookupGetter__('key'), setter1, 'proto getter');
+  t.equal(create(obj1).__lookupGetter__('foo'), undefined, 'empty proto');
+
+  const obj2 = {};
+  function setter2() {}
+  const symbol2 = Symbol('key');
+  obj2.__defineGetter__(symbol2, setter2);
+
+  t.equal(obj2.__lookupGetter__(symbol2), setter2, 'own getter');
+  t.equal(create(obj2).__lookupGetter__(symbol2), setter2, 'proto getter');
+  t.equal(create(obj2).__lookupGetter__(Symbol('foo')), undefined, 'empty proto');
 
   t.throws(() => __lookupGetter__.call(null, 1, () => {}), TypeError, 'Throws on null as `this`');
   t.throws(
@@ -109,7 +118,7 @@ test('Object#__lookupGetter__', t => {
 });
 
 test('Object#__lookupSetter__', t => {
-  t.plan(11);
+  t.plan(14);
 
   t.equal(typeof __lookupSetter__, 'function');
   t.equal(__lookupSetter__.length, 1);
@@ -119,13 +128,22 @@ test('Object#__lookupSetter__', t => {
   t.equal({}.__lookupSetter__('key'), undefined, 'empty object');
   t.equal({ key: 42 }.__lookupSetter__('key'), undefined, 'data descriptor');
 
-  const object = {};
-  function setter() {}
-  object.__defineSetter__('key', setter);
+  const obj1 = {};
+  function setter1() {}
+  obj1.__defineSetter__('key', setter1);
 
-  t.equal(object.__lookupSetter__('key'), setter, 'own getter');
-  t.equal(create(object).__lookupSetter__('key'), setter, 'proto getter');
-  t.equal(create(object).__lookupSetter__('foo'), undefined, 'empty proto');
+  t.equal(obj1.__lookupSetter__('key'), setter1, 'own getter');
+  t.equal(create(obj1).__lookupSetter__('key'), setter1, 'proto getter');
+  t.equal(create(obj1).__lookupSetter__('foo'), undefined, 'empty proto');
+
+  const obj2 = {};
+  function setter2() {}
+  const symbol2 = Symbol('key');
+  obj2.__defineSetter__(symbol2, setter2);
+
+  t.equal(obj2.__lookupSetter__(symbol2), setter2, 'own getter');
+  t.equal(create(obj2).__lookupSetter__(symbol2), setter2, 'proto getter');
+  t.equal(create(obj2).__lookupSetter__(Symbol('foo')), undefined, 'empty proto');
 
   t.throws(() => __lookupSetter__.call(null, 1, () => {}), TypeError, 'Throws on null as `this`');
   t.throws(
