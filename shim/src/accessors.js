@@ -32,7 +32,7 @@ export function repairAccessors() {
   try {
     // Verify that the method is not callable.
     // eslint-disable-next-line no-restricted-properties, no-underscore-dangle
-    objectPrototype.__lookupGetter__('dummy');
+    (0, objectPrototype.__lookupGetter__)('x');
   } catch (ignore) {
     // Throws, no need to patch.
     return;
