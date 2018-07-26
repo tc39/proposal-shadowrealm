@@ -7,10 +7,16 @@ import {
   createFunctionEvaluator
 } from '../../src/evaluators';
 
-const unsafeRecord = { unsafeGlobal: this, unsafeEval: eval, unsafeFunction: Function };
+const unsafeRecord = { unsafeGlobal: {}, unsafeEval: eval, unsafeFunction: Function };
 
 test('createSafeEvaluator', t => {
   t.plan(27);
+
+  // Mimic repairFunctions.
+  // eslint-disable-next-line no-proto
+  sinon.stub(Function.__proto__, 'constructor').callsFake(() => {
+    throw new TypeError();
+  });
 
   const safeGlobal = Object.create(null, { foo: { value: 1 }, bar: { value: 2, writable: true } });
   const safeEval = createSafeEvaluator(createSafeEvaluatorFactory(unsafeRecord, safeGlobal));
@@ -56,10 +62,19 @@ test('createSafeEvaluator', t => {
   t.equal(safeEval('this.foo'), 1);
   t.equal(safeEval('this.bar'), 10);
   t.equal(safeEval('this.none'), 11);
+
+  // eslint-disable-next-line no-proto
+  Function.__proto__.constructor.restore();
 });
 
 test('createSafeEvaluatorWhichTakesEndowments', t => {
   t.plan(9);
+
+  // Mimic repairFunctions.
+  // eslint-disable-next-line no-proto
+  sinon.stub(Function.__proto__, 'constructor').callsFake(() => {
+    throw new TypeError();
+  });
 
   const safeGlobal = Object.create(null, { foo: { value: 1 }, bar: { value: 2, writable: true } });
   const safeEval = createSafeEvaluatorWhichTakesEndowments(
@@ -81,6 +96,9 @@ test('createSafeEvaluatorWhichTakesEndowments', t => {
 
   t.throws(() => safeEval('foo = 7', endowments), TypeError);
   t.throws(() => safeEval('bar = 8', endowments), TypeError);
+
+  // eslint-disable-next-line no-proto
+  Function.__proto__.constructor.restore();
 });
 
 test('createFunctionEvaluator', t => {
@@ -151,6 +169,42 @@ test('createFunctionEvaluator', t => {
   // t.equal(fn.foo, 1);
   // t.equal(fn.bar, 2);
 
+  // eslint-disable-next-line no-proto
+  Function.__proto__.constructor.restore();
+});
+
+test('createSafeEvaluator - broken', t => {
+  t.plan(1);
+
+  // Mimic repairFunctions.
+  // eslint-disable-next-line no-proto
+  sinon.stub(Function.__proto__, 'constructor').callsFake(() => {
+    throw new TypeError();
+  });
+  // Prevent outpur
+  sinon.stub(console, 'error').callsFake();
+
+  // A function that returns a function that always throw;
+  function unsafeFunction() {
+    return function() {
+      return function() {
+        throw new Error();
+      };
+    };
+  }
+  unsafeFunction.prototype = Function.prototype;
+
+  const unsafeRecord = { unsafeFunction, unsafeEval: eval };
+  const safeGlobal = {};
+
+  t.throws(() => {
+    // Internally, createSafeEvaluator might use safeEval, so we wrap everything.
+    const safeEval = createSafeEvaluator(createSafeEvaluatorFactory(unsafeRecord, safeGlobal));
+    safeEval('true');
+  }, /handler did not revoke useUnsafeEvaluator/);
+
+  // eslint-disable-next-line no-console
+  console.error.restore();
   // eslint-disable-next-line no-proto
   Function.__proto__.constructor.restore();
 });
