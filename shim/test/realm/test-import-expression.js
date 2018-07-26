@@ -1,6 +1,6 @@
 import test from 'tape';
 import Realm from '../../src/realm';
-import { rejectImportExpressions } from '../../src/block-imports';
+import { rejectImportExpressions } from '../../src/sourceParser';
 
 function codepointIsSyntacticWhitespace(i) {
   const c = String.fromCodePoint(i);

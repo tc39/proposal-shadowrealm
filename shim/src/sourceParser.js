@@ -5,10 +5,10 @@
 // something like that from something like importnotreally('power.js') which
 // is perfectly safe.
 
-const scanner = /^(.*)\bimport\s*(\(|\/\/|\/\*)/m;
+const importParser = /^(.*)\bimport\s*(\(|\/\/|\/\*)/m;
 
 export function rejectImportExpressions(s) {
-  const matches = scanner.exec(s);
+  const matches = importParser.exec(s);
   if (matches) {
     // todo: if we have a full parser available, use it here. If there is no
     // 'import' token in the string, we're safe.

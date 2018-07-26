@@ -14,7 +14,7 @@ import {
 } from './commons';
 import { getOptimizableGlobals } from './optimizer';
 import { createScopeHandler } from './scopeHandler';
-import { rejectImportExpressions } from './block-imports';
+import { rejectImportExpressions } from './sourceParser';
 import { assert, throwTantrum } from './utilities';
 
 function buildOptimizer(constants) {
