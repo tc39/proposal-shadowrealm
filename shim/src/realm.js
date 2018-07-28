@@ -1,4 +1,4 @@
-import { createRealmFacade } from './realmFacade';
+import { createRealmFacade, buildChildRealm } from './realmFacade';
 import { createNewUnsafeRec, createCurrentUnsafeRec } from './unsafeRec';
 import {
   createSafeEvaluatorFactory,
@@ -148,6 +148,7 @@ function createRealmGlobalObject(unsafeRec) {
 // Create the current unsafeRec from the current "primal" realm (the realm
 // where the Realm shim is loaded and executed).
 const currentUnsafeRec = createCurrentUnsafeRec();
-const Realm = createRealmFacade(currentUnsafeRec, BaseRealm);
+
+const Realm = buildChildRealm(currentUnsafeRec, BaseRealm);
 
 export default Realm;
