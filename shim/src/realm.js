@@ -88,8 +88,15 @@ function initRootRealm(parentUnsafeRec, self, options) {
   // Define Realm onto new sharedGlobalDescs, so it can be copied onto the
   // safeGlobal like the rest of the globals.
   // eslint-disable-next-line no-use-before-define
-  createRealmGlobalObject(unsafeRec);
+  const Realm = createRealmFacade(unsafeRec, BaseRealm);
 
+  // Add a Realm descriptor to sharedGlobalDescs, so it can be defined onto the
+  // safeGlobal like the rest of the globals.
+  unsafeRec.sharedGlobalDescs.Realm = {
+    value: Realm,
+    writable: true,
+    configurable: true
+  };
   const realmRec = createRealmRec(unsafeRec);
   registerRealmRecForRealmInstance(self, realmRec);
 
@@ -132,17 +139,6 @@ const BaseRealm = {
   realmEvaluate
 };
 
-// Define Realm onto new sharedGlobalDescs, so it can be defined in the
-// safeGlobal like the rest of the shared globals.
-function createRealmGlobalObject(unsafeRec) {
-  const Realm = createRealmFacade(unsafeRec, BaseRealm);
-  unsafeRec.sharedGlobalDescs.Realm = {
-    value: Realm,
-    writable: true,
-    configurable: true
-  };
-  return Realm;
-}
 
 // Create the current unsafeRec from the current "primal" realm (the realm
 // where the Realm shim is loaded and executed).
