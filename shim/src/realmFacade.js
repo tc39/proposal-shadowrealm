@@ -3,9 +3,6 @@ import { cleanupSource } from './utilities';
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
 
-// todo: This function is stringified and evaluated outside of the primal
-// realms and it currently can't contain code coverage metrics.
-/* istanbul ignore file */
 export function buildChildRealm(unsafeRec, BaseRealm) {
   const { initRootRealm, initCompartment, getRealmGlobal, realmEvaluate } = BaseRealm;
 
