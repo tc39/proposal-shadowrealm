@@ -129,7 +129,7 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
   return Realm;
 }
 
-// the parentheses means we don't bind the 'buildChildRealm' name inside the
+// The parentheses means we don't bind the 'buildChildRealm' name inside the
 // child's namespace. this would accept an anonymous function declaration.
 // function expression (not a declaration) so it has a completion value.
 const buildChildRealmString = cleanupSource(`'use strict'; (${buildChildRealm})`);

@@ -9,7 +9,7 @@ import {
 import { assert } from './utilities';
 import { create, defineProperties, freeze, arrayConcat } from './commons';
 
-// Mimic private members on the realm imtances.
+// Mimic private members on the realm instances.
 // We define it in the same module and do not export it.
 const RealmRecForRealmInstance = new WeakMap();
 
@@ -72,21 +72,22 @@ function createRealmRec(unsafeRec) {
   return realmRec;
 }
 
+/**
+ * A root realm uses a fresh set of new intrinics. Here we first create
+ * a new unsafe record, which inherits the shims. Then we proceed with
+ * the creation of the realm record, and we apply the shims.
+ */
 function initRootRealm(parentUnsafeRec, self, options) {
-
-  // In 'undefined' mode, intrinics are not provided, we create a root
-  // realm using the fresh set of new intrinics from a new context.
+  // note: 'self' is the instance of the Realm.
 
   // todo: investigate attacks via Array.species
   // todo: this accepts newShims='string', but it should reject that
   const { shims: newShims } = options;
   const allShims = arrayConcat(parentUnsafeRec.allShims, newShims);
 
-  // The unsafe record is returned with its constructors repaired.
+  // The unsafe record is created already repaired.
   const unsafeRec = createNewUnsafeRec(allShims);
 
-  // Define Realm onto new sharedGlobalDescs, so it can be copied onto the
-  // safeGlobal like the rest of the globals.
   // eslint-disable-next-line no-use-before-define
   const Realm = createRealmFacade(unsafeRec, BaseRealm);
 
@@ -97,25 +98,31 @@ function initRootRealm(parentUnsafeRec, self, options) {
     writable: true,
     configurable: true
   };
-  const realmRec = createRealmRec(unsafeRec);
-  registerRealmRecForRealmInstance(self, realmRec);
 
-  // Now run all shims in the new RootRealm. We don't do this for
-  // compartments.
+  // Create the realmRec is necessary to provide the global object, eval() and
+  // Function() to the realm.
+  const realmRec = createRealmRec(unsafeRec);
+
+  // Apply all shims in the new RootRealm. We don't do this for compartments.
   const { safeEvalWhichTakesEndowments } = realmRec;
   for (const shim of allShims) {
     safeEvalWhichTakesEndowments(shim);
   }
+
+  // The realmRec acts as a private field on the realm instance.
+  registerRealmRecForRealmInstance(self, realmRec);
 }
 
+/**
+ * A compartment shares the intrinsics of its root realm. Here, only a
+ * realmRec is necessary to hold the global object, eval() and Function().
+ */
 function initCompartment(unsafeRec, self) {
-  // note: 'self' is the instance of the Realm, and 'selfClass' is the
-  // Realm constructor (facade) we build in buildChildRealm().
+  // note: 'self' is the instance of the Realm.
 
-  // In "inherit" mode, we create a compartment realm and inherit
-  // the context since we share the intrinsics. We create a new
-  // set to allow us to define eval() and Function() for the realm.
   const realmRec = createRealmRec(unsafeRec);
+
+  // The realmRec acts as a private field on the realm instance.
   registerRealmRecForRealmInstance(self, realmRec);
 }
 
@@ -139,11 +146,15 @@ const BaseRealm = {
   realmEvaluate
 };
 
-
-// Create the current unsafeRec from the current "primal" realm (the realm
+// Create the current unsafeRec from the current "primal" environment (the realm
 // where the Realm shim is loaded and executed).
 const currentUnsafeRec = createCurrentUnsafeRec();
 
+/**
+ * The "primal" realm class is defined in the current "primal" environment,
+ * and is part of the shim. There is no need to acade this class via evaluation
+ * because they share the same intrinsics.
+ */
 const Realm = buildChildRealm(currentUnsafeRec, BaseRealm);
 
 export default Realm;
