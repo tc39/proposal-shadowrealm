@@ -77,17 +77,20 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
       throw new TypeError('Realm is not a constructor');
     }
 
-    static makeRootRealm(...args) {
+    static makeRootRealm(options) {
+      // This is the exposed interface.
+      options = Object(options); // todo: sanitize
+
       // Bypass the constructor.
       const r = create(Realm.prototype);
-      callAndWrapError(initRootRealm, unsafeRec, r, ...args);
+      callAndWrapError(initRootRealm, unsafeRec, r, options);
       return r;
     }
 
-    static makeCompartment(...args) {
+    static makeCompartment() {
       // Bypass the constructor.
       const r = create(Realm.prototype);
-      callAndWrapError(initCompartment, unsafeRec, r, ...args);
+      callAndWrapError(initCompartment, unsafeRec, r);
       return r;
     }
 
@@ -103,9 +106,9 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
       return callAndWrapError(getRealmGlobal, this);
     }
 
-    evaluate(...args) {
+    evaluate(x, endowments) {
       // safe against strange 'this', as above
-      return callAndWrapError(realmEvaluate, this, ...args);
+      return callAndWrapError(realmEvaluate, this, x, endowments);
     }
   }
 

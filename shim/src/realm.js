@@ -73,7 +73,6 @@ function createRealmRec(unsafeRec) {
 }
 
 function initRootRealm(parentUnsafeRec, self, options) {
-  options = Object(options); // todo: sanitize
 
   // In 'undefined' mode, intrinics are not provided, we create a root
   // realm using the fresh set of new intrinics from a new context.
