@@ -12,8 +12,7 @@
   function throwTantrum(s, err = undefined) {
     const msg = `please report internal shim error: ${s}`;
 
-    // note: we really do want to log these 'should never happen' things. there
-    // might be a better way to convince the linter, though.
+    // we want to log these 'should never happen' things.
     // eslint-disable-next-line no-console
     console.error(msg);
     if (err) {
@@ -42,7 +41,7 @@
   // buildChildRealm is immediately turned into a string, and this function is
   // never referenced again, because it closes over the wrong intrinsics
 
-  function buildChildRealm(BaseRealm) {
+  function buildChildRealm(unsafeRec, BaseRealm) {
     const { initRootRealm, initCompartment, getRealmGlobal, realmEvaluate } = BaseRealm;
 
     // This Object and Reflect are brand new, from a new unsafeRec, so no user
@@ -51,7 +50,7 @@
     // *after* user code has had a chance to pollute its environment, or it
     // could be used to gain access to BaseRealm and primal-realm Error
     // objects.
-    const { defineProperty } = Object;
+    const { create, defineProperty } = Object;
 
     const errorConstructors = new Map([
       ['EvalError', EvalError],
@@ -105,15 +104,31 @@
     }
 
     class Realm {
-      static makeRootRealm(...args) {
-        const r = new Realm();
-        callAndWrapError(initRootRealm, Realm, r, ...args);
+      constructor() {
+        // The Realm constructor is not intended to be used with the new operator
+        // or to be subclassed. It may be used as the value of an extends clause
+        // of a class definition but a super call to the Realm constructor will
+        // cause an exception.
+
+        // When Realm is called as a function, an exception is also raised because
+        // a class constructor cannot be invoked without 'new'.
+        throw new TypeError('Realm is not a constructor');
+      }
+
+      static makeRootRealm(options) {
+        // This is the exposed interface.
+        options = Object(options); // todo: sanitize
+
+        // Bypass the constructor.
+        const r = create(Realm.prototype);
+        callAndWrapError(initRootRealm, unsafeRec, r, options);
         return r;
       }
 
-      static makeCompartment(...args) {
-        const r = new Realm();
-        callAndWrapError(initCompartment, Realm, r, ...args);
+      static makeCompartment() {
+        // Bypass the constructor.
+        const r = create(Realm.prototype);
+        callAndWrapError(initCompartment, unsafeRec, r);
         return r;
       }
 
@@ -129,9 +144,9 @@
         return callAndWrapError(getRealmGlobal, this);
       }
 
-      evaluate(...args) {
+      evaluate(x, endowments) {
         // safe against strange 'this', as above
-        return callAndWrapError(realmEvaluate, this, ...args);
+        return callAndWrapError(realmEvaluate, this, x, endowments);
       }
     }
 
@@ -152,7 +167,7 @@
     return Realm;
   }
 
-  // the parentheses means we don't bind the 'buildChildRealm' name inside the
+  // The parentheses means we don't bind the 'buildChildRealm' name inside the
   // child's namespace. this would accept an anonymous function declaration.
   // function expression (not a declaration) so it has a completion value.
   const buildChildRealmString = cleanupSource(`'use strict'; (${buildChildRealm})`);
@@ -174,7 +189,7 @@
     // values using the intrinsics of the realm's context.
 
     // Invoke the BaseRealm constructor with Realm as the prototype.
-    return unsafeEval(buildChildRealmString)(BaseRealm);
+    return unsafeEval(buildChildRealmString)(unsafeRec, BaseRealm);
   }
 
   // Declare shorthand functions. Sharing these declarations across modules
@@ -363,7 +378,7 @@
     try {
       // Verify that the method is not callable.
       // eslint-disable-next-line no-restricted-properties, no-underscore-dangle
-      objectPrototype.__lookupGetter__('dummy');
+      (0, objectPrototype.__lookupGetter__)('x');
     } catch (ignore) {
       // Throws, no need to patch.
       return;
@@ -884,10 +899,10 @@
   // something like that from something like importnotreally('power.js') which
   // is perfectly safe.
 
-  const scanner = /^(.*)\bimport\s*(\(|\/\/|\/\*)/m;
+  const importParser = /^(.*)\bimport\s*(\(|\/\/|\/\*)/m;
 
   function rejectImportExpressions(s) {
-    const matches = scanner.exec(s);
+    const matches = importParser.exec(s);
     if (matches) {
       // todo: if we have a full parser available, use it here. If there is no
       // 'import' token in the string, we're safe.
@@ -1098,67 +1113,25 @@
     return safeFunction;
   }
 
-  // Create a registry to mimic a private static members on the realm classes.
+  // Mimic private members on the realm instances.
   // We define it in the same module and do not export it.
-
-  const UnsafeRecForRealmClass = new WeakMap();
-
-  function getUnsafeRecForRealmClass(RealmClass) {
-    if (Object(RealmClass) !== RealmClass) {
-      // Detect non-objects.
-      throw new TypeError('internal error: bad object, not a Realm constructor');
-    }
-    // spec just says throw TypeError
-    // todo: but shim should include a message
-    if (!UnsafeRecForRealmClass.has(RealmClass)) {
-      // RealmClass has no unsafeRec. Shoud not proceed.
-      throw new TypeError('internal error: bad object');
-    }
-    return UnsafeRecForRealmClass.get(RealmClass);
-  }
-
-  function registerUnsafeRecForRealmClass(RealmClass, unsafeRec) {
-    if (Object(RealmClass) !== RealmClass) {
-      // Detect non-objects.
-      throw new TypeError('internal error: bad object, not a Realm constructor');
-    }
-    // spec just says throw TypeError
-    // todo: but shim should include a message
-    if (UnsafeRecForRealmClass.has(RealmClass)) {
-      // Attempt to change an existing unsafeRec on a Realm. Shoud not proceed.
-      throw new TypeError('internal error: bad object');
-    }
-    UnsafeRecForRealmClass.set(RealmClass, unsafeRec);
-  }
-
-  // Create a registry to mimic a private members on the realm imtances.
-  // We define it in the same module and do not export it.
-
   const RealmRecForRealmInstance = new WeakMap();
 
   function getRealmRecForRealmInstance(realm) {
-    if (Object(realm) !== realm) {
-      // Detect non-objects.
-      throw new TypeError('bad object, not a Realm instance');
-    }
-    if (!RealmRecForRealmInstance.has(realm)) {
-      // Realm instance has no realmRec. Should not proceed.
-      throw new TypeError(
-        'bad object, use Realm.makeRootRealm() or .makeCompartment() instead of "new Realm"'
-      );
-    }
+    // Detect non-objects.
+    assert(Object(realm) === realm, 'bad object, not a Realm instance');
+    // Realm instance has no realmRec. Should not proceed.
+    assert(RealmRecForRealmInstance.has(realm), 'Realm instance has no record');
+
     return RealmRecForRealmInstance.get(realm);
   }
 
   function registerRealmRecForRealmInstance(realm, realmRec) {
-    if (Object(realm) !== realm) {
-      // Detect non-objects.
-      throw new TypeError('internal error: bad object, not a Realm instance');
-    }
-    if (RealmRecForRealmInstance.has(realm)) {
-      // Attempt to change an existing realmRec on a realm instance. Should not proceed.
-      throw new TypeError('internal error: Realm instance is already present');
-    }
+    // Detect non-objects.
+    assert(Object(realm) === realm, 'bad object, not a Realm instance');
+    // Attempt to change an existing realmRec on a realm instance. Should not proceed.
+    assert(!RealmRecForRealmInstance.has(realm), 'Realm instance already has a record');
+
     RealmRecForRealmInstance.set(realm, realmRec);
   }
 
@@ -1166,16 +1139,17 @@
   function setDefaultBindings(sharedGlobalDescs, safeGlobal, safeEval, safeFunction) {
     defineProperties(safeGlobal, sharedGlobalDescs);
 
-    defineProperty(safeGlobal, 'eval', {
-      value: safeEval,
-      writable: true,
-      configurable: true
-    });
-
-    defineProperty(safeGlobal, 'Function', {
-      value: safeFunction,
-      writable: true,
-      configurable: true
+    defineProperties(safeGlobal, {
+      eval: {
+        value: safeEval,
+        writable: true,
+        configurable: true
+      },
+      Function: {
+        value: safeFunction,
+        writable: true,
+        configurable: true
+      }
     });
   }
 
@@ -1202,49 +1176,57 @@
     return realmRec;
   }
 
-  function initRootRealm(selfClass, self, options) {
-    options = Object(options); // Todo: sanitize
-    // note: 'self' is the instance of the Realm, and 'selfClass' is the
-    // Realm constructor (facade) we build in buildChildRealm().
-
-    // In 'undefined' mode, intrinics are not provided, we create a root
-    // realm using the fresh set of new intrinics from a new context.
+  /**
+   * A root realm uses a fresh set of new intrinics. Here we first create
+   * a new unsafe record, which inherits the shims. Then we proceed with
+   * the creation of the realm record, and we apply the shims.
+   */
+  function initRootRealm(parentUnsafeRec, self, options) {
+    // note: 'self' is the instance of the Realm.
 
     // todo: investigate attacks via Array.species
-    const newShims = options.shims || [];
-    const { allShims: oldShims } = getUnsafeRecForRealmClass(selfClass);
     // todo: this accepts newShims='string', but it should reject that
-    const allShims = arrayConcat(oldShims, newShims);
+    const { shims: newShims } = options;
+    const allShims = arrayConcat(parentUnsafeRec.allShims, newShims);
 
-    // The unsafe record is returned with its constructors repaired.
+    // The unsafe record is created already repaired.
     const unsafeRec = createNewUnsafeRec(allShims);
 
-    // Define Realm onto new sharedGlobalDescs, so it can be copied onto the
-    // safeGlobal like the rest of the .
     // eslint-disable-next-line no-use-before-define
-    const Realm = createRealmGlobalObject(unsafeRec);
-    registerUnsafeRecForRealmClass(Realm, unsafeRec);
+    const Realm = createRealmFacade(unsafeRec, BaseRealm);
 
+    // Add a Realm descriptor to sharedGlobalDescs, so it can be defined onto the
+    // safeGlobal like the rest of the globals.
+    unsafeRec.sharedGlobalDescs.Realm = {
+      value: Realm,
+      writable: true,
+      configurable: true
+    };
+
+    // Creating the realmRec provides the global object, eval() and Function()
+    // to the realm.
     const realmRec = createRealmRec(unsafeRec);
-    registerRealmRecForRealmInstance(self, realmRec);
-    // Now run all shims in the new RootRealm. We don't do this for
-    // compartments
+
+    // Apply all shims in the new RootRealm. We don't do this for compartments.
+    const { safeEvalWhichTakesEndowments } = realmRec;
     for (const shim of allShims) {
-      // eslint-disable-next-line no-use-before-define
-      realmEvaluate(self, shim);
+      safeEvalWhichTakesEndowments(shim);
     }
+
+    // The realmRec acts as a private field on the realm instance.
+    registerRealmRecForRealmInstance(self, realmRec);
   }
 
-  function initCompartment(selfClass, self) {
-    // note: 'self' is the instance of the Realm, and 'selfClass' is the
-    // Realm constructor (facade) we build in buildChildRealm().
-
-    // In "inherit" mode, we create a compartment realm and inherit
-    // the context since we share the intrinsics. We create a new
-    // set to allow us to define eval() and Function() for the realm.
-    const unsafeRec = getUnsafeRecForRealmClass(selfClass);
+  /**
+   * A compartment shares the intrinsics of its root realm. Here, only a
+   * realmRec is necessary to hold the global object, eval() and Function().
+   */
+  function initCompartment(unsafeRec, self) {
+    // note: 'self' is the instance of the Realm.
 
     const realmRec = createRealmRec(unsafeRec);
+
+    // The realmRec acts as a private field on the realm instance.
     registerRealmRecForRealmInstance(self, realmRec);
   }
 
@@ -1268,23 +1250,16 @@
     realmEvaluate
   };
 
-  // Define Realm onto new sharedGlobalDescs, so it can be defined in the
-  // safeGlobal like the rest of the shared globals.
-  function createRealmGlobalObject(unsafeRec) {
-    const Realm = createRealmFacade(unsafeRec, BaseRealm);
-    unsafeRec.sharedGlobalDescs.Realm = {
-      value: Realm,
-      writable: true,
-      configurable: true
-    };
-    return Realm;
-  }
-
-  // Create the current unsafeRec from the current "primal" realm (the realm
+  // Create the current unsafeRec from the current "primal" environment (the realm
   // where the Realm shim is loaded and executed).
   const currentUnsafeRec = createCurrentUnsafeRec();
-  const Realm = createRealmFacade(currentUnsafeRec, BaseRealm);
-  registerUnsafeRecForRealmClass(Realm, currentUnsafeRec);
+
+  /**
+   * The "primal" realm class is defined in the current "primal" environment,
+   * and is part of the shim. There is no need to facade this class via evaluation
+   * because both share the same intrinsics.
+   */
+  const Realm = buildChildRealm(currentUnsafeRec, BaseRealm);
 
   return Realm;
 
