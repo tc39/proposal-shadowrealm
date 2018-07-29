@@ -99,8 +99,8 @@ function initRootRealm(parentUnsafeRec, self, options) {
     configurable: true
   };
 
-  // Create the realmRec is necessary to provide the global object, eval() and
-  // Function() to the realm.
+  // Creating the realmRec provides the global object, eval() and Function()
+  // to the realm.
   const realmRec = createRealmRec(unsafeRec);
 
   // Apply all shims in the new RootRealm. We don't do this for compartments.
@@ -152,8 +152,8 @@ const currentUnsafeRec = createCurrentUnsafeRec();
 
 /**
  * The "primal" realm class is defined in the current "primal" environment,
- * and is part of the shim. There is no need to acade this class via evaluation
- * because they share the same intrinsics.
+ * and is part of the shim. There is no need to facade this class via evaluation
+ * because both share the same intrinsics.
  */
 const Realm = buildChildRealm(currentUnsafeRec, BaseRealm);
 
