@@ -9,7 +9,7 @@ import { freeze } from './commons';
 // We need this to implement the shim. However, when Realms land for real,
 // this feature will be provided by the underlying engine instead.
 
-// Detection used in RollupJS.
+// Platform detection.
 const isNode = typeof exports === 'object' && typeof module !== 'undefined';
 const isBrowser = typeof document === 'object';
 if ((!isNode && !isBrowser) || (isNode && isBrowser)) {
@@ -24,14 +24,16 @@ const vm = isNode ? require('vm') : undefined;
 const unsafeGlobalSrc = "'use strict'; this";
 const unsafeGlobalEvalSrc = `(0, eval)("'use strict'; this")`;
 
-function createNewUnsafeGlobalForNode() {
+// This method is only exported for testing purposes.
+export function createNewUnsafeGlobalForNode() {
   // Use unsafeGlobalEvalSrc to ensure we get the right 'this'.
   const unsafeGlobal = vm.runInNewContext(unsafeGlobalEvalSrc);
 
   return unsafeGlobal;
 }
 
-function createNewUnsafeGlobalForBrowser() {
+// This method is only exported for testing purposes.
+export function createNewUnsafeGlobalForBrowser() {
   const iframe = document.createElement('iframe');
   iframe.style.display = 'none';
 
@@ -47,11 +49,7 @@ function createNewUnsafeGlobalForBrowser() {
   return unsafeGlobal;
 }
 
-// we only export this so test-repair.js can get an unrepaired
-// Object.prototype, to sense if this platform has the buggy behavior
-export const getNewUnsafeGlobal = isNode
-  ? createNewUnsafeGlobalForNode
-  : createNewUnsafeGlobalForBrowser;
+const getNewUnsafeGlobal = isNode ? createNewUnsafeGlobalForNode : createNewUnsafeGlobalForBrowser;
 
 // The unsafeRec is shim-specific. It acts as the mechanism to obtain a fresh
 // set of intrinsics together with their associated eval and Function
@@ -59,7 +57,7 @@ export const getNewUnsafeGlobal = isNode
 // tied to a set of intrinsics, aka the "undeniables". If it were possible to
 // mix-and-match them from different contexts, that would enable some
 // attacks.
-function createUnsafeRec(unsafeGlobal, allShims) {
+function createUnsafeRec(unsafeGlobal, allShims = []) {
   const sharedGlobalDescs = getSharedGlobalDescs(unsafeGlobal);
 
   return freeze({
@@ -89,5 +87,5 @@ export function createCurrentUnsafeRec() {
   const unsafeGlobal = (0, eval)(unsafeGlobalSrc);
   repairAccessors();
   repairFunctions();
-  return createUnsafeRec(unsafeGlobal, []);
+  return createUnsafeRec(unsafeGlobal);
 }
