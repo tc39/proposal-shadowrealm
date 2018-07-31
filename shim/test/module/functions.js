@@ -1,5 +1,5 @@
 import test from 'tape';
-import { repairFunctions } from '../../src/functions';
+import { repairFunctions } from '../../src/repair/functions';
 
 test('repairFunctions', specs => {
   repairFunctions();

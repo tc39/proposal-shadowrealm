@@ -1,7 +1,7 @@
 // this module must never be importable outside the Realm shim itself
 import { getSharedGlobalDescs } from './stdlib';
-import { repairAccessors } from './accessors';
-import { repairFunctions } from './functions';
+import { repairAccessors } from './repair/accessors';
+import { repairFunctions } from './repair/functions';
 import { cleanupSource } from './utilities';
 import { freeze } from './commons';
 

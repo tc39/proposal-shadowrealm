@@ -2,7 +2,7 @@
 // This code is governed by the MIT license found in the LICENSE file.
 
 import test from 'tape';
-import { repairAccessors } from '../../src/accessors';
+import { repairAccessors } from '../../src/repair/accessors';
 
 /* eslint-disable no-restricted-properties, no-underscore-dangle */
 test('repairAccessors - nofix', t => {
