@@ -9,9 +9,8 @@
 export const {
   assign,
   create,
-  defineProperties,
-  defineProperty,
   freeze,
+  defineProperties, // Object.defineProperty is allowed to fail silentlty, use Object.defineProperties instead.
   getOwnPropertyDescriptor,
   getOwnPropertyDescriptors,
   getOwnPropertyNames,

@@ -12,7 +12,7 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
   // *after* user code has had a chance to pollute its environment, or it
   // could be used to gain access to BaseRealm and primal-realm Error
   // objects.
-  const { create, defineProperty } = Object;
+  const { create, defineProperties } = Object;
 
   const errorConstructors = new Map([
     ['EvalError', EvalError],
@@ -112,18 +112,22 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
     }
   }
 
-  defineProperty(Realm, 'toString', {
-    value: () => 'function Realm() { [shim code] }',
-    writable: false,
-    enumerable: false,
-    configurable: true
+  defineProperties(Realm, {
+    toString: {
+      value: () => 'function Realm() { [shim code] }',
+      writable: false,
+      enumerable: false,
+      configurable: true
+    }
   });
 
-  defineProperty(Realm.prototype, 'toString', {
-    value: () => '[object Realm]',
-    writable: false,
-    enumerable: false,
-    configurable: true
+  defineProperties(Realm.prototype, {
+    toString: {
+      value: () => '[object Realm]',
+      writable: false,
+      enumerable: false,
+      configurable: true
+    }
   });
 
   return Realm;
