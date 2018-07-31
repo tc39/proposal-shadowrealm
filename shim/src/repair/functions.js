@@ -19,7 +19,7 @@
 
 // todo: this file should be moved out to a separate repo and npm module.
 export function repairFunctions() {
-  const { defineProperty, getPrototypeOf, setPrototypeOf } = Object;
+  const { defineProperties, getPrototypeOf, setPrototypeOf } = Object;
 
   /**
    * The process to repair constructors:
@@ -48,7 +48,7 @@ export function repairFunctions() {
     // Prevents the evaluation of source when calling constructor on the prototype of functions.
     // eslint-disable-next-line no-new-func
     const TamedFunction = Function('throw new TypeError("Not available");');
-    defineProperty(TamedFunction, 'name', { value: name });
+    defineProperties(TamedFunction, { name: { value: name } });
 
     // (new Error()).constructors does not inherit from Function, because Error
     // was defined before ES6 classes. So we don't need to repair it too.
@@ -62,11 +62,11 @@ export function repairFunctions() {
 
     // This line replaces the original constructor in the prototype chain
     // with the tamed one. No copy of the original is peserved.
-    defineProperty(FunctionPrototype, 'constructor', { value: TamedFunction });
+    defineProperties(FunctionPrototype, { constructor: { value: TamedFunction } });
 
     // This line sets the tamed constructor's prototype data property to
     // the original one.
-    defineProperty(TamedFunction, 'prototype', { value: FunctionPrototype });
+    defineProperties(TamedFunction, { prototype: { value: FunctionPrototype } });
 
     if (TamedFunction !== Function.prototype.constructor) {
       // Ensures that all functions meet "instanceof Function" in a realm.

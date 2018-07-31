@@ -6,7 +6,7 @@ import {
   arrayJoin,
   arrayPop,
   create,
-  defineProperty,
+  defineProperties,
   getOwnPropertyDescriptors,
   getPrototypeOf,
   setPrototypeOf,
@@ -127,11 +127,13 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
 
     // note: be careful to not leak our primal Function.prototype by setting
     // this to a plain arrow function. Now that we have safeEval, use it.
-    defineProperty(safeEval, 'toString', {
-      value: safeEval("() => 'function eval() { [shim code] }'"),
-      writable: false,
-      enumerable: false,
-      configurable: true
+    defineProperties(safeEval, {
+      toString: {
+        value: safeEval("() => 'function eval() { [shim code] }'"),
+        writable: false,
+        enumerable: false,
+        configurable: true
+      }
     });
 
     return safeEval;
@@ -200,17 +202,19 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
   assert(getPrototypeOf(safeFunction).constructor !== Function, 'hide Function');
   assert(getPrototypeOf(safeFunction).constructor !== unsafeFunction, 'hide unsafeFunction');
 
-  // Ensure that any function created in any compartment in a root realm is an
-  // instance of Function in any compartment of the same root ralm.
-  defineProperty(safeFunction, 'prototype', { value: unsafeFunction.prototype });
+  defineProperties(safeFunction, {
+    // Ensure that any function created in any compartment in a root realm is an
+    // instance of Function in any compartment of the same root ralm.
+    prototype: { value: unsafeFunction.prototype },
 
-  // Provide a custom output without overwriting the Function.prototype.toString
-  // which is called by some third-party libraries.
-  defineProperty(safeFunction, 'toString', {
-    value: safeEval("() => 'function Function() { [shim code] }'"),
-    writable: false,
-    enumerable: false,
-    configurable: true
+    // Provide a custom output without overwriting the Function.prototype.toString
+    // which is called by some third-party libraries.
+    toString: {
+      value: safeEval("() => 'function Function() { [shim code] }'"),
+      writable: false,
+      enumerable: false,
+      configurable: true
+    }
   });
 
   return safeFunction;
