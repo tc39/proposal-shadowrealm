@@ -61,46 +61,46 @@ export function repairAccessors() {
 
   defineProperties(objectPrototype, {
     __defineGetter__: {
-    value: function __defineGetter__(prop, func) {
-      const O = toObject(this);
-      defineProperty(O, prop, {
-        get: aFunction(func, 'getter'),
-        enumerable: true,
-        configurable: true
-      });
-    }
+      value: function __defineGetter__(prop, func) {
+        const O = toObject(this);
+        defineProperty(O, prop, {
+          get: aFunction(func, 'getter'),
+          enumerable: true,
+          configurable: true
+        });
+      }
     },
     __defineSetter__: {
-    value: function __defineSetter__(prop, func) {
-      const O = toObject(this);
-      defineProperty(O, prop, {
-        set: aFunction(func, 'setter'),
-        enumerable: true,
-        configurable: true
-      });
-    }
+      value: function __defineSetter__(prop, func) {
+        const O = toObject(this);
+        defineProperty(O, prop, {
+          set: aFunction(func, 'setter'),
+          enumerable: true,
+          configurable: true
+        });
+      }
     },
     __lookupGetter__: {
-    value: function __lookupGetter__(prop) {
-      let O = toObject(this);
-      prop = asPropertyName(prop);
-      let desc;
-      while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
-        O = getPrototypeOf(O);
+      value: function __lookupGetter__(prop) {
+        let O = toObject(this);
+        prop = asPropertyName(prop);
+        let desc;
+        while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
+          O = getPrototypeOf(O);
+        }
+        return desc && desc.get;
       }
-      return desc && desc.get;
-    }
     },
     __lookupSetter__: {
-    value: function __lookupSetter__(prop) {
-      let O = toObject(this);
-      prop = asPropertyName(prop);
-      let desc;
-      while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
-        O = getPrototypeOf(O);
+      value: function __lookupSetter__(prop) {
+        let O = toObject(this);
+        prop = asPropertyName(prop);
+        let desc;
+        while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
+          O = getPrototypeOf(O);
+        }
+        return desc && desc.set;
       }
-      return desc && desc.set;
-    }
     }
   });
 }
