@@ -28,7 +28,9 @@ import Realm from '../../../../src/realm';
 test('test262/built-ins/Array/proto-from-ctor-realm.js', t => {
   t.plan(1);
 
-  const test = () => {
+  const realm = Realm.makeRootRealm();
+  realm.global.t = t;
+  realm.global.eval(`
     const other = Realm.makeRootRealm().global;
     const C = new other.Function();
     C.prototype = null;
@@ -36,9 +38,5 @@ test('test262/built-ins/Array/proto-from-ctor-realm.js', t => {
     const o = Reflect.construct(Array, [], C);
 
     t.equal(Object.getPrototypeOf(o), other.Array.prototype);
-  };
-
-  const realm = Realm.makeRootRealm();
-  realm.global.t = t;
-  realm.global.eval(`(${test})()`);
+  `);
 });
