@@ -50,7 +50,7 @@
     // *after* user code has had a chance to pollute its environment, or it
     // could be used to gain access to BaseRealm and primal-realm Error
     // objects.
-    const { create, defineProperty } = Object;
+    const { create, defineProperties } = Object;
 
     const errorConstructors = new Map([
       ['EvalError', EvalError],
@@ -150,18 +150,22 @@
       }
     }
 
-    defineProperty(Realm, 'toString', {
-      value: () => 'function Realm() { [shim code] }',
-      writable: false,
-      enumerable: false,
-      configurable: true
+    defineProperties(Realm, {
+      toString: {
+        value: () => 'function Realm() { [shim code] }',
+        writable: false,
+        enumerable: false,
+        configurable: true
+      }
     });
 
-    defineProperty(Realm.prototype, 'toString', {
-      value: () => '[object Realm]',
-      writable: false,
-      enumerable: false,
-      configurable: true
+    defineProperties(Realm.prototype, {
+      toString: {
+        value: () => '[object Realm]',
+        writable: false,
+        enumerable: false,
+        configurable: true
+      }
     });
 
     return Realm;
@@ -203,9 +207,8 @@
   const {
     assign,
     create,
-    defineProperties,
-    defineProperty,
     freeze,
+    defineProperties, // Object.defineProperty is allowed to fail silentlty, use Object.defineProperties instead.
     getOwnPropertyDescriptor,
     getOwnPropertyDescriptors,
     getOwnPropertyNames,
@@ -407,46 +410,46 @@
 
     defineProperties(objectPrototype, {
       __defineGetter__: {
-      value: function __defineGetter__(prop, func) {
-        const O = toObject(this);
-        defineProperty(O, prop, {
-          get: aFunction(func, 'getter'),
-          enumerable: true,
-          configurable: true
-        });
-      }
+        value: function __defineGetter__(prop, func) {
+          const O = toObject(this);
+          defineProperty(O, prop, {
+            get: aFunction(func, 'getter'),
+            enumerable: true,
+            configurable: true
+          });
+        }
       },
       __defineSetter__: {
-      value: function __defineSetter__(prop, func) {
-        const O = toObject(this);
-        defineProperty(O, prop, {
-          set: aFunction(func, 'setter'),
-          enumerable: true,
-          configurable: true
-        });
-      }
+        value: function __defineSetter__(prop, func) {
+          const O = toObject(this);
+          defineProperty(O, prop, {
+            set: aFunction(func, 'setter'),
+            enumerable: true,
+            configurable: true
+          });
+        }
       },
       __lookupGetter__: {
-      value: function __lookupGetter__(prop) {
-        let O = toObject(this);
-        prop = asPropertyName(prop);
-        let desc;
-        while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
-          O = getPrototypeOf(O);
+        value: function __lookupGetter__(prop) {
+          let O = toObject(this);
+          prop = asPropertyName(prop);
+          let desc;
+          while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
+            O = getPrototypeOf(O);
+          }
+          return desc && desc.get;
         }
-        return desc && desc.get;
-      }
       },
       __lookupSetter__: {
-      value: function __lookupSetter__(prop) {
-        let O = toObject(this);
-        prop = asPropertyName(prop);
-        let desc;
-        while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
-          O = getPrototypeOf(O);
+        value: function __lookupSetter__(prop) {
+          let O = toObject(this);
+          prop = asPropertyName(prop);
+          let desc;
+          while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
+            O = getPrototypeOf(O);
+          }
+          return desc && desc.set;
         }
-        return desc && desc.set;
-      }
       }
     });
   }
@@ -472,7 +475,7 @@
 
   // todo: this file should be moved out to a separate repo and npm module.
   function repairFunctions() {
-    const { defineProperty, getPrototypeOf, setPrototypeOf } = Object;
+    const { defineProperties, getPrototypeOf, setPrototypeOf } = Object;
 
     /**
      * The process to repair constructors:
@@ -501,7 +504,7 @@
       // Prevents the evaluation of source when calling constructor on the prototype of functions.
       // eslint-disable-next-line no-new-func
       const TamedFunction = Function('throw new TypeError("Not available");');
-      defineProperty(TamedFunction, 'name', { value: name });
+      defineProperties(TamedFunction, { name: { value: name } });
 
       // (new Error()).constructors does not inherit from Function, because Error
       // was defined before ES6 classes. So we don't need to repair it too.
@@ -515,11 +518,11 @@
 
       // This line replaces the original constructor in the prototype chain
       // with the tamed one. No copy of the original is peserved.
-      defineProperty(FunctionPrototype, 'constructor', { value: TamedFunction });
+      defineProperties(FunctionPrototype, { constructor: { value: TamedFunction } });
 
       // This line sets the tamed constructor's prototype data property to
       // the original one.
-      defineProperty(TamedFunction, 'prototype', { value: FunctionPrototype });
+      defineProperties(TamedFunction, { prototype: { value: FunctionPrototype } });
 
       if (TamedFunction !== Function.prototype.constructor) {
         // Ensures that all functions meet "instanceof Function" in a realm.
@@ -1022,11 +1025,13 @@
 
       // note: be careful to not leak our primal Function.prototype by setting
       // this to a plain arrow function. Now that we have safeEval, use it.
-      defineProperty(safeEval, 'toString', {
-        value: safeEval("() => 'function eval() { [shim code] }'"),
-        writable: false,
-        enumerable: false,
-        configurable: true
+      defineProperties(safeEval, {
+        toString: {
+          value: safeEval("() => 'function eval() { [shim code] }'"),
+          writable: false,
+          enumerable: false,
+          configurable: true
+        }
       });
 
       return safeEval;
@@ -1095,17 +1100,19 @@
     assert(getPrototypeOf(safeFunction).constructor !== Function, 'hide Function');
     assert(getPrototypeOf(safeFunction).constructor !== unsafeFunction, 'hide unsafeFunction');
 
-    // Ensure that any function created in any compartment in a root realm is an
-    // instance of Function in any compartment of the same root ralm.
-    defineProperty(safeFunction, 'prototype', { value: unsafeFunction.prototype });
+    defineProperties(safeFunction, {
+      // Ensure that any function created in any compartment in a root realm is an
+      // instance of Function in any compartment of the same root ralm.
+      prototype: { value: unsafeFunction.prototype },
 
-    // Provide a custom output without overwriting the Function.prototype.toString
-    // which is called by some third-party libraries.
-    defineProperty(safeFunction, 'toString', {
-      value: safeEval("() => 'function Function() { [shim code] }'"),
-      writable: false,
-      enumerable: false,
-      configurable: true
+      // Provide a custom output without overwriting the Function.prototype.toString
+      // which is called by some third-party libraries.
+      toString: {
+        value: safeEval("() => 'function Function() { [shim code] }'"),
+        writable: false,
+        enumerable: false,
+        configurable: true
+      }
     });
 
     return safeFunction;
