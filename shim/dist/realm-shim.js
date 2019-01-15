@@ -1058,6 +1058,26 @@
     const safeFunction = function Function(...params) {
       const functionBody = `${arrayPop(params) || ''}`;
       let functionParams = `${arrayJoin(params, ',')}`;
+      if (!regexpTest(/^[\w\s,]*$/, functionParams)) {
+        throw new unsafeGlobal.SyntaxError(
+          'shim limitation: Function arg must be simple ASCII identifiers, possibly separated by commas: no default values, pattern matches, or non-ASCII parameter names'
+        );
+        // this protects against Matt Austin's clever attack:
+        // Function("arg=`", "/*body`){});({x: this/**/")
+        // which would turn into
+        //     (function(arg=`
+        //     /*``*/){
+        //      /*body`){});({x: this/**/
+        //     })
+        // which parses as a default argument of `\n/*``*/){\n/*body` , which
+        // is a pair of template literals back-to-back (so the first one
+        // nominally evaluates to the parser to use on the second one), which
+        // can't actually execute (because the first literal evals to a string,
+        // which can't be a parser function), but that doesn't matter because
+        // the function is bypassed entirely. When that gets evaluated, it
+        // defines (but does not invoke) a function, then evaluates a simple
+        // {x: this} expression, giving access to the safe global.
+      }
 
       // Is this a real functionBody, or is someone attempting an injection
       // attack? This will throw a SyntaxError if the string is not actually a
