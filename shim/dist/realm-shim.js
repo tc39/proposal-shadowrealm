@@ -35,6 +35,7 @@
 
   // Remove code modifications.
   function cleanupSource(src) {
+
     return src;
   }
 

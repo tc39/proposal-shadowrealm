@@ -5,8 +5,8 @@ import {
   createNewUnsafeGlobalForBrowser
 } from '../../src/unsafeRec';
 
-const isNode = typeof exports === 'object' && typeof module !== 'undefined';
-const isBrowser = typeof document === 'object';
+const isNode = typeof process === 'object' && process.browser !== true && typeof exports === 'object' && typeof module !== 'undefined';
+const isBrowser = (typeof process === 'object' && process.browser === true) || typeof document === 'object';
 
 test('createNewUnsafeRec', t => {
   t.plan(7);
