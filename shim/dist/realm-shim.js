@@ -35,6 +35,7 @@
 
   // Remove code modifications.
   function cleanupSource(src) {
+
     return src;
   }
 
@@ -553,8 +554,13 @@
   // this feature will be provided by the underlying engine instead.
 
   // Platform detection.
-  const isNode = typeof exports === 'object' && typeof module !== 'undefined';
-  const isBrowser = typeof document === 'object';
+  const isNode =
+    typeof process === 'object' &&
+    process.browser !== true &&
+    typeof exports === 'object' &&
+    typeof module !== 'undefined';
+  const isBrowser =
+    (typeof process === 'object' && process.browser === true) || typeof document === 'object';
   if ((!isNode && !isBrowser) || (isNode && isBrowser)) {
     throw new Error('unexpected platform, unable to create Realm');
   }
