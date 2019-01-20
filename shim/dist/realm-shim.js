@@ -555,10 +555,13 @@
   // Platform detection.
   const isNode = typeof exports === 'object' && typeof module !== 'undefined';
   const isBrowser = typeof document === 'object';
-  if ((!isNode && !isBrowser) || (isNode && isBrowser)) {
+  if (!isNode && !isBrowser) {
     throw new Error('unexpected platform, unable to create Realm');
   }
-  const vm = isNode ? require('vm') : undefined;
+  let vm;
+  if (isNode && !isBrowser) {
+    vm = require('vm');
+  }
 
   // note: in a node module, the top-level 'this' is not the global object
   // (it's *something* but we aren't sure what), however an indirect eval of
@@ -592,7 +595,10 @@
     return unsafeGlobal;
   }
 
-  const getNewUnsafeGlobal = isNode ? createNewUnsafeGlobalForNode : createNewUnsafeGlobalForBrowser;
+  let getNewUnsafeGlobal = createNewUnsafeGlobalForBrowser;
+  if (isNode && !isBrowser) {
+    getNewUnsafeGlobal = createNewUnsafeGlobalForNode;
+  }
 
   // The unsafeRec is shim-specific. It acts as the mechanism to obtain a fresh
   // set of intrinsics together with their associated eval and Function
