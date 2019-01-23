@@ -45,9 +45,11 @@ export function repairFunctions() {
     }
     const FunctionPrototype = getPrototypeOf(FunctionInstance);
 
-    // Prevents the evaluation of source when calling constructor on the prototype of functions.
-    // eslint-disable-next-line no-new-func
-    const TamedFunction = Function('throw new TypeError("Not available");');
+    // Prevents the evaluation of source when calling constructor on the
+    // prototype of functions.
+    const TamedFunction = function() {
+      throw new TypeError('Not available');
+    };
     defineProperties(TamedFunction, { name: { value: name } });
 
     // (new Error()).constructors does not inherit from Function, because Error

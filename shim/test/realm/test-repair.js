@@ -54,6 +54,30 @@ test('fix the bug in which accessor methods leak the global', t => {
   t.end();
 });
 
+function getGenerator() {
+  function* aStrictGenerator() {
+    yield;
+  }
+  return Object.getPrototypeOf(aStrictGenerator);
+}
+
+test('strict-function', t => {
+  const r = Realm.makeRootRealm();
+  const c = r.evaluate('Function.prototype.constructor');
+  t.notOk('arguments' in Object.getOwnPropertyDescriptors(c));
+  t.notOk('caller' in Object.getOwnPropertyDescriptors(c));
+  t.end();
+});
+
+test('generator-constructor-is-consistent', t => {
+  const r = Realm.makeRootRealm();
+  const c = r.evaluate('Function.prototype.constructor');
+  const gf = r.evaluate(`(${getGenerator})`)();
+  const gfc = gf.constructor;
+  t.equal(Object.getPrototypeOf(gfc), c);
+  t.end();
+});
+
 // todo: rewrite and re-enable
 
 test('scan', t => {
