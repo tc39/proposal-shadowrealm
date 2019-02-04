@@ -72,9 +72,9 @@ test('strict-function', t => {
 test('generator-constructor-is-consistent', t => {
   const r = Realm.makeRootRealm();
   const c = r.evaluate('Function.prototype.constructor');
-  const gf = r.evaluate(`(${getGenerator})`)();
-  const gfc = gf.constructor;
-  t.equal(Object.getPrototypeOf(gfc), c);
+  const gp = r.evaluate(`(${getGenerator})`)();
+  const gpc = gp.constructor;
+  t.equal(Object.getPrototypeOf(gpc), c);
   t.end();
 });
 
