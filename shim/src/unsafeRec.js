@@ -17,6 +17,7 @@ if (!isNode && !isBrowser) {
 }
 let vm;
 if (isNode && !isBrowser) {
+  // eslint-disable-next-line global-require
   vm = require('vm');
 }
 
