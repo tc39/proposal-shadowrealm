@@ -5,8 +5,8 @@ import {
   createNewUnsafeGlobalForBrowser
 } from '../../src/unsafeRec';
 
-const isNode = typeof exports === 'object' && typeof module !== 'undefined';
-const isBrowser = typeof document === 'object';
+const isBrowser = new Function('try {return this===window}catch(e){ return false}')(); // eslint-disable-line no-new-func
+const isNode = new Function('try {return this===global}catch(e){ return false}')(); // eslint-disable-line no-new-func
 
 test('createNewUnsafeRec', t => {
   t.plan(7);

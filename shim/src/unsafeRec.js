@@ -10,8 +10,8 @@ import { freeze } from './commons';
 // this feature will be provided by the underlying engine instead.
 
 // Platform detection.
-const isNode = typeof exports === 'object' && typeof module !== 'undefined';
-const isBrowser = typeof document === 'object';
+const isBrowser = new Function('try {return this===window}catch(e){ return false}')(); // eslint-disable-line no-new-func
+const isNode = new Function('try {return this===global}catch(e){ return false}')(); // eslint-disable-line no-new-func
 if ((!isNode && !isBrowser) || (isNode && isBrowser)) {
   throw new Error('unexpected platform, unable to create Realm');
 }
