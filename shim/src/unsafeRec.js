@@ -18,10 +18,19 @@ const unsafeGlobalEvalSrc = `(0, eval)("'use strict'; this")`;
 
 // This method is only exported for testing purposes.
 export function createNewUnsafeGlobalForNode() {
-  const maybeNode = new Function('try {return this===global}catch(e){ return false}')(); // eslint-disable-line no-new-func
+  // Note that webpack and others will shim 'vm' including the method 'runInNewContext',
+  // so the presence of vm is not a useful check
+
+  // TODO: Find a better test that works with bundlers
+  // eslint-disable-next-line no-new-func
+  const isNode = new Function('try {return this===global}catch(e){ return false}')();
+
+  if (!isNode) {
+    return undefined;
+  }
 
   // eslint-disable-next-line global-require
-  const vm = maybeNode ? require('vm') : undefined;
+  const vm = require('vm');
 
   // Use unsafeGlobalEvalSrc to ensure we get the right 'this'.
   const unsafeGlobal = vm.runInNewContext(unsafeGlobalEvalSrc);
@@ -31,6 +40,9 @@ export function createNewUnsafeGlobalForNode() {
 
 // This method is only exported for testing purposes.
 export function createNewUnsafeGlobalForBrowser() {
+  if (typeof document === 'undefined') {
+    return undefined;
+  }
   const iframe = document.createElement('iframe');
   iframe.style.display = 'none';
 
@@ -47,20 +59,8 @@ export function createNewUnsafeGlobalForBrowser() {
 }
 
 const getNewUnsafeGlobal = () => {
-  let newUnsafeGlobalForBrowser;
-  let newUnsafeGlobalForNode;
-  try {
-    newUnsafeGlobalForBrowser = createNewUnsafeGlobalForBrowser();
-  } catch (err) {
-    // continue regardless of error
-  }
-
-  try {
-    newUnsafeGlobalForNode = createNewUnsafeGlobalForNode();
-  } catch (err) {
-    // continue regardless of error
-  }
-
+  const newUnsafeGlobalForBrowser = createNewUnsafeGlobalForBrowser();
+  const newUnsafeGlobalForNode = createNewUnsafeGlobalForNode();
   if (
     (!newUnsafeGlobalForBrowser && !newUnsafeGlobalForNode) ||
     (newUnsafeGlobalForBrowser && newUnsafeGlobalForNode)
