@@ -9,14 +9,6 @@ import { freeze } from './commons';
 // We need this to implement the shim. However, when Realms land for real,
 // this feature will be provided by the underlying engine instead.
 
-// Platform detection.
-const isNode = typeof exports === 'object' && typeof module !== 'undefined';
-const isBrowser = typeof document === 'object';
-if ((!isNode && !isBrowser) || (isNode && isBrowser)) {
-  throw new Error('unexpected platform, unable to create Realm');
-}
-const vm = isNode ? require('vm') : undefined;
-
 // note: in a node module, the top-level 'this' is not the global object
 // (it's *something* but we aren't sure what), however an indirect eval of
 // 'this' will be the correct global object.
@@ -26,6 +18,11 @@ const unsafeGlobalEvalSrc = `(0, eval)("'use strict'; this")`;
 
 // This method is only exported for testing purposes.
 export function createNewUnsafeGlobalForNode() {
+  const maybeNode = new Function('try {return this===global}catch(e){ return false}')(); // eslint-disable-line no-new-func
+
+  // eslint-disable-next-line global-require
+  const vm = maybeNode ? require('vm') : undefined;
+
   // Use unsafeGlobalEvalSrc to ensure we get the right 'this'.
   const unsafeGlobal = vm.runInNewContext(unsafeGlobalEvalSrc);
 
@@ -49,7 +46,29 @@ export function createNewUnsafeGlobalForBrowser() {
   return unsafeGlobal;
 }
 
-const getNewUnsafeGlobal = isNode ? createNewUnsafeGlobalForNode : createNewUnsafeGlobalForBrowser;
+const getNewUnsafeGlobal = () => {
+  let newUnsafeGlobalForBrowser;
+  let newUnsafeGlobalForNode;
+  try {
+    newUnsafeGlobalForBrowser = createNewUnsafeGlobalForBrowser();
+  } catch (err) {
+    // continue regardless of error
+  }
+
+  try {
+    newUnsafeGlobalForNode = createNewUnsafeGlobalForNode();
+  } catch (err) {
+    // continue regardless of error
+  }
+
+  if (
+    (!newUnsafeGlobalForBrowser && !newUnsafeGlobalForNode) ||
+    (newUnsafeGlobalForBrowser && newUnsafeGlobalForNode)
+  ) {
+    throw new Error('unexpected platform, unable to create Realm');
+  }
+  return newUnsafeGlobalForBrowser || newUnsafeGlobalForNode;
+};
 
 // The unsafeRec is shim-specific. It acts as the mechanism to obtain a fresh
 // set of intrinsics together with their associated eval and Function
