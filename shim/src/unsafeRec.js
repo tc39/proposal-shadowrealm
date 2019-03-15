@@ -9,14 +9,6 @@ import { freeze } from './commons';
 // We need this to implement the shim. However, when Realms land for real,
 // this feature will be provided by the underlying engine instead.
 
-// Platform detection.
-const isNode = typeof exports === 'object' && typeof module !== 'undefined';
-const isBrowser = typeof document === 'object';
-if ((!isNode && !isBrowser) || (isNode && isBrowser)) {
-  throw new Error('unexpected platform, unable to create Realm');
-}
-const vm = isNode ? require('vm') : undefined;
-
 // note: in a node module, the top-level 'this' is not the global object
 // (it's *something* but we aren't sure what), however an indirect eval of
 // 'this' will be the correct global object.
@@ -26,6 +18,20 @@ const unsafeGlobalEvalSrc = `(0, eval)("'use strict'; this")`;
 
 // This method is only exported for testing purposes.
 export function createNewUnsafeGlobalForNode() {
+  // Note that webpack and others will shim 'vm' including the method 'runInNewContext',
+  // so the presence of vm is not a useful check
+
+  // TODO: Find a better test that works with bundlers
+  // eslint-disable-next-line no-new-func
+  const isNode = new Function('try {return this===global}catch(e){ return false}')();
+
+  if (!isNode) {
+    return undefined;
+  }
+
+  // eslint-disable-next-line global-require
+  const vm = require('vm');
+
   // Use unsafeGlobalEvalSrc to ensure we get the right 'this'.
   const unsafeGlobal = vm.runInNewContext(unsafeGlobalEvalSrc);
 
@@ -34,6 +40,9 @@ export function createNewUnsafeGlobalForNode() {
 
 // This method is only exported for testing purposes.
 export function createNewUnsafeGlobalForBrowser() {
+  if (typeof document === 'undefined') {
+    return undefined;
+  }
   const iframe = document.createElement('iframe');
   iframe.style.display = 'none';
 
@@ -49,7 +58,17 @@ export function createNewUnsafeGlobalForBrowser() {
   return unsafeGlobal;
 }
 
-const getNewUnsafeGlobal = isNode ? createNewUnsafeGlobalForNode : createNewUnsafeGlobalForBrowser;
+const getNewUnsafeGlobal = () => {
+  const newUnsafeGlobalForBrowser = createNewUnsafeGlobalForBrowser();
+  const newUnsafeGlobalForNode = createNewUnsafeGlobalForNode();
+  if (
+    (!newUnsafeGlobalForBrowser && !newUnsafeGlobalForNode) ||
+    (newUnsafeGlobalForBrowser && newUnsafeGlobalForNode)
+  ) {
+    throw new Error('unexpected platform, unable to create Realm');
+  }
+  return newUnsafeGlobalForBrowser || newUnsafeGlobalForNode;
+};
 
 // The unsafeRec is shim-specific. It acts as the mechanism to obtain a fresh
 // set of intrinsics together with their associated eval and Function
