@@ -47,7 +47,7 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
         // they aren't useful for an attack.
         eName = `${err.name}`;
         eMessage = `${err.message}`;
-        eStack = `${err.stack}`;
+        eStack = `${err.stack || eMessage}`;
         // eName/eMessage/eStack are now child-realm primitive strings, and
         // safe to expose
       } catch (ignored) {
