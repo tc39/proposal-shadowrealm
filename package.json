@@ -2,8 +2,6 @@
   "name": "ecma-proposal-realms",
   "version": "1.0.0",
   "description": "ECMAScript spec proposal for Realms API",
-  "main": "shim/dist/realm-shim.js",
-  "module": "shim/src/main.js",
   "license": "Apache-2.0",
   "author": {
     "name": "TC39 Open Source Contributors"
