@@ -17,15 +17,8 @@ This proposal is at stage 2 of [the TC39 Process](https://tc39.github.io/process
 You can view the spec rendered as [HTML](https://rawgit.com/tc39/proposal-realms/master/index.html).
 
 ### Shim/Polyfill
-[![Build Status][travis-svg]][travis-url]
-[![Coverage Status][coveralls-svg]][coveralls-url]
-[![dependency status][deps-svg]][deps-url]
-[![dev dependency status][dev-deps-svg]][dev-deps-url]
-[![License][license-image]][license-url]
 
-A shim implementation of the Realm API can be found under the [shim folder](shim/).
-
-You can play around with the current version of the shim with the [Realm playground](https://rawgit.com/tc39/proposal-realms/master/shim/examples/simple.html).
+A shim implementation of the Realm API can be found at [https://github.com/Agoric/realms-shim](https://github.com/Agoric/realms-shim)
 
 # Realms
 
