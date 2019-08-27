@@ -241,7 +241,7 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
   <emu-clause id="sec-the-realm-constructor">
     <h1>The Realm Constructor</h1>
     <p>
-        The Ream constructor is the %Realm% intrinsic object and the initial value of the *Realm* property of the global object. When called as a constructor it creates and initializes a new Realm object. Realm is not intended to be called as a function and will throw an exception when called in that manner.
+        The Realm constructor is the %Realm% intrinsic object and the initial value of the *Realm* property of the global object. When called as a constructor it creates and initializes a new Realm object. Realm is not intended to be called as a function and will throw an exception when called in that manner.
     </p>
     <p>
         The Realm constructor is designed to be subclassable. It may be used as the value in an extends clause of a class definition. Subclass constructors that intend to inherit the specified Realm behaviour must include a super call to the Realm constructor to create and initialize the subclass instance with the internal state necessary to support the Realm.prototype built-in methods.
