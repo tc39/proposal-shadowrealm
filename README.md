@@ -18,7 +18,7 @@ You can view the spec rendered as [HTML](https://rawgit.com/tc39/proposal-realms
 
 ### Shim/Polyfill
 
-A shim implementation of the Realm API can be found at [https://github.com/Agoric/realms-shim](https://github.com/Agoric/realms-shim)
+A shim implementation of the Realm API can be found at [https://github.com/Agoric/realms-shim](https://github.com/Agoric/realms-shim), notice that this library is now deprecated.
 
 # Realms
 
@@ -80,8 +80,14 @@ Reflect.getPrototypeOf(f) === r2.global.Function.prototype // true
 
 ```js
 class EmptyRealm extends Realm {
-  constructor(...args) { super(...args); }
-  init() { /* do nothing */ }
+  constructor(...args) {
+    super(...args);
+    let global = this.global;
+
+    // delete global descriptors:
+    delete global.Math;
+    ...
+  }
 }
 ```
 
@@ -89,8 +95,8 @@ class EmptyRealm extends Realm {
 
 ```js
 class FakeWindow extends Realm {
-  init() {
-    super.init(); // install the standard primordials
+  constructor(...args) {
+    super(...args);
     let global = this.global;
 
     global.document = new FakeDocument(...);
@@ -100,27 +106,6 @@ class FakeWindow extends Realm {
 }
 ```
 
-### Example: parameterized evaluator
-
-#### Transform Trap
-
-The `transform` trap provides a way to preprocess any sourceText value before it is evaluated, and it applies to direct and indirect evaluation alike. E.g.:
-
-```js
-const r = new Realm({
-  transform(sourceText) {
-    return remapXToY(sourceText);
-  },
-});
-r.global.y = 1;
-const a = r.evaluate(`let x = 2; eval("x")`);      // yields 1 after remapping `x` to the global `y`.
-const b = r.evaluate(`let x = 3; (0, eval)("x")`); // yields 1 after remapping `x` to the global `y`.
-```
-
-For mode details about how to implement a JS dialects with Realms, check the following gist:
-
- * https://gist.github.com/dherman/9146568 (outdated API, but the same principle applies).
-
 ### Example: controlling direct evaluation
 
 The `isDirectEval` trap provides a way to control when certain invocation to an `eval` identifier qualifies as direct eval. This is important if you plan to replace the `eval` intrinsic to provide your own evaluation mechanism:
@@ -128,27 +113,24 @@ The `isDirectEval` trap provides a way to control when certain invocation to an 
 ```js
 const r = new Realm({
   isDirectEval(func) {
-    return func === r.customEval;
+    return func === customEval;
   },
 });
 function customEval(sourceText) {
   return compile(sourceText);
 }
+// TODO: this is leaking the outer realm intrinsics
 r.global.eval = customEval; // providing a custom evaluation mechanism
 const source = `
   let x = 1;
   (function foo() {
     let x = 2;
-    eval('x');      // yields 2 if `compile` doesn't alter the code
-    (0,eval)('x');  // yields 1 if `compile` doesn't alter the code
+    eval('x');      // yields 2 if \`compile\` doesn't alter the code
+    (0,eval)('x');  // yields 1 if \`compile\` doesn't alter the code
   })();
 `;
 r.evaluate(source);
 ```
-
-#### Import Trap
-
-The import trap has been removed for stage 2. We might bring it back at some point.
 
 ## Contributing
 

@@ -52,19 +52,14 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
                 <td>...</td>
             </tr>
             <tr>
-                <td>[[TransformTrap]]</td>
-                <td>A function object or *undefined*</td>
-                <td>The function that is used as the transform trap. If [[TransformTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
-            </tr>
-            <tr>
                 <td>[[IsDirectEvalTrap]]</td>
                 <td>A function object or *undefined*</td>
                 <td>The function that is used as the direct eval check trap. If [[IsDirectEvalTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
             </tr>
             <tr>
-                <td>[[PreventImportExpression]]</td>
-                <td>A boolean value</td>
-                <td>Whether or not import declarations or expressions are allowed. Default to *false*.</td>
+                <td>[[OuterRealmRecord]]</td>
+                <td>A Realm Record or *null*</td>
+                <td>The outer Realm Record or *null* for detached realms.</td>
             </tr>
         </tbody>
     </table>
@@ -80,82 +75,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
     </emu-alg>
   </emu-clause>
 
-  <emu-clause id="sec-invoketransformtrap" aoid="InvokeTransformTrap">
-    <h1>InvokeTransformTrap ( _trap_, _sourceText_ )</h1>
-
-    <p>The abstract operation InvokeTransformTrap with arguments _trap_ and _sourceText_ performs the following steps:</p>
-
-    <emu-alg>
-    1. Assert: IsCallable(_trap_) is *true*.
-    1. Let _newSourceText_ be ? Call(_trap_, *undefined*, « _sourceText_ »).
-    1. Return ? ToString(_newSourceText_).
-    </emu-alg>
-  </emu-clause>
-
-</emu-clause>
-
-<!-- es6num="18.2.1.1" -->
-<emu-clause id="sec-performeval" aoid="PerformEval">
-  <h1>Runtime Semantics: PerformEval ( _x_, _evalRealm_, _strictCaller_, _direct_ )</h1>
-  <p>The abstract operation PerformEval with arguments _x_, _evalRealm_, _strictCaller_, and _direct_ performs the following steps:</p>
-  <emu-alg>
-    1. Assert: If _direct_ is *false*, then _strictCaller_ is also *false*.
-    1. If Type(_x_) is not String, return _x_.
-    1. <ins>Let _fn_ be _evalRealm_.[[TransformTrap]]</ins>.
-    1. <ins>If IsCallable(_fn_) is *true*, then</ins>
-      1. <ins>Let _x_ be ? InvokeTransformTrap(_fn_, _x_).</ins>.
-    1. Let _thisEnvRec_ be ! GetThisEnvironment().
-    1. If _thisEnvRec_ is a function Environment Record, then
-      1. Let _F_ be _thisEnvRec_.[[FunctionObject]].
-      1. Let _inFunction_ be *true*.
-      1. Let _inMethod_ be _thisEnvRec_.HasSuperBinding().
-      1. If _F_.[[ConstructorKind]] is `"derived"`, let _inDerivedConstructor_ be *true*; otherwise, let _inDerivedConstructor_ be *false*.
-    1. Else,
-      1. Let _inFunction_ be *false*.
-      1. Let _inMethod_ be *false*.
-      1. Let _inDerivedConstructor_ be *false*.
-    1. <ins>Let _preventImport_ is _evalRealm_.[[PreventImportExpression]]</ins>.
-    1. Let _script_ be the ECMAScript code that is the result of parsing _x_, interpreted as UTF-16 encoded Unicode text as described in <emu-xref href="#sec-ecmascript-language-types-string-type"></emu-xref>, for the goal symbol |Script|. <ins>If _preventImport_ is *true*, additional early error rules from <emu-xref href="#sec-import-early-errors"></emu-xref> are applied. </ins>If _inFunction_ is *false*, additional early error rules from <emu-xref href="#sec-performeval-rules-outside-functions"></emu-xref> are applied. If _inMethod_ is *false*, additional early error rules from <emu-xref href="#sec-performeval-rules-outside-methods"></emu-xref> are applied. If _inDerivedConstructor_ is *false*, additional early error rules from <emu-xref href="#sec-performeval-rules-outside-constructors"></emu-xref> are applied. If the parse fails, throw a *SyntaxError* exception. If any early errors are detected, throw a *SyntaxError* or a *ReferenceError* exception, depending on the type of the error (but see also clause <emu-xref href="#sec-error-handling-and-language-extensions"></emu-xref>). Parsing and early error detection may be interweaved in an implementation-dependent manner.
-    1. If _script_ Contains |ScriptBody| is *false*, return *undefined*.
-    1. Let _body_ be the |ScriptBody| of _script_.
-    1. If _strictCaller_ is *true*, let _strictEval_ be *true*.
-    1. Else, let _strictEval_ be IsStrict of _script_.
-    1. Let _ctx_ be the running execution context.
-    1. NOTE: If _direct_ is *true*, _ctx_ will be the execution context that performed the direct eval. If _direct_ is *false*, _ctx_ will be the execution context for the invocation of the `eval` function.
-    1. If _direct_ is *true*, then
-      1. Let _lexEnv_ be NewDeclarativeEnvironment(_ctx_'s LexicalEnvironment).
-      1. Let _varEnv_ be _ctx_'s VariableEnvironment.
-    1. Else,
-      1. Let _lexEnv_ be NewDeclarativeEnvironment(_evalRealm_.[[GlobalEnv]]).
-      1. Let _varEnv_ be _evalRealm_.[[GlobalEnv]].
-    1. If _strictEval_ is *true*, set _varEnv_ to _lexEnv_.
-    1. If _ctx_ is not already suspended, suspend _ctx_.
-    1. Let _evalCxt_ be a new ECMAScript code execution context.
-    1. Set the _evalCxt_'s Function to *null*.
-    1. Set the _evalCxt_'s Realm to _evalRealm_.
-    1. Set the _evalCxt_'s ScriptOrModule to _ctx_'s ScriptOrModule.
-    1. Set the _evalCxt_'s VariableEnvironment to _varEnv_.
-    1. Set the _evalCxt_'s LexicalEnvironment to _lexEnv_.
-    1. Push _evalCxt_ on to the execution context stack; _evalCxt_ is now the running execution context.
-    1. Let _result_ be EvalDeclarationInstantiation(_body_, _varEnv_, _lexEnv_, _strictEval_).
-    1. If _result_.[[Type]] is ~normal~, then
-      1. Set _result_ to the result of evaluating _body_.
-    1. If _result_.[[Type]] is ~normal~ and _result_.[[Value]] is ~empty~, then
-      1. Set _result_ to NormalCompletion(*undefined*).
-    1. Suspend _evalCxt_ and remove it from the execution context stack.
-    1. Resume the context that is now on the top of the execution context stack as the running execution context.
-    1. Return Completion(_result_).
-  </emu-alg>
-
-  <!-- es6num="18.2.1.1.3" -->
-  <emu-clause id="sec-import-early-errors">
-    <h1>Additional Early Error Rules for Eval in Realms</h1>
-    <p>These static semantics are applied by PerformEval and PerformRealmEvaluation when evaluating code in a Realm Record associated to a Realm Object.</p>
-    <emu-grammar>CallExpression : ImportCall</emu-grammar>
-    <ul>
-      <li>It is a Reference Error if the Realm Record Field Name [[PreventImportExpression]] has the value of *true*.</li>
-    </ul>
-  </emu-clause>
 </emu-clause>
 
 <!-- es6num="12.3.4.1" -->
@@ -189,34 +108,15 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
   </emu-alg>
 </emu-clause>
 
-<!-- es6num="15.1.9" -->
-<emu-clause id="sec-parse-script" aoid="ParseScript">
-  <h1>ParseScript ( _sourceText_, _realm_, _hostDefined_ )</h1>
-
-  <p>The abstract operation ParseScript with arguments _sourceText_, _realm_, and _hostDefined_ creates a Script Record based upon the result of parsing _sourceText_ as a |Script|. ParseScript performs the following steps:</p>
-
-  <emu-alg>
-    1. Assert: _sourceText_ is an ECMAScript source text (see clause <emu-xref href="#sec-ecmascript-language-source-code"></emu-xref>).
-    1. <ins>Let _preventImport_ is _realm_.[[PreventImportExpression]]</ins>.
-    1. Parse _sourceText_ using |Script| as the goal symbol and analyse the parse result for any Early Error conditions. <ins>If _preventImport_ is *true*, additional early error rules from <emu-xref href="#sec-import-early-errors"></emu-xref> are applied. </ins>If the parse was successful and no early errors were found, let _body_ be the resulting parse tree. Otherwise, let _body_ be a List of one or more *SyntaxError* or *ReferenceError* objects representing the parsing errors and/or early errors. Parsing and early error detection may be interweaved in an implementation-dependent manner. If more than one parsing error or early error is present, the number and ordering of error objects in the list is implementation-dependent, but at least one must be present.
-    1. If _body_ is a List of errors, return _body_.
-    1. Return Script Record {[[Realm]]: _realm_, [[Environment]]: *undefined*, [[ECMAScriptCode]]: _body_, [[HostDefined]]: _hostDefined_}.
-  </emu-alg>
-</emu-clause>
-
 <emu-clause id="sec-realm-objects">
   <h1>Realm Objects</h1>
   <emu-clause id="sec-realm-abstract-operations">
     <h1>Realm Abstract Operations</h1>
     <emu-clause id="sec-create-realm-rec" aoid="CreateRealmRec">
-      <h1>CreateRealmRec ( _intrinsics_ )</h1>
+      <h1>CreateRealmRec ()</h1>
       <emu-alg>
       1. Let _realmRec_ be a new Realm Record.
-      1. If _intrinsics_ is *undefined*, then
-        1. Perform CreateIntrinsics(_realmRec_).
-      1. Else
-        1. Assert: In this case, _intrinsics_ must be a Record with field names listed in column one of Table 7.
-        1. Set _realmRec_.[[Intrinsics]] to _intrinsics_.
+      1. Perform CreateIntrinsics(_realmRec_).
       1. Set _realmRec_.[[GlobalObject]] to *undefined*.
       1. Set _realmRec_.[[GlobalEnv]] to *undefined*.
       1. Set _realmRec_.[[TemplateMap]] to a new empty List.
@@ -253,33 +153,18 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
         1. If NewTarget is *undefined*, throw a *TypeError* exception.
         1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]] »).
         1. If _options_ is not *undefined*, then
-          1. Let _parentRealm_ be the current Realm Record.
           1. Let _opts_ be ? ToObject(_options_).
-          1. Let _transformTrap_ be ? Get(_opts_, "transform").
-          1. If _transformTrap_ is equal `"inherit"`, then
-            1. Set _transformTrap_ to _parentRealm_.[[TransformTrap]].
-          1. Else if _transformTrap_ is not *undefined* and IsCallable(_transformTrap_) is *false*, throw a TypeError exception.
           1. Let _isDirectEvalTrap_ be ? Get(_opts_, "isDirectEval").
-          1. If _isDirectEvalTrap_ is equal `"inherit"`, then
-            1. Set _isDirectEvalTrap_ to _parentRealm_.[[IsDirectEvalTrap]].
-          1. Else if _isDirectEvalTrap_ is not *undefined* and IsCallable(_isDirectEvalTrap_) is *false*, throw a TypeError exception.
-          1. Let _intrinsics_ be ? Get(_opts_, "intrinsics").
-          1. If _intrinsics_ is equal `"inherit"`, then
-            1. Set _intrinsics_ to _parentRealm_.[[Intrinsics]].
-          1. Else if _intrinsics_ is not *undefined*, throw a TypeError exception.
+          1. If _isDirectEvalTrap_ is not *undefined* and IsCallable(_isDirectEvalTrap_) is *false*, throw a TypeError exception.
           1. Let _thisValue_ be ? Get(_opts_, "thisValue").
           1. If _thisValue_ is not *undefined* and Type(_thisValue_) is not Object, throw a TypeError exception.
+        1. Let _currentRealm_ be the current Realm Record.
         1. Let _realmRec_ be CreateRealmRec(_intrinsics_).
         1. Set _O_.[[Realm]] to _realmRec_.
+        1. Set _O_.[[OuterRealmRecord]] to _currentRealm_.
         1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, _thisValue_).
-        1. Set _realmRec_.[[PreventImportExpression]] to *true*.
-        1. If _transformTrap_ is not *undefined*, then
-          1. Set _realmRec_.[[TransformTrap]] to _transformTrap_.
-        1. If _isDirectEvalTrap_ is not *undefined*, then
-          1. Set _realmRec_.[[IsDirectEvalTrap]] to _isDirectEvalTrap_.
-        1. Let _init_ be ? GetMethod(_O_, *"init"*).
-        1. If IsCallable(_init_) is not *true*, throw a *TypeError* exception.
-        1. Perform ? Call(_init_, _O_).
+        1. Set _realmRec_.[[IsDirectEvalTrap]] to _isDirectEvalTrap_.
+        1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
         1. Return _O_.
       </emu-alg>
     </emu-clause>
@@ -295,18 +180,20 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
   <emu-clause id="sec-properties-of-the-realm-prototype-object">
       <h1>Properties of the Realm Prototype Object</h1>
 
-      <emu-clause id="sec-realm.prototype.init">
-          <h1>Realm.prototype.init ()</h1>
+      <emu-clause id="sec-realm.prototype.detach">
+          <h1>Realm.prototype.detach ()</h1>
+
+          Detaches the realm from its outer realm.
 
           <emu-alg>
           1. Let _O_ be *this* value.
           1. If Type(_O_) is not Object, throw a *TypeError* exception.
           1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-          1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
+          1. Set _O_.[[OuterRealmRecord]] to *null*.
           </emu-alg>
 
           <emu-note>
-              Extensible web: This is the dynamic way to define globals in a new realm.
+              Extensible web: A detached Realm does not have access to any host specific logic.
           </emu-note>
       </emu-clause>
 
@@ -326,10 +213,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
 
           <emu-note>
               Extensible web: This is the dynamic equivalent of a &lt;script&gt; in HTML.
-          </emu-note>
-
-          <emu-note>
-              Invocation of this method does not transform _x_ via the [[TransformTrap]].
           </emu-note>
       </emu-clause>
 
