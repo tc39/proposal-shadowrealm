@@ -183,7 +183,7 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
       <emu-clause id="sec-realm.prototype.detach">
           <h1>Realm.prototype.detach ()</h1>
 
-          Detaches the realm from its outer realm.
+          The following steps are taken:
 
           <emu-alg>
           1. Let _O_ be *this* value.
@@ -193,7 +193,7 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           </emu-alg>
 
           <emu-note>
-              Extensible web: A detached Realm does not have access to any host specific logic.
+              Extensible web: A detached Realm does not have a outer realm, hence no access to any host specific logic.
           </emu-note>
       </emu-clause>
 
@@ -214,6 +214,48 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           <emu-note>
               Extensible web: This is the dynamic equivalent of a &lt;script&gt; in HTML.
           </emu-note>
+      </emu-clause>
+
+      <emu-clause id="sec-realm.prototype.stdlib">
+          <h1>Realm.prototype.stdlib ()</h1>
+
+          The following steps are taken:
+
+          <emu-alg>
+          1. Let _O_ be *this* value.
+          1. If Type(_O_) is not Object, throw a *TypeError* exception.
+          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+          1. Let _realmRec_ be _O_.[[Realm]].
+          1. Let global be realmRec.[[GlobalObject]].
+          1. Let _stdlib_ be ObjectCreate(%ObjectPrototype%).
+          1. For each property of the Global Object specified in clause <emu-xref href="#sec-global-object"></emu-xref> that correspond to an intrinsic object, do:
+            1. Let _name_ be the String value of the property name.
+            1. Let _value_ be the corresponding value of the intrinsic object from record _realmRec_.[[Intrinsics]].
+            1. Let _descObj_ be ObjectCreate(%ObjectPrototype%).
+            1. Perform ? DefinePropertyOrThrow(_descObj_, *"value"*, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
+            1. Perform ? DefinePropertyOrThrow(_stdlib_, _name_, PropertyDescriptor{[[Value]]: _descObj_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
+          1. Return _stdlib_.
+          </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="sec-realm.prototype.intrinsics">
+          <h1>Realm.prototype.intrinsics ()</h1>
+
+          The following steps are taken:
+
+          <emu-alg>
+          1. Let _O_ be *this* value.
+          1. If Type(_O_) is not Object, throw a *TypeError* exception.
+          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
+          1. Let _realmRec_ be _O_.[[Realm]].
+          1. Let _intrinsics_ be ObjectCreate(%ObjectPrototype%).
+          1. For each intrinsic name listed in <emu-xref href="#table-7"></emu-xref>, do:
+            1. Let _intrinsicName_ be the String value in column one of the table.
+            1. Let _name_ be the String value of _intrinsicName_ without the *%* symbols.
+            1. Let _value_ be the value of the field name _intrisicName_ from record _realmRec_.[[Intrinsics]].
+            1. Perform ? DefinePropertyOrThrow(_intrinsics_, _name_, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
+          1. Return _intrinsics_.
+          </emu-alg>
       </emu-clause>
 
       <emu-clause id="sec-realm.prototype.global">
@@ -240,48 +282,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
           1. Let _envRec_ be _O_.[[Realm]].[[GlobalEnv]].
           1. Return _envRec_.[[GlobalThisValue]].
-          </emu-alg>
-      </emu-clause>
-
-      <emu-clause id="sec-realm.prototype.stdlib">
-          <h1>get Realm.prototype.stdlib</h1>
-
-          Realm.prototype.stdlib is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
-
-          <emu-alg>
-          1. Let _O_ be *this* value.
-          1. If Type(_O_) is not Object, throw a *TypeError* exception.
-          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-          1. Let _realmRec_ be _O_.[[Realm]].
-          1. Let global be realmRec.[[GlobalObject]].
-          1. Let _stdlib_ be ObjectCreate(%ObjectPrototype%).
-          1. For each property of the Global Object specified in clause <emu-xref href="#sec-global-object"></emu-xref> that correspond to an intrinsic object, do:
-            1. Let _name_ be the String value of the property name.
-            1. Let _value_ be the corresponding value of the intrinsic object from record _realmRec_.[[Intrinsics]].
-            1. Let _descObj_ be ObjectCreate(%ObjectPrototype%).
-            1. Perform ? DefinePropertyOrThrow(_descObj_, *"value"*, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
-            1. Perform ? DefinePropertyOrThrow(_stdlib_, _name_, PropertyDescriptor{[[Value]]: _descObj_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
-          1. Return _stdlib_.
-          </emu-alg>
-      </emu-clause>
-
-      <emu-clause id="sec-realm.prototype.intrinsics">
-          <h1>get Realm.prototype.intrinsics</h1>
-
-          Realm.prototype.intrinsics is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
-
-          <emu-alg>
-          1. Let _O_ be *this* value.
-          1. If Type(_O_) is not Object, throw a *TypeError* exception.
-          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-          1. Let _realmRec_ be _O_.[[Realm]].
-          1. Let _intrinsics_ be ObjectCreate(%ObjectPrototype%).
-          1. For each intrinsic name listed in <emu-xref href="#table-7"></emu-xref>, do:
-            1. Let _intrinsicName_ be the String value in column one of the table.
-            1. Let _name_ be the String value of _intrinsicName_ without the *%* symbols.
-            1. Let _value_ be the value of the field name _intrisicName_ from record _realmRec_.[[Intrinsics]].
-            1. Perform ? DefinePropertyOrThrow(_intrinsics_, _name_, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
-          1. Return _intrinsics_.
           </emu-alg>
       </emu-clause>
 
