@@ -61,21 +61,6 @@ Reflect.getPrototypeOf(f) === g.Function.prototype // false
 Reflect.getPrototypeOf(f) === r.global.Function.prototype // true
 ```
 
-### Example: simple compartment
-
-```js
-let g = window; // outer global
-let r1 = new Realm(); // root realm
-let r2 = new r1.global.Realm({ intrinsics: "inherit" }); // realm compartment
-
-let f = r1.evaluate("(function() { return 17 })");
-
-f() === 17 // true
-
-Reflect.getPrototypeOf(f) === g.Function.prototype // false
-Reflect.getPrototypeOf(f) === r1.global.Function.prototype // true
-Reflect.getPrototypeOf(f) === r2.global.Function.prototype // true
-```
 ### Example: simple subclass
 
 ```js
