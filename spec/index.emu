@@ -52,11 +52,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
                 <td>...</td>
             </tr>
             <tr>
-                <td>[[IsDirectEvalTrap]]</td>
-                <td>A function object or *undefined*</td>
-                <td>The function that is used as the direct eval check trap. If [[IsDirectEvalTrap]] is undefined, the trap invoker will carry on the default behavior.</td>
-            </tr>
-            <tr>
                 <td>[[OuterRealmRecord]]</td>
                 <td>A Realm Record or *null*</td>
                 <td>The outer Realm Record or *null* for detached realms.</td>
@@ -65,47 +60,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
     </table>
   </emu-table>
 
-  <emu-clause id="sec-invokeisdirectevaltrap" aoid="InvokeIsDirectEvalTrap">
-    <h1>InvokeIsDirectEvalTrap( _trap_, _func_ )</h1>
-    <p>The abstract operation InvokeIsDirectEvalTrap with arguments _trap_ and _func_ performs the following steps:</p>
-    <emu-alg>
-      1. Assert: IsCallable(_trap_) is *true*.
-      1. Let _result_ be ToBoolean( ? Call(_trap_, *undefined*, &laquo; _func_ &raquo;)).
-      1. Return _result_.
-    </emu-alg>
-  </emu-clause>
-
-</emu-clause>
-
-<!-- es6num="12.3.4.1" -->
-<emu-clause id="sec-function-calls-runtime-semantics-evaluation">
-  <h1>Runtime Semantics: Evaluation</h1>
-  <emu-grammar>CallExpression : CoverCallExpressionAndAsyncArrowHead</emu-grammar>
-  <emu-alg>
-    1. Let _expr_ be CoveredCallExpression of CoverCallExpressionAndAsyncArrowHead.
-    1. Let _memberExpr_ be the MemberExpression of _expr_.
-    1. Let _arguments_ be the Arguments of _expr_.
-    1. Let _ref_ be the result of evaluating _memberExpr_.
-    1. Let _func_ be ? GetValue(_ref_).
-    1. If Type(_ref_) is Reference and IsPropertyReference(_ref_) is *false* and GetReferencedName(_ref_) is `"eval"`, then
-      1. <ins>Let _evalRealm_ be the current Realm Record.</ins>.
-      1. <ins>Let _trapFn_ be _evalRealm_.[[IsDirectEvalTrap]]</ins>.
-      1. <ins>If IsCallable(_trapFn_) is *true*, then</ins>
-        1. <ins>Let _isDirectEval_ be ? InvokeIsDirectEvalTrap(_trapFn_, _func_).</ins>.
-      1.  <ins>Else</ins>,
-        1. <ins>Let _isDirectEval_ be SameValue(_func_, %eval%)</ins>.
-      1. If <ins>_isDirectEval_</ins><del>SameValue(_func_, %eval%)</del> is *true*, then
-        1. Let _argList_ be ? ArgumentListEvaluation(_arguments_).
-        1. If _argList_ has no elements, return undefined.
-        1. Let _evalText_ be the first element of _argList_.
-        1. If the source code matching this CallExpression is strict mode code, let _strictCaller_ be *true*. Otherwise let strictCaller be *false*.
-        1. <del>Let evalRealm be the current Realm Record</del>.
-        1. Perform ? HostEnsureCanCompileStrings(_evalRealm_, _evalRealm_).
-        1. Return ? PerformEval(_evalText_, _evalRealm_, _strictCaller_, *true*).
-    1. Let _thisCall_ be this CallExpression.
-    1. Let _tailCall_ be IsInTailPosition(_thisCall_).
-    1. Return ? EvaluateCall(_func_, _ref_, _arguments_, _tailCall_).
-  </emu-alg>
 </emu-clause>
 
 <emu-clause id="sec-realm-objects">
@@ -154,8 +108,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
         1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]] »).
         1. If _options_ is not *undefined*, then
           1. Let _opts_ be ? ToObject(_options_).
-          1. Let _isDirectEvalTrap_ be ? Get(_opts_, "isDirectEval").
-          1. If _isDirectEvalTrap_ is not *undefined* and IsCallable(_isDirectEvalTrap_) is *false*, throw a TypeError exception.
           1. Let _thisValue_ be ? Get(_opts_, "thisValue").
           1. If _thisValue_ is not *undefined* and Type(_thisValue_) is not Object, throw a TypeError exception.
         1. Let _currentRealm_ be the current Realm Record.
@@ -163,7 +115,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
         1. Set _O_.[[Realm]] to _realmRec_.
         1. Set _O_.[[OuterRealmRecord]] to _currentRealm_.
         1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, _thisValue_).
-        1. Set _realmRec_.[[IsDirectEvalTrap]] to _isDirectEvalTrap_.
         1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
         1. Return _O_.
       </emu-alg>
