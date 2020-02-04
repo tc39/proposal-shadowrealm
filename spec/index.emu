@@ -34,34 +34,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
     </table>
 </emu-table>
 
-<!-- es6num="8.2" -->
-<emu-clause id="sec-code-realms">
-  <h1>Realms</h1>
-
-  <emu-table id="table-21" caption="Realm Record Fields">
-    <table>
-        <tbody>
-            <tr>
-                <th>Field Name</th>
-                <th>Value</th>
-                <th>Meaning</th>
-            </tr>
-            <tr>
-                <td>[[HostDefined]]</td>
-                <td>...</td>
-                <td>...</td>
-            </tr>
-            <tr>
-                <td>[[OuterRealmRecord]]</td>
-                <td>A Realm Record or *null*</td>
-                <td>The outer Realm Record or *null* for detached realms.</td>
-            </tr>
-        </tbody>
-    </table>
-  </emu-table>
-
-</emu-clause>
-
 <emu-clause id="sec-realm-objects">
   <h1>Realm Objects</h1>
   <emu-clause id="sec-realm-abstract-operations">
@@ -110,10 +82,8 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           1. Let _opts_ be ? ToObject(_options_).
           1. Let _thisValue_ be ? Get(_opts_, "thisValue").
           1. If _thisValue_ is not *undefined* and Type(_thisValue_) is not Object, throw a TypeError exception.
-        1. Let _currentRealm_ be the current Realm Record.
         1. Let _realmRec_ be CreateRealmRec(_intrinsics_).
         1. Set _O_.[[Realm]] to _realmRec_.
-        1. Set _O_.[[OuterRealmRecord]] to _currentRealm_.
         1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, _thisValue_).
         1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
         1. Return _O_.
@@ -130,23 +100,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
 
   <emu-clause id="sec-properties-of-the-realm-prototype-object">
       <h1>Properties of the Realm Prototype Object</h1>
-
-      <emu-clause id="sec-realm.prototype.detach">
-          <h1>Realm.prototype.detach ()</h1>
-
-          The following steps are taken:
-
-          <emu-alg>
-          1. Let _O_ be *this* value.
-          1. If Type(_O_) is not Object, throw a *TypeError* exception.
-          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-          1. Set _O_.[[OuterRealmRecord]] to *null*.
-          </emu-alg>
-
-          <emu-note>
-              Extensible web: A detached Realm does not have a outer realm, hence no access to any host specific logic.
-          </emu-note>
-      </emu-clause>
 
       <emu-clause id="sec-realm.prototype.eval">
           <h1>Realm.prototype.evaluate ( _sourceText_ )</h1>
