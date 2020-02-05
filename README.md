@@ -91,30 +91,24 @@ class FakeWindow extends Realm {
 }
 ```
 
-### Example: controlling direct evaluation
+## API (TypeScript Format)
 
-The `isDirectEval` trap provides a way to control when certain invocation to an `eval` identifier qualifies as direct eval. This is important if you plan to replace the `eval` intrinsic to provide your own evaluation mechanism:
-
-```js
-const r = new Realm({
-  isDirectEval(func) {
-    return func === customEval;
-  },
-});
-function customEval(sourceText) {
-  return compile(sourceText);
+```ts
+interface RealmInit {
+    thisValue?: object;
 }
-// TODO: this is leaking the outer realm intrinsics
-r.global.eval = customEval; // providing a custom evaluation mechanism
-const source = `
-  let x = 1;
-  (function foo() {
-    let x = 2;
-    eval('x');      // yields 2 if \`compile\` doesn't alter the code
-    (0,eval)('x');  // yields 1 if \`compile\` doesn't alter the code
-  })();
-`;
-r.evaluate(source);
+
+interface Realm {
+    readonly global: typeof globalThis;
+    readonly thisValue: typeof globalThis | object;
+    evaluate(sourceText: string): any;
+    intrinsics(): Record<string, any>;
+}
+
+declare var Realm: {
+    prototype: Realm;
+    new(options?: RealmInit): Realm;
+};
 ```
 
 ## Contributing

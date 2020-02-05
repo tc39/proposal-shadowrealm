@@ -120,28 +120,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           </emu-note>
       </emu-clause>
 
-      <emu-clause id="sec-realm.prototype.stdlib">
-          <h1>Realm.prototype.stdlib ()</h1>
-
-          The following steps are taken:
-
-          <emu-alg>
-          1. Let _O_ be *this* value.
-          1. If Type(_O_) is not Object, throw a *TypeError* exception.
-          1. If _O_ does not have an [[Realm]] internal slot, throw a *TypeError* exception.
-          1. Let _realmRec_ be _O_.[[Realm]].
-          1. Let global be realmRec.[[GlobalObject]].
-          1. Let _stdlib_ be ObjectCreate(%ObjectPrototype%).
-          1. For each property of the Global Object specified in clause <emu-xref href="#sec-global-object"></emu-xref> that correspond to an intrinsic object, do:
-            1. Let _name_ be the String value of the property name.
-            1. Let _value_ be the corresponding value of the intrinsic object from record _realmRec_.[[Intrinsics]].
-            1. Let _descObj_ be ObjectCreate(%ObjectPrototype%).
-            1. Perform ? DefinePropertyOrThrow(_descObj_, *"value"*, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
-            1. Perform ? DefinePropertyOrThrow(_stdlib_, _name_, PropertyDescriptor{[[Value]]: _descObj_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
-          1. Return _stdlib_.
-          </emu-alg>
-      </emu-clause>
-
       <emu-clause id="sec-realm.prototype.intrinsics">
           <h1>Realm.prototype.intrinsics ()</h1>
 
