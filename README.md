@@ -111,6 +111,11 @@ declare var Realm: {
 };
 ```
 
+## Presentations
+
+* [TC39 Feb 2020 - Stage 2 Update](https://docs.google.com/presentation/d/1umg2Kw18IlQyzrWwaQCAkeZ6xLTGZPPB6MtnI2LFzWE/edit)
+* [TC39 May 2018 - Stage 2 Request](https://docs.google.com/presentation/d/1blHLQuB3B2eBpt_FbtLgqhT6Zdwi8YAv6xhxPNA_j0A/edit) (archived)
+
 ## Contributing
 
 ### Updating the spec text for this proposal
