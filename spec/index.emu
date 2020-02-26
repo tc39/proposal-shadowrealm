@@ -38,17 +38,33 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
   <h1>Realm Objects</h1>
   <emu-clause id="sec-realm-abstract-operations">
     <h1>Realm Abstract Operations</h1>
-    <emu-clause id="sec-performRealmEvaluation" aoid="PerformRealmEvaluation">
-      <h1>PerformRealmEvaluation ( _x_, _evalRealm_ )</h1>
+
+    <emu-clause id="sec-perform-realm-script-evaluation" aoid="PerformRealmScriptEvaluation">
+      <h1>PerformRealmScriptEvaluation ( _sourceText_, _realm_ )</h1>
       <emu-alg>
-      1. Assert: Type(_x_) is String.
+      1. Assert: _sourceText_ is an ECMAScript source text (see clause <emu-xref href="#sec-ecmascript-language-source-code"></emu-xref>).
       1. Assert: _evalRealm_ is a Realm Record.
       1. Let _hostDefined_ be _evalRealm_.[[HostDefined]].
-      1. Let _s_ be ParseScript(_x_, _evalRealm_, _hostDefined_).
+      1. Let _s_ be ParseScript(_sourceText_, _realm_, _hostDefined_).
       1. If _s_ is a List of errors, then
         1. Perform HostReportErrors(_s_).
         1. Return NormalCompletion(*undefined*).
       1. Return ? ScriptEvaluation(_s_).
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="sec-perform-realm-module-evaluation" aoid="PerformRealmModuleEvaluation">
+      <h1>PerformRealmModuleEvaluation ( _sourceText_, _realm_ )</h1>
+      <emu-alg>
+      1. Assert: _sourceText_ is an ECMAScript source text (see clause <emu-xref href="#sec-ecmascript-language-source-code"></emu-xref>).
+      1. Assert: _realm_ is a Realm Record.
+      1. Let _hostDefined_ be _evalRealm_.[[HostDefined]].
+      1. Let _m_ be ParseModule(_sourceText_, _realm_, _hostDefined_).
+      1. If _m_ is a List of errors, then
+        1. Perform HostReportErrors(_m_).
+        1. Return NormalCompletion(*undefined*).
+      1. Assert: All dependencies of _m_ have been transitively resolved and _m_ is ready for evaluation.
+      1. Return ? _m_.Evaluate().
       </emu-alg>
     </emu-clause>
   </emu-clause>
@@ -90,16 +106,25 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
       <h1>Properties of the Realm Prototype Object</h1>
 
       <emu-clause id="sec-realm.prototype.eval">
-          <h1>Realm.prototype.evaluate ( _sourceText_ )</h1>
+          <h1>Realm.prototype.evaluate ( _sourceText_, _options_ )</h1>
 
-          Synchronously execute a top-level script. The _sourceText_ is interpreted as a Script and evaluated with this bound to the realm's global object.
+          Synchronously execute a top-level script or module. The _sourceText_ is interpreted as a SourceScript or SourceModule and evaluated with this bound to the realm's global object.
 
           <emu-alg>
           1. Let _O_ be *this* value.
           1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
-          1. If Type(_sourceText_) is not String, throw a *TypeError* exception.
           1. Let _realm_ be _O_.[[Realm]].
-          1. Return ? PerformRealmEvaluation(_sourceText_, _realm_).
+          1. Let _sourceTextString_ be ? ToString(_sourceText_).
+          1. Let _sourceType_ be *undefined*.
+          1. If _options_ is not *undefined*, then
+            1. Let _options_ be ? ToObject(_options_).
+            1. Let _sourceType_ be ? Get(_options_, *"type"*).
+          1. If _sourceType_ is *"module"*, then
+            1. Return ? PerformRealmModuleEvaluation(_sourceText_, _realm_).
+          1. Else if _sourceType_ is *"script"*, then
+            1. Return ? PerformRealmScriptEvaluation(_sourceText_, _realm_).
+          1. Else
+            1. Throw a RangeError exception.
           </emu-alg>
 
           <emu-note>
