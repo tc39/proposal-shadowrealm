@@ -63,18 +63,13 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
     </p>
     <emu-clause id="sec-realm" aoid="Realm">
       <h1>Realm ([ _options_ ])</h1>
-      When Realm is called with argument _option_ performs the following steps:
+      When Realm is called with no arguments performs the following steps:
       <emu-alg>
         1. If NewTarget is *undefined*, throw a *TypeError* exception.
         1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]] »).
-        1. Let _thisValue_ be *undefined*.
-        1. If _options_ is not *undefined*, then
-          1. Let _opts_ be ? ToObject(_options_).
-          1. Let _thisValue_ be ? Get(_opts_, "thisValue").
-          1. If _thisValue_ is not *undefined* and Type(_thisValue_) is not Object, throw a TypeError exception.
         1. Let _realmRec_ be CreateRealm().
         1. Set _O_.[[Realm]] to _realmRec_.
-        1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, _thisValue_).
+        1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, *undefined*).
         1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
         1. Return _O_.
       </emu-alg>
@@ -128,28 +123,15 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           </emu-alg>
       </emu-clause>
 
-      <emu-clause id="sec-realm.prototype.global">
-          <h1>get Realm.prototype.global</h1>
+      <emu-clause id="sec-realm.prototype.globalthis">
+          <h1>get Realm.prototype.globalThis</h1>
 
-          Realm.prototype.global is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
+          Realm.prototype.globalThis is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
 
           <emu-alg>
           1. Let _O_ be *this* value.
           1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
           1. Return _O_.[[Realm]].[[GlobalObject]].
-          </emu-alg>
-      </emu-clause>
-
-      <emu-clause id="sec-realm.prototype.thisValue">
-          <h1>get Realm.prototype.thisValue</h1>
-
-          Realm.prototype.thisValue is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
-
-          <emu-alg>
-          1. Let _O_ be *this* value.
-          1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
-          1. Let _envRec_ be _O_.[[Realm]].[[GlobalEnv]]'s EnvironmentRecord.
-          1. Return _envRec_.[[GlobalThisValue]].
           </emu-alg>
       </emu-clause>
 
