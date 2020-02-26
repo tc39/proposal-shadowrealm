@@ -55,26 +55,24 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
 
   <emu-clause id="sec-the-realm-constructor">
     <h1>The Realm Constructor</h1>
-    <p>
-        The Realm constructor is the %Realm% intrinsic object and the initial value of the *Realm* property of the global object. When called as a constructor it creates and initializes a new Realm object. Realm is not intended to be called as a function and will throw an exception when called in that manner.
-    </p>
-    <p>
-        The Realm constructor is designed to be subclassable. It may be used as the value in an extends clause of a class definition. Subclass constructors that intend to inherit the specified Realm behaviour must include a super call to the Realm constructor to create and initialize the subclass instance with the internal state necessary to support the Realm.prototype built-in methods.
-    </p>
-    <emu-clause id="sec-realm" aoid="Realm">
-      <h1>Realm ([ _options_ ])</h1>
-      When Realm is called with argument _option_ performs the following steps:
+    <p>The Realm constructor:</p>
+    <ul>
+      <li>is the intrinsic object <dfn>%Realm%</dfn>.</li>
+      <li>is the initial value of the *"Realm"* property of the global object.</li>
+      <li>is not intended to be called as a function and will throw an exception when called in that manner.</li>
+      <li>creates and initializes a new Realm object when called as a constructor.</li>
+      <li>is designed to be subclassable. It may be used as the value in an `extends` clause of a class definition. Subclass constructors that intend to inherit the specified `Realm` behaviour must include a `super` call to the `Realm` constructor to create and initialize the subclass instance with the internal state necessary to support the `Realm.prototype` built-in methods.</li>
+    </ul>
+
+    <emu-clause id="sec-realm">
+      <h1>Realm ()</h1>
+      <p>When the `Realm` function is called with no arguments, the following steps are taken:</p>
       <emu-alg>
         1. If NewTarget is *undefined*, throw a *TypeError* exception.
         1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]] »).
-        1. Let _thisValue_ be *undefined*.
-        1. If _options_ is not *undefined*, then
-          1. Let _opts_ be ? ToObject(_options_).
-          1. Let _thisValue_ be ? Get(_opts_, "thisValue").
-          1. If _thisValue_ is not *undefined* and Type(_thisValue_) is not Object, throw a TypeError exception.
         1. Let _realmRec_ be CreateRealm().
         1. Set _O_.[[Realm]] to _realmRec_.
-        1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, _thisValue_).
+        1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, *undefined*).
         1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
         1. Return _O_.
       </emu-alg>
@@ -128,28 +126,15 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           </emu-alg>
       </emu-clause>
 
-      <emu-clause id="sec-realm.prototype.global">
-          <h1>get Realm.prototype.global</h1>
+      <emu-clause id="sec-realm.prototype.globalthis">
+          <h1>get Realm.prototype.globalThis</h1>
 
-          Realm.prototype.global is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
+          Realm.prototype.globalThis is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
 
           <emu-alg>
           1. Let _O_ be *this* value.
           1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
           1. Return _O_.[[Realm]].[[GlobalObject]].
-          </emu-alg>
-      </emu-clause>
-
-      <emu-clause id="sec-realm.prototype.thisValue">
-          <h1>get Realm.prototype.thisValue</h1>
-
-          Realm.prototype.thisValue is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
-
-          <emu-alg>
-          1. Let _O_ be *this* value.
-          1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
-          1. Let _envRec_ be _O_.[[Realm]].[[GlobalEnv]]'s EnvironmentRecord.
-          1. Return _envRec_.[[GlobalThisValue]].
           </emu-alg>
       </emu-clause>
 
