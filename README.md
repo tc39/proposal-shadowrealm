@@ -94,7 +94,7 @@ class FakeWindow extends Realm {
 ## API (TypeScript Format)
 
 ```ts
-class Realm {
+declare class Realm {
     constructor();
     readonly globalThis: typeof globalThis;
     evaluate(sourceText: string): any;
