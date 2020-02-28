@@ -134,7 +134,7 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           <emu-alg>
           1. Let _O_ be *this* value.
           1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
-          1. Return _O_.[[Realm]].[[GlobalObject]].
+          1. Return _O_.[[Realm]].[[GlobalEnv]].[[GlobalThisValue]].
           </emu-alg>
       </emu-clause>
 
