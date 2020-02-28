@@ -102,7 +102,6 @@ interface Realm {
     readonly global: typeof globalThis;
     readonly thisValue: typeof globalThis | object;
     evaluate(sourceText: string): any;
-    intrinsics(): Record<string, any>;
 }
 
 declare var Realm: {
