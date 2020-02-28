@@ -98,7 +98,6 @@ declare class Realm {
     constructor();
     readonly globalThis: typeof globalThis;
     evaluate(sourceText: string): any;
-    intrinsics(): Record<string, any>;
 }
 ```
 
