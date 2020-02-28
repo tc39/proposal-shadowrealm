@@ -43,8 +43,8 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
       <h1>PerformRealmScriptEvaluation ( _sourceText_, _realm_ )</h1>
       <emu-alg>
       1. Assert: _sourceText_ is an ECMAScript source text (see clause <emu-xref href="#sec-ecmascript-language-source-code"></emu-xref>).
-      1. Assert: _evalRealm_ is a Realm Record.
-      1. Let _hostDefined_ be _evalRealm_.[[HostDefined]].
+      1. Assert: _realm_ is a Realm Record.
+      1. Let _hostDefined_ be _realm_.[[HostDefined]].
       1. Let _s_ be ParseScript(_sourceText_, _realm_, _hostDefined_).
       1. If _s_ is a List of errors, then
         1. Perform HostReportErrors(_s_).
@@ -58,13 +58,15 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
       <emu-alg>
       1. Assert: _sourceText_ is an ECMAScript source text (see clause <emu-xref href="#sec-ecmascript-language-source-code"></emu-xref>).
       1. Assert: _realm_ is a Realm Record.
-      1. Let _hostDefined_ be _evalRealm_.[[HostDefined]].
+      1. Let _hostDefined_ be _realm_.[[HostDefined]].
       1. Let _m_ be ParseModule(_sourceText_, _realm_, _hostDefined_).
       1. If _m_ is a List of errors, then
         1. Perform HostReportErrors(_m_).
         1. Return NormalCompletion(*undefined*).
+      1. Perform ? _m_.Link().
       1. Assert: All dependencies of _m_ have been transitively resolved and _m_ is ready for evaluation.
-      1. Return ? _m_.Evaluate().
+      1. Perform ? _m_.Evaluate().
+      1. Return GetModuleNamespace(_m_).
       </emu-alg>
     </emu-clause>
   </emu-clause>
