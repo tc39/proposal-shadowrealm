@@ -74,6 +74,7 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
         1. Set _O_.[[Realm]] to _realmRec_.
         1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, *undefined*).
         1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
+        1. Perform ? HostInitializeUserRealm(_O_.[[Realm]]).
         1. Return _O_.
       </emu-alg>
     </emu-clause>
@@ -150,6 +151,19 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           </table>
       </emu-table>
 
+  </emu-clause>
+  
+  <emu-clause id="sec-realm-host-operations">
+      <h1>Host operations</h1>
+      <emu-clause id="sec-host-initialize-user-realm">
+          <h1>Runtime Semantics: HostInitializeUserRealm ( _realm_ )</h1>
+          <p>
+              HostInitializerUserRealm is an implementation-defined abstract
+              operation used to inform the host of any newly created realms from
+              the Realm constructor. Its return value is not used, though it may
+              throw an exception.
+          </p>
+      </emu-clause>
   </emu-clause>
 
 </emu-clause>
