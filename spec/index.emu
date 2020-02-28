@@ -128,25 +128,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           </emu-note>
       </emu-clause>
 
-      <emu-clause id="sec-realm.prototype.intrinsics">
-          <h1>Realm.prototype.intrinsics ()</h1>
-
-          The following steps are taken:
-
-          <emu-alg>
-          1. Let _O_ be *this* value.
-          1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
-          1. Let _realmRec_ be _O_.[[Realm]].
-          1. Let _intrinsics_ be ObjectCreate(%ObjectPrototype%).
-          1. For each intrinsic name listed in <emu-xref href="#table-7"></emu-xref>, do:
-            1. Let _intrinsicName_ be the String value in column one of the table.
-            1. Let _name_ be the String value of _intrinsicName_ without the *%* symbols.
-            1. Let _value_ be the value of the field name _intrisicName_ from record _realmRec_.[[Intrinsics]].
-            1. Perform ? DefinePropertyOrThrow(_intrinsics_, _name_, PropertyDescriptor{[[Value]]: _value_, [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *true*}).
-          1. Return _intrinsics_.
-          </emu-alg>
-      </emu-clause>
-
       <emu-clause id="sec-realm.prototype.globalthis">
           <h1>get Realm.prototype.globalThis</h1>
 
@@ -155,7 +136,7 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           <emu-alg>
           1. Let _O_ be *this* value.
           1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
-          1. Return _O_.[[Realm]].[[GlobalObject]].
+          1. Return _O_.[[Realm]].[[GlobalEnv]].[[GlobalThisValue]].
           </emu-alg>
       </emu-clause>
 
