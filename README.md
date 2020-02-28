@@ -58,7 +58,7 @@ let f = r.evaluate("(function() { return 17 })");
 f() === 17 // true
 
 Reflect.getPrototypeOf(f) === g.Function.prototype // false
-Reflect.getPrototypeOf(f) === r.global.Function.prototype // true
+Reflect.getPrototypeOf(f) === r.globalThis.Function.prototype // true
 ```
 
 ### Example: simple subclass
@@ -67,10 +67,10 @@ Reflect.getPrototypeOf(f) === r.global.Function.prototype // true
 class EmptyRealm extends Realm {
   constructor(...args) {
     super(...args);
-    let global = this.global;
+    let globalThis = this.globalThis;
 
     // delete global descriptors:
-    delete global.Math;
+    delete globalThis.Math;
     ...
   }
 }
@@ -82,10 +82,10 @@ class EmptyRealm extends Realm {
 class FakeWindow extends Realm {
   constructor(...args) {
     super(...args);
-    let global = this.global;
+    let globalThis = this.globalThis;
 
-    global.document = new FakeDocument(...);
-    global.alert = new Proxy(fakeAlert, { ... });
+    globalThis.document = new FakeDocument(...);
+    globalThis.alert = new Proxy(fakeAlert, { ... });
     ...
   }
 }
@@ -94,21 +94,12 @@ class FakeWindow extends Realm {
 ## API (TypeScript Format)
 
 ```ts
-interface RealmInit {
-    thisValue?: object;
-}
-
-interface Realm {
-    readonly global: typeof globalThis;
-    readonly thisValue: typeof globalThis | object;
+declare class Realm {
+    constructor();
+    readonly globalThis: typeof globalThis;
     evaluate(sourceText: string): any;
     intrinsics(): Record<string, any>;
 }
-
-declare var Realm: {
-    prototype: Realm;
-    new(options?: RealmInit): Realm;
-};
 ```
 
 ## Presentations
