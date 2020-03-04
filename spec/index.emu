@@ -135,7 +135,7 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           </emu-note>
 
           <emu-note type=editor>
-              An extra execution context is created around the call to HostImportModuleDynamically in order to execute within the appropriate Realm--the host can reference the current Realm to figure out how the import should work. An alternative phrasing would be to pass the Realm as a paramter to HostImportModuleDynamically, which could be revisited when merging into the main specification.
+              An extra execution context is created around the call to HostImportModuleDynamically in order to execute within the appropriate Realm--the host can reference the current Realm to figure out how the import should work. An alternative phrasing would be to pass the Realm as a parameter to HostImportModuleDynamically, which could be revisited when merging into the main specification.
           </emu-note>
       </emu-clause>
 
