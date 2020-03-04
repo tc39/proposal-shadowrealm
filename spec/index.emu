@@ -119,12 +119,23 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           1. Let _specifierString_ be ? ToString(_specifier_).
           1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
           1. IfAbruptRejectPromise(_specifierString_, _promiseCapability_).
+          1. Let _callerContext_ be the running execution context.
+          1. Let _newContext_ be a new execution context.
+          1. Set the Function of _newContext_ to *null*.
+          1. Set the Realm of _newContext_ to _O_.[[Realm]].
+          1. Set the ScriptOrModule of _newContext_ to *null*.
+          1. Push _newContext_ onto the execution context stack; _newContext_ is now the running execution context.
           1. Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, _specifierString_, _promiseCapability_).
+          1. Remove _newContext_ from the execution context stack and restore _callerContext_ as the running execution context.
           1. Return _promiseCapability_.[[Promise]].
           </emu-alg>
 
           <emu-note>
               Extensible web: This is equivalent to dynamic import without having to evaluate a script source, which might not be available (e.g.: when CSP is blocking source evaluation).
+          </emu-note>
+
+          <emu-note type=editor>
+              An extra execution context is created around the call to HostImportModuleDynamically in order to execute within the appropriate Realm--the host can reference the current Realm to figure out how the import should work. An alternative phrasing would be to pass the Realm as a paramter to HostImportModuleDynamically, which could be revisited when merging into the main specification.
           </emu-note>
       </emu-clause>
 
