@@ -74,6 +74,7 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
         1. Set _O_.[[Realm]] to _realmRec_.
         1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, *undefined*).
         1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
+        1. Create any implementation-defined global object properties on _globalObj_.
         1. Perform ? HostInitializeUserRealm(_O_.[[Realm]]).
         1. Return _O_.
       </emu-alg>
