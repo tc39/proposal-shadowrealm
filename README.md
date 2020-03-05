@@ -53,7 +53,7 @@ A shim implementation of the Realm API can be found at [https://github.com/Agori
 let g = window; // outer global
 let r = new Realm(); // root realm
 
-let f = r.evaluate("(function() { return 17 })");
+let f = r.globalThis.eval("(function() { return 17 })");
 
 f() === 17 // true
 
@@ -97,7 +97,6 @@ class FakeWindow extends Realm {
 declare class Realm {
     constructor();
     readonly globalThis: typeof globalThis;
-    evaluate(sourceText: string): any;
 }
 ```
 
