@@ -36,22 +36,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
 
 <emu-clause id="sec-realm-objects">
   <h1>Realm Objects</h1>
-  <emu-clause id="sec-realm-abstract-operations">
-    <h1>Realm Abstract Operations</h1>
-    <emu-clause id="sec-performRealmEvaluation" aoid="PerformRealmEvaluation">
-      <h1>PerformRealmEvaluation ( _x_, _evalRealm_ )</h1>
-      <emu-alg>
-      1. Assert: Type(_x_) is String.
-      1. Assert: _evalRealm_ is a Realm Record.
-      1. Let _hostDefined_ be _evalRealm_.[[HostDefined]].
-      1. Let _s_ be ParseScript(_x_, _evalRealm_, _hostDefined_).
-      1. If _s_ is a List of errors, then
-        1. Perform HostReportErrors(_s_).
-        1. Return NormalCompletion(*undefined*).
-      1. Return ? ScriptEvaluation(_s_).
-      </emu-alg>
-    </emu-clause>
-  </emu-clause>
 
   <emu-clause id="sec-the-realm-constructor">
     <h1>The Realm Constructor</h1>
@@ -89,24 +73,6 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
 
   <emu-clause id="sec-properties-of-the-realm-prototype-object">
       <h1>Properties of the Realm Prototype Object</h1>
-
-      <emu-clause id="sec-realm.prototype.eval">
-          <h1>Realm.prototype.evaluate ( _sourceText_ )</h1>
-
-          Synchronously execute a top-level script. The _sourceText_ is interpreted as a Script and evaluated with this bound to the realm's global object.
-
-          <emu-alg>
-          1. Let _O_ be *this* value.
-          1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
-          1. If Type(_sourceText_) is not String, throw a *TypeError* exception.
-          1. Let _realm_ be _O_.[[Realm]].
-          1. Return ? PerformRealmEvaluation(_sourceText_, _realm_).
-          </emu-alg>
-
-          <emu-note>
-              Extensible web: This is the dynamic equivalent of a &lt;script&gt; in HTML.
-          </emu-note>
-      </emu-clause>
 
       <emu-clause id="sec-realm.prototype.import">
           <h1>Realm.prototype.import ( _specifier_ )</h1>
