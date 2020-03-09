@@ -146,6 +146,11 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
                       <td>Realm Record</td>
                       <td>The Realm Record for the initial execution context.</td>
                   </tr>
+                  <tr>
+                      <td>[[ExecutionContext]]</td>
+                      <td>Execution context</td>
+                      <td>An execution context wherein the current Realm is this [[Realm]].</td>
+                  </tr>
               </tbody>
           </table>
       </emu-table>
