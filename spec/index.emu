@@ -153,7 +153,7 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
   
   <emu-clause id="sec-realm-host-operations">
       <h1>Host operations</h1>
-      <emu-clause id="sec-host-initialize-user-realm">
+      <emu-clause id="sec-host-initialize-user-realm" aoid="HostInitializeUserRealm">
           <h1>Runtime Semantics: HostInitializeUserRealm ( _realm_ )</h1>
           <p>
               HostInitializerUserRealm is an implementation-defined abstract
