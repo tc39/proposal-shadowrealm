@@ -15,7 +15,7 @@ will become:
 
 ```js
 const globalOne = window;
-const globalTwo = new Realm().global;
+const globalTwo = new Realm().globalThis;
 ```
 
 ### Indirect evaluation
@@ -49,33 +49,7 @@ a1 instanceof globalTwo.Array; // yield false
 a2 instanceof globalOne.Array; // yield false
 ```
 
-_Note: There is not solution for this with iframes, the only possible partial-solution is to use `with` statement which has some performance implications. With the Realm API, you will have more flexibility to avoid this issue._
-
-### Non-intrinsics
-
-If you attempt to evaluate code that uses something other than EcmaScript intrinsics,
-the code will fail to evaluate in the realm without the proper configuration, e.g.:
-
-```js
-globalOne.eval('console.log(1)'); // yield a log message: "1"
-globalTwo.eval('console.log(1)'); // throw an error: console is undefined
-```
-
-To solve this, you can add a new global binding in the realm that implements the `console` API, e.g.:
-
-```js
-globalTwo.console = globalOne.console;
-```
-
-Note: keep in mind that this will provide authority for code in the realm to walk its
-way up into the globalOne object by using the prototype chain of the new global called
-`console`, e.g.:
-
-```js
-globalTwo.eval('console.log.constructor("return this")()') === globalOne; // yield true
-```
-
-Instead, you can provide a fully functional `console` API that closes over to the outer realm's console object. This way you don't leak authority to the newly created Realm.
+_Note: There are other solutions to this problem by using proxies and membranes, which has some performance implications. It is not a goal of this proposal to solve this._
 
 ## node's vm objects vs realms
 
@@ -84,15 +58,15 @@ If you're using node's `vm` module today to "evaluate" javascript code in a diff
 ```js
 const vm = require('vm');
 const script = new vm.Script('this');
-const globalOne = global;
+const globalOne = globalThis;
 const globalTwo = script.runInContext(new vm.createContext());
 ```
 
 will become:
 
 ```js
-const globalOne = global;
-const globalTwo = new Realm().global;
+const globalOne = globalThis;
+const globalTwo = new Realm().globalThis;
 ```
 
 _Note: these two are equivalent in functionality._

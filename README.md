@@ -16,15 +16,11 @@ This proposal is at stage 2 of [the TC39 Process](https://tc39.github.io/process
 
 You can view the spec rendered as [HTML](https://rawgit.com/tc39/proposal-realms/master/index.html).
 
-### Shim/Polyfill
-
-A shim implementation of the Realm API can be found at [https://github.com/Agoric/realms-shim](https://github.com/Agoric/realms-shim), notice that this library is now deprecated.
-
 # Realms
 
 ## History
 
-* worked on this during ES2015 time frame, so never went through stages process
+* we worked on this during ES2015 time frame, so never went through stages process ([ES6 Realm Objects proto-spec.pdf](https://github.com/tc39/proposal-realms/files/717415/ES6.Realm.Objects.proto-spec.pdf))
 * got punted to later (rightly so!)
 * goal of this proposal: resume work on this, reassert committee interest via advancing to stage 2
 * original idea from @dherman: [What are Realms?](https://gist.github.com/dherman/7568885)
@@ -36,14 +32,24 @@ A shim implementation of the Realm API can be found at [https://github.com/Agori
 * principled version of Node's `'vm'` module
 * sync Worker
 
-## Use cases
+## Why we need realms?
 
-* security isolation (with synchronous but coarse-grained communication channel)
-* plugins (e.g., spreadsheet functions)
-* in-browser code editors
-* server-side rendering
-* testing/mocking (e.g., jsdom)
-* in-browser transpilation
+Realms allow virtualization of the language itself.
+
+Various examples of why Realms are needed:
+
+  * Web-based IDEs or any kind of 3rd party code execution uses same origin evaluation.
+  * Fiddler & Co.
+  * JSPerf & Co.
+  * Test frameworks (in-browser tests, but also in node using `vm`).
+  * testing/mocking (e.g., jsdom)
+  * Most plugin mechanism for the web (e.g., spreadsheet functions).
+  * Sandboxing (e.g.: Oasis Project)
+  * Server side rendering (to avoid collision and data leakage)
+  * in-browser code editors
+  * in-browser transpilation
+
+Note: the majority of the examples above will require synchronous operations to be supported, which makes it almost impossible to use Workers & co., or any other isolation mechanism in browsers and nodejs today.
 
 ## Examples
 
