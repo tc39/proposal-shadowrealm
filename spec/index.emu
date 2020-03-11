@@ -53,9 +53,14 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
       <p>When the `Realm` function is called with no arguments, the following steps are taken:</p>
       <emu-alg>
         1. If NewTarget is *undefined*, throw a *TypeError* exception.
-        1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]] »).
+        1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]], [[ExecutionContext]] »).
         1. Let _realmRec_ be CreateRealm().
         1. Set _O_.[[Realm]] to _realmRec_.
+        1. Let _context_ be a new execution context.
+        1. Set the Function of _context_ to *null*.
+        1. Set the Realm of _context_ to _realmRec_.
+        1. Set the ScriptOrModule of _context_ to *null*.
+        1. Set _O_.[[ExecutionContext]] to _context_.
         1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, *undefined*).
         1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
         1. Perform ? HostInitializeUserRealm(_O_.[[Realm]]).
@@ -87,13 +92,9 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
           1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
           1. IfAbruptRejectPromise(_specifierString_, _promiseCapability_).
           1. Let _callerContext_ be the running execution context.
-          1. Let _newContext_ be a new execution context.
-          1. Set the Function of _newContext_ to *null*.
-          1. Set the Realm of _newContext_ to _O_.[[Realm]].
-          1. Set the ScriptOrModule of _newContext_ to *null*.
-          1. Push _newContext_ onto the execution context stack; _newContext_ is now the running execution context.
+          1. Push _O_.[[ExecutionContext]] onto the execution context stack; _O_.[[ExecutionContext]] is now the running execution context.
           1. Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, _specifierString_, _promiseCapability_).
-          1. Remove _newContext_ from the execution context stack and restore _callerContext_ as the running execution context.
+          1. Remove _O_.[[ExecutionContext]] from the execution context stack and restore _callerContext_ as the running execution context.
           1. Return _promiseCapability_.[[Promise]].
           </emu-alg>
 
@@ -144,6 +145,11 @@ location: https://rawgit.com/tc39/proposal-realms/master/index.html
                       <td>[[Realm]]</td>
                       <td>Realm Record</td>
                       <td>The Realm Record for the initial execution context.</td>
+                  </tr>
+                  <tr>
+                      <td>[[ExecutionContext]]</td>
+                      <td>Execution context</td>
+                      <td>An execution context wherein the current Realm is this [[Realm]].</td>
                   </tr>
               </tbody>
           </table>
