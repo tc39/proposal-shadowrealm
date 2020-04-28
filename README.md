@@ -97,12 +97,22 @@ class FakeWindow extends Realm {
 }
 ```
 
+### Example: Importing Module
+
+```js
+let r = new Realm();
+const { x } = await r.import('/path/to/foo.js');
+```
+
+In this example, the new realm will fetch, and evaluate the module, and extract the `x` named export from that module namespace. `Realm.prototype.import` is equivalent to the dynamic import syntax (e.g.: `const { x } = await import('/path/to/foo.js');` from within the realm. In some cases, evaluation will not be available (e.g.: in browsers, CSP might block unsafe-eval), while importing from module is still possible.
+
 ## API (TypeScript Format)
 
 ```ts
 declare class Realm {
     constructor();
     readonly globalThis: typeof globalThis;
+    import(specifier: string): Promise<Namespace>;
 }
 ```
 
