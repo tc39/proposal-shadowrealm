@@ -1,16 +1,16 @@
 <!doctype html>
 <meta charset="utf8">
-<link href="ecmarkup.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
-<script src="ecmarkup.js"></script>
 <pre class=metadata>
-title: ECMAScript Realms Spec Proposal
-stage: 0
-contributors: Dave Herman, Caridy Patiño, Mark Miller
-status: draft
+title: Realms API
+stage: 2
+contributors: Dave Herman, Caridy Patiño, Mark Miller, Leo Balter
+status: proposal
 copyright: false
-location: https://rawgit.com/tc39/proposal-realms/master/index.html
+location: https://tc39.github.io/proposal-realms/
 </pre>
+<link href="ecmarkup.css" rel="stylesheet">
+<script src="ecmarkup.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <emu-table id="table-1" caption="Well-known Intrinsic Objects">
     <table>
