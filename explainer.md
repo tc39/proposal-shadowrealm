@@ -98,43 +98,9 @@ There are some precedents on how to solve the identity discontinuity issues by u
 
 There is one important thing to keep in mind when it comes to sharing module graphs. The ESM linkage is not asynchronous. This dictates that in order to share modules between realms, those realms should share the same process, otherwise the bindings between those modules cannot work according to the language. This is another reason to support our claim that Realms should be running within the same process.
 
-### Agents
+### Integrity
 
-Explain why should the realm proposal create a new Realm on the same process, why not in a different process?
-
-_TODO: WIP_
-
-WIP Idea: mention that different processes is already possible through Workers. Meanwhile, Realms provide a more closer channel to execute and control the virtualized environments, with seamless usage in a single script. This virtualization model also avoid concerns on security boundaries, e.g. mechanisms to observe time and memory changes.
-
-### Security
-
-This proposal does not mention "security" as one of the primary use-cases, and this is mostly for two reasons:
-
-1. In the context of the web, "security" is mostly associated to measure duration (time), while the Realm proposal does not provide any mechanism to control or modulate that.
-2. "Integrity" is far better understood in the context of ECMA-262, with strong precedents like closure, objects and private fields, to mention a few.
-
-A very simple demonstration of how a new Realm is not a security boundary is the fact that to interact with the code evaluated inside a realm, you must likely combine the new realm's object graph with the outer realm's object graph, e.g.:
-
-```js
-let r = new Realm();
-const sum = r.globalThis.eval(`(function aggregate(a, b) {
-  return Object.assign({}, a, b);
-})`);
-const o = aggregate({ x: 1 }, { y: 2 });
-```
-
-There are two main subtleties in the example above:
-
-1. the `aggregate` function declared inside the new realm is receiving two objects that belong to the outer realm (their `__proto__` do not correspond to the `Object.prototype` from the realm).
-2. the returned value `o`, which is accessible in the outer realm (caller), is an object with a `__proto__` that do not correspond to the `Object.prototype` of the outer realm.
-
-Nevertheless, you can virtualize the intersection between the two realms by using Proxies to preserve integrity and eliminate the identity discontinuity problems (a "near membrane" is a good example of this). This is not different to what you can achieve today via same domain iframes, or VM context in nodejs, which by no means represents any security boundary.
-
-_TODO: should we touch on overchannels vs non-overchannels here? /cc @erights_
-
-#### Combining Security and Integrity
-
-We believe that realms can be a good complement to existing security mechanisms by providing ways to evaluate code who access different object graphs (different global objects) while maintaining the integrity of the outer realm. A concrete example of this is the Google's AMP current mechanism:
+We believe that realms can be a good complement to integrity mechanisms by providing ways to evaluate code who access different object graphs (different global objects) while maintaining the integrity of the outer realm. A concrete example of this is the Google's AMP current mechanism:
 
 * Google News App creates multiples sub-apps that can be presented to the user.
 * Each sub-app runs in a cross-domain iframe (communicating with the main app via post-message).
