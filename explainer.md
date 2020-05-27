@@ -8,6 +8,8 @@ The Realms API allow execution of script within an isolated [global environment 
 
 The Realms API does not create - or rely on - a new executing thread. New realms will not behave like different [Agents](https://tc39.es/ecma262/#sec-agents). Although, the Realms API offers a way to import modules asynchronously, just like the `import()` expression, following the same design patterns. It also offers a way to execute code synchronously, through regular evaluation built-ins.
 
+Any code executed within this realm may introduce changes to global variables or built-ins, but limited to the realm global Record.
+
 ## API (TypeScript Format)
 
 ```ts
@@ -136,13 +138,62 @@ const rGlobal = iframe.contentWindow; // same as iframe.contentWindow.globalThis
 Object.freeze(rGlobal); // TypeError, cannot freeze window proxy
 ```
 
+The same iframe approach won't also have a direct access to import modules dynamically.
 
+```js
+realm.import('./file.js');
 
-## Other Proposals: Compartments / Evaluators
+// instead of (roughly)
+iframe.contentWindow.eval("import('./file.js')");
+```
 
-Quick notes/cross-references for related proposals:, explaining the relationship:
+#### DOM mocking
 
-WIP
+The Realms API allows a much smarter approach for DOM mocking, where the globalThis can be setup in userland. This also takes advantage of the Realm constructor being subclassable:
+
+```js
+class FakeWindow extends Realm {
+  constructor(...args) {
+    super(...args);
+    let globalThis = this.globalThis;
+
+    globalThis.document = new FakeDocument(...);
+    globalThis.alert = new Proxy(fakeAlert, { ... });
+    ...
+  }
+}
+```
+
+This code allows a customized set of properties to each new Realm and avoid issues on handling immutable accessors/properties from the Window proxy. e.g.: `window.top`, `window.location`, etc..
+
+## Testing
+
+The Realms API is very useful for testing purposes. It can provide a limited context that can observe code reliance:
+
+```js
+import Tester from 'myTestFramework';
+
+class TestRealm extends Realm {
+  constructor(...args) {
+    super(...args);
+    const globalThis = this.globalThis;
+
+    // Loads the globalThis with the Tester API
+    Object.assign(globalThis, new Tester());
+
+    Object.freeze(globalThis);
+  }
+
+  async exec(testFile) {
+    // Assuming testFile matches a valid loader specifier
+    return await this.import(testFile);
+  }
+}
+
+const myTests = new TestRealm();
+
+myTests.exec('./hanoi-tower-spec.js');
+```
 
 ##  Alternatives
 
@@ -150,15 +201,15 @@ WIP
 
 Using VM module in nodejs, and same-domain iframes in browsers. Although, VM modules in node is a very good approximation to this proposal, iframes are problematic. 
 
-#### Iframes
+### Iframes
 
 Developers can technically already create a new Realm by creating new same-domain iframe, but there are few impediments to use this as a reliable mechanism:
 
 * the global object of the iframe is a window proxy, which implements a bizarre behavior, including its unforgeable proto chain.
-* there are multiple unforgeable objects due to the DOM semantics, this makes it almost impossible to eliminate certain capabilities while downgrading the window to a brand new global without DOM.
-* global `top` reference is unforgeable and leaks a reference to another global object. The only way to null out this behavior is to detach the iframe, which imposes other problems, the more relevant is dynamic `import()` calls, which cannot work in detached realms.
+* there are multiple ~~unforgeable~~ unvirtualizable objects due to the DOM semantics, this makes it almost impossible to eliminate certain capabilities while downgrading the window to a brand new global without DOM.
+* global `top` reference is ~~unforgeable~~ not virtualizable and leaks a reference to another global object. The only way to null out this behavior is to detach the iframe, which imposes other problems, the more relevant is dynamic `import()` calls, __which cannot work in detached realms__.
 
-### Going Async
+### Why not separate processes?
 
 This is another alternative, creating a Realm that runs in a separate process, while allowing users to define and create their own protocol of communication between these processes. This alternative was discarded for two main reasons:
 
