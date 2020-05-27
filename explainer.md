@@ -4,7 +4,9 @@
 
 Realms are a distinct global environment, with its own global object containing its own intrinsics and built-ins (standard objects that are not bound to global variables, like the initial value of Object.prototype).
 
-The Realms API allow loading 
+The Realms API allow execution of script within an isolated [global environment record](https://tc39.es/ecma262/#sec-global-environment-records). Just like the the Global Environment Record, each new realm will provide the [bindings for built-in globals](https://tc39.es/ecma262/#table-7), properties of the [global object](https://tc39.es/ecma262/#sec-global-object), and for all top-level declarations that occur within the Realm's Script.
+
+The Realms API does not create - or rely on - a new executing thread. New realms will not behave like different [Agents](https://tc39.es/ecma262/#sec-agents). Although, the Realms API offers a way to import modules asynchronously, just like the `import()` expression, following the same design patterns. It also offers a way to execute code synchronously, 
 
 ### Intuitions
 
@@ -13,12 +15,6 @@ The Realms API allow loading
 * iframe without DOM
 * principled version of Node's `'vm'` module
 * sync Worker
-
-### History
-
-* we worked on this during ES2015 time frame, so never went through stages process ([ES6 Realm Objects proto-spec.pdf](https://github.com/tc39/proposal-realms/files/717415/ES6.Realm.Objects.proto-spec.pdf))
-* got punted to later (rightly so!)
-* original idea from @dherman: [What are Realms?](https://gist.github.com/dherman/7568885)
 
 ## Motivations
 
@@ -29,8 +25,6 @@ It's quite common for an applications to contain programs from multiple sources,
 Various examples where Realms can be used to avoid this:
 
   * Web-based IDEs or any kind of 3rd party code execution uses same origin evaluation.
-  * Fiddler & Co.
-  * JSPerf & Co.
   * Test frameworks (in-browser tests, but also in node using `vm`).
   * testing/mocking (e.g., jsdom)
   * Most plugin mechanism for the web (e.g., spreadsheet functions).

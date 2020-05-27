@@ -85,7 +85,8 @@ r.import("./sandbox.js").then(({test}) => {
   // globals in this root realm are not leaked
   test("DATA"); // undefined
 
-  let Arr = test("Array"); // {writable: true, enumerable: false, configurable: true, value: ƒ}
+  let desc = test("Array"); // {writable: true, enumerable: false, configurable: true, value: ƒ}
+  let Arr = desc.value;
 
   Arr === r.globalThis.Array; // true
   Arr === Array; // false
