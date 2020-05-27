@@ -98,6 +98,8 @@ There are some precedents on how to solve the identity discontinuity issues by u
 
 There is one important thing to keep in mind when it comes to sharing module graphs. The ESM linkage is not asynchronous. This dictates that in order to share modules between realms, those realms should share the same process, otherwise the bindings between those modules cannot work according to the language. This is another reason to support our claim that Realms should be running within the same process.
 
+## Use Cases
+
 ### Integrity
 
 We believe that realms can be a good complement to integrity mechanisms by providing ways to evaluate code who access different object graphs (different global objects) while maintaining the integrity of the outer realm. A concrete example of this is the Google's AMP current mechanism:
@@ -114,7 +116,29 @@ There are many examples like this for the web: Google Sheets, Figma's plugins, o
 
 There are also other more exotic cases in which measuring of time ("security") is not a concern, especially in IOT where many devices might not have process boundaries at all. Or examples where security is not a concern, e.g.: test runners like jest (from facebook) that relies on nodejs, JSDOM and VM contexts to execute individual tests while sharing a segment of the object graph to achieve the desired performance budget. No doubts that this type of tools are extremely popular these days, e.g.: JSDOM has 10M installs per week according to NPM's registry.
 
-### Compartments / Evaluators
+### Virtualized Environment
+
+The usage of different realms allow customized access to the global environment. To start, The global object could be immediately frozen.
+
+```js
+let realm = new Realm();
+
+Object.freeze(realm.globalThis);
+```
+
+In web browsers, this is currently not possible. The way to get manage new realms would be through iframes, but they also share a window proxy object.
+
+```js
+let iframe = document.createElement('iframe');
+document.body.appendChild(iframe);
+const rGlobal = iframe.contentWindow; // same as iframe.contentWindow.globalThis
+
+Object.freeze(rGlobal); // TypeError, cannot freeze window proxy
+```
+
+
+
+## Other Proposals: Compartments / Evaluators
 
 Quick notes/cross-references for related proposals:, explaining the relationship:
 
