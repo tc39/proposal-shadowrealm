@@ -1,0 +1,138 @@
+<!doctype html>
+<head><meta charset="utf-8">
+<title>Realms API</title><script type="application/json" id="menu-search-biblio">[{"type":"table","id":"table-1","number":1,"caption":"Table 1: Well-known Intrinsic Objects","referencingIds":[],"namespace":"http://tc39.es/proposal-realms/","location":"","key":"Table 1: Well-known Intrinsic Objects"},{"type":"term","term":"%Realm%","refId":"sec-the-realm-constructor","referencingIds":[],"namespace":"http://tc39.es/proposal-realms/","location":"","key":"%Realm%"},{"type":"clause","id":"sec-realm","aoid":null,"title":"Realm ()","titleHTML":"Realm ()","number":"1.1.1","namespace":"http://tc39.es/proposal-realms/","location":"","referencingIds":[],"key":"Realm ()"},{"type":"clause","id":"sec-the-realm-constructor","aoid":null,"title":"The Realm Constructor","titleHTML":"The Realm Constructor","number":"1.1","namespace":"http://tc39.es/proposal-realms/","location":"","referencingIds":["_ref_1"],"key":"The Realm Constructor"},{"type":"clause","id":"sec-properties-of-the-realm-constructor","aoid":null,"title":"Properties of the Realm Constructor","titleHTML":"Properties of the Realm Constructor","number":"1.2","namespace":"http://tc39.es/proposal-realms/","location":"","referencingIds":[],"key":"Properties of the Realm Constructor"},{"type":"clause","id":"sec-realm.prototype.import","aoid":null,"title":"Realm.prototype.import ( specifier )","titleHTML":"Realm.prototype.import ( <var>specifier</var> )","number":"1.3.1","namespace":"http://tc39.es/proposal-realms/","location":"","referencingIds":[],"key":"Realm.prototype.import ( specifier )"},{"type":"clause","id":"sec-realm.prototype.globalthis","aoid":null,"title":"get Realm.prototype.globalThis","titleHTML":"get Realm.prototype.globalThis","number":"1.3.2","namespace":"http://tc39.es/proposal-realms/","location":"","referencingIds":[],"key":"get Realm.prototype.globalThis"},{"type":"clause","id":"sec-realm.prototype-@@tostringtag","aoid":null,"title":"Realm.prototype [ @@toStringTag ]","titleHTML":"Realm.prototype [ @@toStringTag ]","number":"1.3.3","namespace":"http://tc39.es/proposal-realms/","location":"","referencingIds":[],"key":"Realm.prototype [ @@toStringTag ]"},{"type":"clause","id":"sec-properties-of-the-realm-prototype-object","aoid":null,"title":"Properties of the Realm Prototype Object","titleHTML":"Properties of the Realm Prototype Object","number":"1.3","namespace":"http://tc39.es/proposal-realms/","location":"","referencingIds":[],"key":"Properties of the Realm Prototype Object"},{"type":"table","id":"table-3","number":2,"caption":"Table 2: Internal Slots of Realm Instances","referencingIds":["_ref_0"],"namespace":"http://tc39.es/proposal-realms/","location":"","key":"Table 2: Internal Slots of Realm Instances"},{"type":"clause","id":"sec-properties-of-realm-instances","aoid":null,"title":"Properties of Realm Instances","titleHTML":"Properties of Realm Instances","number":"1.4","namespace":"http://tc39.es/proposal-realms/","location":"","referencingIds":[],"key":"Properties of Realm Instances"},{"type":"op","aoid":"HostInitializeUserRealm","refId":"sec-host-initialize-user-realm","location":"","referencingIds":[],"key":"HostInitializeUserRealm"},{"type":"clause","id":"sec-host-initialize-user-realm","aoid":"HostInitializeUserRealm","title":"Runtime Semantics: HostInitializeUserRealm ( realm )","titleHTML":"Runtime Semantics: HostInitializeUserRealm ( <var>realm</var> )","number":"1.5.1","namespace":"http://tc39.es/proposal-realms/","location":"","referencingIds":["_ref_6"],"key":"Runtime Semantics: HostInitializeUserRealm ( realm )"},{"type":"clause","id":"sec-realm-host-operations","aoid":null,"title":"Host operations","titleHTML":"Host operations","number":"1.5","namespace":"http://tc39.es/proposal-realms/","location":"","referencingIds":[],"key":"Host operations"},{"type":"clause","id":"sec-realm-objects","aoid":null,"title":"Realm Objects","titleHTML":"Realm Objects","number":"1","namespace":"http://tc39.es/proposal-realms/","location":"","referencingIds":[],"key":"Realm Objects"}]</script></head><body><div id="menu-toggle">☰</div><div id="menu-spacer"></div><div id="menu"><div id="menu-search"><input type="text" id="menu-search-box" placeholder="Search..."><div id="menu-search-results" class="inactive"></div></div><div id="menu-pins"><div class="menu-pane-header">Pins</div><ul id="menu-pins-list"></ul></div><div class="menu-pane-header">Table of Contents</div><div id="menu-toc"><ol class="toc"><li><span class="item-toggle">◢</span><a href="#sec-realm-objects" title="Realm Objects"><span class="secnum">1</span> Realm Objects</a><ol class="toc"><li><span class="item-toggle">◢</span><a href="#sec-the-realm-constructor" title="The Realm Constructor"><span class="secnum">1.1</span> The Realm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-realm" title="Realm ()"><span class="secnum">1.1.1</span> Realm ()</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-properties-of-the-realm-constructor" title="Properties of the Realm Constructor"><span class="secnum">1.2</span> Properties of the Realm Constructor</a></li><li><span class="item-toggle">◢</span><a href="#sec-properties-of-the-realm-prototype-object" title="Properties of the Realm Prototype Object"><span class="secnum">1.3</span> Properties of the Realm Prototype Object</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-realm.prototype.import" title="Realm.prototype.import ( specifier )"><span class="secnum">1.3.1</span> Realm.prototype.import ( <var>specifier</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-realm.prototype.globalthis" title="get Realm.prototype.globalThis"><span class="secnum">1.3.2</span> get Realm.prototype.globalThis</a></li><li><span class="item-toggle-none"></span><a href="#sec-realm.prototype-@@tostringtag" title="Realm.prototype [ @@toStringTag ]"><span class="secnum">1.3.3</span> Realm.prototype [ @@toStringTag ]</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-properties-of-realm-instances" title="Properties of Realm Instances"><span class="secnum">1.4</span> Properties of Realm Instances</a></li><li><span class="item-toggle">◢</span><a href="#sec-realm-host-operations" title="Host operations"><span class="secnum">1.5</span> Host operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-host-initialize-user-realm" title="Runtime Semantics: HostInitializeUserRealm ( realm )"><span class="secnum">1.5.1</span> RS: HostInitializeUserRealm ( <var>realm</var> )</a></li></ol></li></ol></li></ol></div></div><div id="spec-container"><h1 class="version first">Stage 2 Draft / May 27, 2020</h1><h1 class="title">Realms API</h1>
+<link href="ecmarkup.css" rel="stylesheet">
+<script src="ecmarkup.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+
+<emu-table id="table-1" caption="Well-known Intrinsic Objects"><figure><figcaption>Table 1: Well-known Intrinsic Objects</figcaption>
+	<table>
+		<tbody>
+			<tr>
+				<th>Intrinsic Name</th>
+				<th>Global Name</th>
+				<th>ECMAScript Language Association</th>
+			</tr>
+			<tr>
+				<td><emu-xref href="#sec-the-realm-constructor" id="_ref_1"><a href="#sec-the-realm-constructor">%Realm%</a></emu-xref></td>
+				<td><code>Realm</code></td>
+				<td>…</td>
+			</tr>
+			<tr>
+				<td>%RealmPrototype%</td>
+				<td><code>Realm.prototype</code></td>
+				<td>…</td>
+			</tr>
+		</tbody>
+	</table>
+</figure></emu-table>
+
+<emu-clause id="sec-realm-objects">
+	<h1><span class="secnum">1</span> Realm Objects</h1>
+
+	<emu-clause id="sec-the-realm-constructor">
+		<h1><span class="secnum">1.1</span> The Realm Constructor</h1>
+		<p>The <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> <emu-xref href="#constructor"><a href="https://tc39.es/ecma262/#constructor">constructor</a></emu-xref>:</p>
+		<ul>
+			<li>is the intrinsic object <dfn>%Realm%</dfn>.</li>
+			<li>is the initial value of the <emu-val>"Realm"</emu-val> property of the <emu-xref href="#sec-global-object"><a href="https://tc39.es/ecma262/#sec-global-object">global object</a></emu-xref>.</li>
+			<li>is not intended to be called as a function and will throw an exception when called in that manner.</li>
+			<li>creates and initializes a new <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> object when called as a <emu-xref href="#constructor"><a href="https://tc39.es/ecma262/#constructor">constructor</a></emu-xref>.</li>
+			<li>is designed to be subclassable. It may be used as the value in an <code>extends</code> clause of a class definition. Subclass constructors that intend to inherit the specified <code>Realm</code> behaviour must include a <code>super</code> call to the <code>Realm</code> <emu-xref href="#constructor"><a href="https://tc39.es/ecma262/#constructor">constructor</a></emu-xref> to create and initialize the subclass instance with the internal state necessary to support the <code>Realm.prototype</code> built-in methods.</li>
+		</ul>
+
+		<emu-clause id="sec-realm">
+			<h1><span class="secnum">1.1.1</span> Realm ()</h1>
+			<p>When the <code>Realm</code> function is called with no arguments, the following steps are taken:</p>
+			<emu-alg><ol><li>If NewTarget is <emu-val>undefined</emu-val>, throw a <emu-val>TypeError</emu-val> exception.</li><li>Let <var>O</var> be ?&nbsp;<emu-xref aoid="OrdinaryCreateFromConstructor" id="_ref_2"><a href="https://tc39.es/ecma262/#sec-ordinarycreatefromconstructor">OrdinaryCreateFromConstructor</a></emu-xref>(NewTarget, "%RealmPrototype%", « [[Realm]], [[ExecutionContext]] »).</li><li>Let <var>realmRec</var> be <emu-xref aoid="CreateRealm" id="_ref_3"><a href="https://tc39.es/ecma262/#sec-createrealm">CreateRealm</a></emu-xref>().</li><li>Set <var>O</var>.[[Realm]] to <var>realmRec</var>.</li><li>Let <var>context</var> be a new <emu-xref href="#sec-execution-contexts"><a href="https://tc39.es/ecma262/#sec-execution-contexts">execution context</a></emu-xref>.</li><li>Set the Function of <var>context</var> to <emu-val>null</emu-val>.</li><li>Set the <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> of <var>context</var> to <var>realmRec</var>.</li><li>Set the ScriptOrModule of <var>context</var> to <emu-val>null</emu-val>.</li><li>Set <var>O</var>.[[ExecutionContext]] to <var>context</var>.</li><li>Perform ?&nbsp;<emu-xref aoid="SetRealmGlobalObject" id="_ref_4"><a href="https://tc39.es/ecma262/#sec-setrealmglobalobject">SetRealmGlobalObject</a></emu-xref>(<var>realmRec</var>, <emu-val>undefined</emu-val>, <emu-val>undefined</emu-val>).</li><li>Perform ?&nbsp;<emu-xref aoid="SetDefaultGlobalBindings" id="_ref_5"><a href="https://tc39.es/ecma262/#sec-setdefaultglobalbindings">SetDefaultGlobalBindings</a></emu-xref>(<var>O</var>.[[Realm]]).</li><li>Perform ?&nbsp;<emu-xref aoid="HostInitializeUserRealm" id="_ref_6"><a href="#sec-host-initialize-user-realm">HostInitializeUserRealm</a></emu-xref>(<var>O</var>.[[Realm]]).</li><li>Return <var>O</var>.</li></ol></emu-alg>
+		</emu-clause>
+	</emu-clause>
+
+	<emu-clause id="sec-properties-of-the-realm-constructor">
+		<h1><span class="secnum">1.2</span> Properties of the Realm Constructor</h1>
+
+		<p>The value of the [[Prototype]] internal slot of the <emu-val>Realm</emu-val> <emu-xref href="#constructor"><a href="https://tc39.es/ecma262/#constructor">constructor</a></emu-xref> is the intrinsic object %FunctionPrototype%.</p>
+	</emu-clause>
+
+	<emu-clause id="sec-properties-of-the-realm-prototype-object">
+		<h1><span class="secnum">1.3</span> Properties of the Realm Prototype Object</h1>
+
+		<emu-clause id="sec-realm.prototype.import">
+			<h1><span class="secnum">1.3.1</span> Realm.prototype.import ( <var>specifier</var> )</h1>
+
+			<p>The following steps are taken:</p>
+
+			<emu-alg><ol><li>Let <var>O</var> be <emu-val>this</emu-val> value.</li><li>Perform ?&nbsp;<emu-xref aoid="RequireInternalSlot" id="_ref_7"><a href="https://tc39.es/ecma262/#sec-requireinternalslot">RequireInternalSlot</a></emu-xref>(<var>O</var>, [[Realm]]).</li><li>Let <var>referencingScriptOrModule</var> be <emu-val>null</emu-val>.</li><li>Let <var>specifierString</var> be ?&nbsp;<emu-xref aoid="ToString" id="_ref_8"><a href="https://tc39.es/ecma262/#sec-tostring">ToString</a></emu-xref>(<var>specifier</var>).</li><li>Let <var>promiseCapability</var> be !&nbsp;<emu-xref aoid="NewPromiseCapability" id="_ref_9"><a href="https://tc39.es/ecma262/#sec-newpromisecapability">NewPromiseCapability</a></emu-xref>(<emu-xref href="#sec-promise-constructor"><a href="https://tc39.es/ecma262/#sec-promise-constructor">%Promise%</a></emu-xref>).</li><li><emu-xref aoid="IfAbruptRejectPromise" id="_ref_10"><a href="https://tc39.es/ecma262/#sec-ifabruptrejectpromise">IfAbruptRejectPromise</a></emu-xref>(<var>specifierString</var>, <var>promiseCapability</var>).</li><li>Let <var>callerContext</var> be the <emu-xref href="#running-execution-context"><a href="https://tc39.es/ecma262/#running-execution-context">running execution context</a></emu-xref>.</li><li>Push <var>O</var>.[[ExecutionContext]] onto the <emu-xref href="#execution-context-stack"><a href="https://tc39.es/ecma262/#execution-context-stack">execution context stack</a></emu-xref>; <var>O</var>.[[ExecutionContext]] is now the <emu-xref href="#running-execution-context"><a href="https://tc39.es/ecma262/#running-execution-context">running execution context</a></emu-xref>.</li><li>Perform !&nbsp;<emu-xref aoid="HostImportModuleDynamically" id="_ref_11"><a href="https://tc39.es/ecma262/#sec-hostimportmoduledynamically">HostImportModuleDynamically</a></emu-xref>(<var>referencingScriptOrModule</var>, <var>specifierString</var>, <var>promiseCapability</var>).</li><li>Remove <var>O</var>.[[ExecutionContext]] from the <emu-xref href="#execution-context-stack"><a href="https://tc39.es/ecma262/#execution-context-stack">execution context stack</a></emu-xref> and restore <var>callerContext</var> as the <emu-xref href="#running-execution-context"><a href="https://tc39.es/ecma262/#running-execution-context">running execution context</a></emu-xref>.</li><li>Return <var>promiseCapability</var>.[[Promise]].</li></ol></emu-alg>
+
+			<emu-note><span class="note">Note</span><div class="note-contents">
+				Extensible web: This is equivalent to dynamic import without having to evaluate a script source, which might not be available (e.g.: when CSP is blocking source evaluation).
+			</div></emu-note>
+
+			<emu-note type="editor"><span class="note">Editor's Note</span><div class="note-contents">
+				An extra <emu-xref href="#sec-execution-contexts"><a href="https://tc39.es/ecma262/#sec-execution-contexts">execution context</a></emu-xref> is created around the call to <emu-xref aoid="HostImportModuleDynamically" id="_ref_12"><a href="https://tc39.es/ecma262/#sec-hostimportmoduledynamically">HostImportModuleDynamically</a></emu-xref> in order to execute within the appropriate <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref>--the host can reference the current <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> to figure out how the import should work. An alternative phrasing would be to pass the <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> as a parameter to <emu-xref aoid="HostImportModuleDynamically" id="_ref_13"><a href="https://tc39.es/ecma262/#sec-hostimportmoduledynamically">HostImportModuleDynamically</a></emu-xref>, which could be revisited when merging into the main specification.
+			</div></emu-note>
+		</emu-clause>
+
+		<emu-clause id="sec-realm.prototype.globalthis">
+			<h1><span class="secnum">1.3.2</span> get Realm.prototype.globalThis</h1>
+
+			<p>Realm.prototype.globalThis is an <emu-xref href="#sec-object-type"><a href="https://tc39.es/ecma262/#sec-object-type">accessor property</a></emu-xref> whose set accessor function is <emu-val>undefined</emu-val>. Its get accessor function performs the following steps:</p>
+
+			<emu-alg><ol><li>Let <var>O</var> be <emu-val>this</emu-val> value.</li><li>Perform ?&nbsp;<emu-xref aoid="RequireInternalSlot" id="_ref_14"><a href="https://tc39.es/ecma262/#sec-requireinternalslot">RequireInternalSlot</a></emu-xref>(<var>O</var>, [[Realm]]).</li><li>Return <var>O</var>.[[Realm]].[[GlobalEnv]].[[GlobalThisValue]].</li></ol></emu-alg>
+		</emu-clause>
+
+		<emu-clause id="sec-realm.prototype-@@tostringtag">
+			<h1><span class="secnum">1.3.3</span> Realm.prototype [ @@toStringTag ]</h1>
+
+			<p>The initial value of the @@toStringTag property is the String value "<emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref>".</p>
+
+			<p>This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.</p>
+		</emu-clause>
+	</emu-clause>
+
+	<emu-clause id="sec-properties-of-realm-instances">
+		<h1><span class="secnum">1.4</span> Properties of Realm Instances</h1>
+
+		<p><emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> instances are ordinary objects that inherit properties from the <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> prototype object (the intrinsic, %RealmPrototype%). <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> instances are initially created with the internal slots described in <emu-xref href="#table-3" id="_ref_0"><a href="#table-3">Table 2</a></emu-xref>.</p>
+
+		<emu-table id="table-3" caption="Internal Slots of Realm Instances"><figure><figcaption>Table 2: Internal Slots of <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> Instances</figcaption>
+			<table>
+				<tbody>
+					<tr>
+						<th>Internal Slot</th>
+						<th>Type</th>
+						<th>Description</th>
+					</tr>
+					<tr>
+						<td>[[Realm]]</td>
+						<td><emu-xref href="#realm-record"><a href="https://tc39.es/ecma262/#realm-record">Realm Record</a></emu-xref></td>
+						<td>The <emu-xref href="#realm-record"><a href="https://tc39.es/ecma262/#realm-record">Realm Record</a></emu-xref> for the initial <emu-xref href="#sec-execution-contexts"><a href="https://tc39.es/ecma262/#sec-execution-contexts">execution context</a></emu-xref>.</td>
+					</tr>
+					<tr>
+						<td>[[ExecutionContext]]</td>
+						<td><emu-xref href="#sec-execution-contexts"><a href="https://tc39.es/ecma262/#sec-execution-contexts">Execution context</a></emu-xref></td>
+						<td>An <emu-xref href="#sec-execution-contexts"><a href="https://tc39.es/ecma262/#sec-execution-contexts">execution context</a></emu-xref> wherein the current <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> is this [[Realm]].</td>
+					</tr>
+				</tbody>
+			</table>
+		</figure></emu-table>
+	</emu-clause>
+
+	<emu-clause id="sec-realm-host-operations">
+		<h1><span class="secnum">1.5</span> Host operations</h1>
+		<emu-clause id="sec-host-initialize-user-realm" aoid="HostInitializeUserRealm">
+			<h1><span class="secnum">1.5.1</span> Runtime Semantics: HostInitializeUserRealm ( <var>realm</var> )</h1>
+			<p>
+				HostInitializerUserRealm is an implementation-defined abstract
+				operation used to inform the host of any newly created realms from
+				the <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> <emu-xref href="#constructor"><a href="https://tc39.es/ecma262/#constructor">constructor</a></emu-xref>. Its return value is not used, though it may
+				throw an exception. The idea of this hook is to initialize host
+				data structures related to the <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref>, e.g., for module loading. It
+				is not expected that this hook would add properties to the <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref>'s
+				<emu-xref href="#sec-global-object"><a href="https://tc39.es/ecma262/#sec-global-object">global object</a></emu-xref>.
+			</p>
+		</emu-clause>
+	</emu-clause>
+
+</emu-clause>
+</div></body>
