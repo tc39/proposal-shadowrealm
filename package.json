@@ -24,10 +24,11 @@
     "url": "git+https://github.com/tc39/proposal-realms.git"
   },
   "scripts": {
-    "build": "ecmarkup spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js",
-    "watch": "ecmarkup --watch spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js"
+    "prebuild": "mkdirp dist",
+    "build": "ecmarkup --verbose spec.html dist/index.html --css dist/ecmarkup.css --js dist/ecmarkup.js",
+    "watch": "npm run build -- --watch"
   },
   "devDependencies": {
-    "ecmarkup": "^3.16.0"
+    "ecmarkup": "^3.21.1"
   }
 }
