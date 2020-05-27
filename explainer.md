@@ -2,11 +2,14 @@
 
 ## Introduction
 
-WIP
+Realms are a distinct global environment, with its own global object containing its own intrinsics and built-ins (standard objects that are not bound to global variables, like the initial value of Object.prototype).
+
+The Realms API allow loading 
 
 ### Intuitions
 
 * sandbox
+* virtualization / testing
 * iframe without DOM
 * principled version of Node's `'vm'` module
 * sync Worker
