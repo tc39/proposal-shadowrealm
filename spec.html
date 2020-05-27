@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf8">
-<pre class=metadata>
-title: Realms API
+<pre class="metadata">
+title: 'Realms API'
 stage: 2
 contributors: Dave Herman, Caridy Patiño, Mark Miller, Leo Balter
 status: proposal
@@ -72,7 +72,7 @@ location: https://tc39.github.io/proposal-realms/
   <emu-clause id="sec-properties-of-the-realm-constructor">
       <h1>Properties of the Realm Constructor</h1>
 
-      The value of the [[Prototype]] internal slot of the *Realm* constructor is the intrinsic object %FunctionPrototype%.
+      <p>The value of the [[Prototype]] internal slot of the *Realm* constructor is the intrinsic object %FunctionPrototype%.</p>
 
   </emu-clause>
 
@@ -82,7 +82,7 @@ location: https://tc39.github.io/proposal-realms/
       <emu-clause id="sec-realm.prototype.import">
           <h1>Realm.prototype.import ( _specifier_ )</h1>
 
-          The following steps are taken:
+          <p>The following steps are taken:</p>
 
           <emu-alg>
           1. Let _O_ be *this* value.
@@ -110,7 +110,7 @@ location: https://tc39.github.io/proposal-realms/
       <emu-clause id="sec-realm.prototype.globalthis">
           <h1>get Realm.prototype.globalThis</h1>
 
-          Realm.prototype.globalThis is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:
+          <p>Realm.prototype.globalThis is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:</p>
 
           <emu-alg>
           1. Let _O_ be *this* value.
@@ -122,16 +122,16 @@ location: https://tc39.github.io/proposal-realms/
       <emu-clause id="sec-realm.prototype-@@tostringtag">
           <h1>Realm.prototype [ @@toStringTag ]</h1>
 
-          The initial value of the @@toStringTag property is the String value "Realm".
+          <p>The initial value of the @@toStringTag property is the String value "Realm".</p>
 
-          This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.
+          <p>This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.</p>
       </emu-clause>
   </emu-clause>
 
   <emu-clause id="sec-properties-of-realm-instances">
       <h1>Properties of Realm Instances</h1>
 
-      Realm instances are ordinary objects that inherit properties from the Realm prototype object (the intrinsic, %RealmPrototype%). Realm instances are initially created with the internal slots described in <emu-xref href="#table-3"></emu-xref>.
+      <p>Realm instances are ordinary objects that inherit properties from the Realm prototype object (the intrinsic, %RealmPrototype%). Realm instances are initially created with the internal slots described in <emu-xref href="#table-3"></emu-xref>.</p>
 
       <emu-table id="table-3" caption="Internal Slots of Realm Instances">
           <table>
