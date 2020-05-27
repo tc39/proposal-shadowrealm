@@ -28,6 +28,6 @@
     "watch": "ecmarkup --watch spec/index.emu index.html --css ecmarkup.css --js ecmarkup.js"
   },
   "devDependencies": {
-    "ecmarkup": "^3.16.0"
+    "ecmarkup": "^3.21.1"
   }
 }
