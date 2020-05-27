@@ -1,5 +1,21 @@
-node_modules
+dist
+
+# Installed npm modules
 package-lock.json
+node_modules
 yarn.lock
 yarn-error.log
+
+# Folder view configuration files
+.DS_Store
+Desktop.ini
+
+# Thumbnail cache files
+._*
+Thumbs.db
+
+# Files that might appear on external disks
+.Spotlight-V100
+.Trashes
+
 .nyc_output
