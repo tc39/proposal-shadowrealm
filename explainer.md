@@ -6,7 +6,17 @@ Realms are a distinct global environment, with its own global object containing 
 
 The Realms API allow execution of script within an isolated [global environment record](https://tc39.es/ecma262/#sec-global-environment-records). Just like the the Global Environment Record, each new realm will provide the [bindings for built-in globals](https://tc39.es/ecma262/#table-7), properties of the [global object](https://tc39.es/ecma262/#sec-global-object), and for all top-level declarations that occur within the Realm's Script.
 
-The Realms API does not create - or rely on - a new executing thread. New realms will not behave like different [Agents](https://tc39.es/ecma262/#sec-agents). Although, the Realms API offers a way to import modules asynchronously, just like the `import()` expression, following the same design patterns. It also offers a way to execute code synchronously, 
+The Realms API does not create - or rely on - a new executing thread. New realms will not behave like different [Agents](https://tc39.es/ecma262/#sec-agents). Although, the Realms API offers a way to import modules asynchronously, just like the `import()` expression, following the same design patterns. It also offers a way to execute code synchronously, through regular evaluation built-ins.
+
+## API (TypeScript Format)
+
+```ts
+declare class Realm {
+    constructor();
+    readonly globalThis: typeof globalThis;
+    import(specifier: string): Promise<Namespace>;
+}
+```
 
 ### Intuitions
 
@@ -41,17 +51,34 @@ Note: the majority of the examples above will require synchronous operations to 
 
 A walk-through of the Realm API with examples and explanations:
 
-### TypeScript API
+## Examples
 
-```ts
-declare class Realm {
-    constructor();
-    readonly globalThis: typeof globalThis;
-    import(specifier: string): Promise<Namespace>;
-}
+```js
+// this is the root realm
+var x = 39;
+const realm = new Realm();
+
+// globals from the root/parent realm are not leaked to the nested realms
+realm.globalThis.x; // undefined
+
+// evaluation occurs within the nested realm
+realm.globalThis.eval("var x = 42");
+
+// global names can be regularly observed in the realm's globalThis
+realm.globalThis.x; // 42
+
+// global values are not leaked to the parent realms
+x; // 39
+
+// built-ins configurability are not different
+delete realm.globalThis.Math;
+
+// realms can dynamic import module that will execute within it's own
+// environment. Imports can be observed from the parent realm.
+realm.import('./file.js').then(ns => ns.execCustomCode());
 ```
 
-TODO: add few examples...
+See some other examples [here](EXAMPLES.md).
 
 ### Modules
 
@@ -75,14 +102,16 @@ There is one important thing to keep in mind when it comes to sharing module gra
 
 Explain why should the realm proposal create a new Realm on the same process, why not in a different process?
 
-WIP
+_TODO: WIP_
+
+WIP Idea: mention that different processes is already possible through Workers. Meanwhile, Realms provide a more closer channel to execute and control the virtualized environments, with seamless usage in a single script. This virtualization model also avoid concerns on security boundaries, e.g. mechanisms to observe time and memory changes.
 
 ### Security
 
 This proposal does not mention "security" as one of the primary use-cases, and this is mostly for two reasons:
 
 1. In the context of the web, "security" is mostly associated to measure duration (time), while the Realm proposal does not provide any mechanism to control or modulate that.
-2. "Integrity" is far better understood in the context of Ecma-262, with strong precedents like closure, objects and private fields, to mention a few.
+2. "Integrity" is far better understood in the context of ECMA-262, with strong precedents like closure, objects and private fields, to mention a few.
 
 A very simple demonstration of how a new Realm is not a security boundary is the fact that to interact with the code evaluated inside a realm, you must likely combine the new realm's object graph with the outer realm's object graph, e.g.:
 
@@ -101,7 +130,7 @@ There are two main subtleties in the example above:
 
 Nevertheless, you can virtualize the intersection between the two realms by using Proxies to preserve integrity and eliminate the identity discontinuity problems (a "near membrane" is a good example of this). This is not different to what you can achieve today via same domain iframes, or VM context in nodejs, which by no means represents any security boundary.
 
-TODO: should we touch on overchannels vs non-overchannels here? /cc @erights
+_TODO: should we touch on overchannels vs non-overchannels here? /cc @erights_
 
 #### Combining Security and Integrity
 
@@ -111,7 +140,7 @@ We believe that realms can be a good complement to existing security mechanisms 
 * Each sub-app runs in a cross-domain iframe (communicating with the main app via post-message).
 * Each vendor (one per app) can attempt to enhance their sub-app that display their content by executing their code in a realm that provide access to a well defined set of APIs to preserve the integrity of the sub-app.
 
-TODO: cc @jridgewell to see if this is accurate.
+_TODO: cc @jridgewell to see if this is accurate._
 
 There are many examples like this for the web: Google Sheets, Figma's plugins, or Salesforce's Locker Service for Web Components.
 

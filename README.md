@@ -1,5 +1,22 @@
 # ECMAScript spec proposal for Realms API
 
+## Index
+
+- [Status](#status)
+- [Spec Text](#spec-text)
+- [History](#history)
+- [What Are Realms?](#what-are-realms)
+- [API](#api-typescript-format)
+- [Examples](#examples)
+- [Presentations](#presentations)
+- [Contributing](#contributing)
+
+### Other documents:
+
+- [Code of Conduct](https://tc39.es/code-of-conduct/)
+- [Explainer](explainer.md)
+- [Examples](EXAMPLES.md)
+
 ## Status
 
 ### Current Stage
@@ -15,8 +32,6 @@ This proposal is at stage 2 of [the TC39 Process](https://tc39.es/process-docume
 ### Spec Text
 
 You can view the spec rendered as [HTML](https://tc39.es/proposal-realms/).
-
-# Realms
 
 ## History
 
@@ -43,103 +58,32 @@ declare class Realm {
 
 ## Examples
 
-### Example: simple realm
-
 ```js
-let g = globalThis; // outer global
-let r = new Realm(); // root realm
+// this is the root realm
+var x = 39;
+const realm = new Realm();
 
-let f = r.globalThis.Function("return 17");
+// globals from the root/parent realm are not leaked to the nested realms
+realm.globalThis.x; // undefined
 
-f() === 17 // true
+// evaluation occurs within the nested realm
+realm.globalThis.eval("var x = 42");
 
-Reflect.getPrototypeOf(f) === g.Function.prototype // false
-Reflect.getPrototypeOf(f) === r.globalThis.Function.prototype // true
+// global names can be regularly observed in the realm's globalThis
+realm.globalThis.x; // 42
+
+// global values are not leaked to the parent realms
+x; // 39
+
+// built-ins configurability are not different
+delete realm.globalThis.Math;
+
+// realms can dynamic import module that will execute within it's own
+// environment. Imports can be observed from the parent realm.
+realm.import('./file.js').then(ns => ns.execCustomCode());
 ```
 
-### Example: Importing Module
-
-```js
-let r = new Realm();
-const { x } = await r.import('/path/to/foo.js');
-```
-
-In this example, the new realm will fetch, and evaluate the module, and extract the `x` named export from that module namespace. `Realm.prototype.import` is equivalent to the dynamic import syntax (e.g.: `const { x } = await import('/path/to/foo.js');` from within the realm. In some cases, evaluation will not be available (e.g.: in browsers, CSP might block unsafe-eval), while importing from module is still possible.
-
-### Example: Virtualized contexts
-
-Importing modules allow us to run asynchronous executions with set boundaries for access to global environment contexts.
-
-#### main js file:
-
-```js
-globalThis.DATA = "a global value";
-
-let r = new Realm();
-
-// r.import is equivalent to the dynamic import expression
-// It provides asynchronous execution, without creating or relying in a
-// different thread or process.
-r.import("./sandbox.js").then(({test}) => {
- 
-  // globals in this root realm are not leaked
-  test("DATA"); // undefined
-
-  let desc = test("Array"); // {writable: true, enumerable: false, configurable: true, value: ƒ}
-  let Arr = desc.value;
-
-  Arr === r.globalThis.Array; // true
-  Arr === Array; // false
-
-  // foo and bar are immediately visible as globals here.
-});
-```
-
-#### sandbox.js file
-
-```js
-// DATA is not available as a global name here
-
-// Names here are not leaked to the root realm
-var foo = 42;
-globalThis.bar = 39;
-
-export function test(property) {
-
-  // Built-ins like `Object` are included.
-  return Object.getPropertyDescriptor(globalThis, property);
-}
-```
-
-### Example: simple subclass
-
-```js
-class EmptyRealm extends Realm {
-  constructor(...args) {
-    super(...args);
-    let globalThis = this.globalThis;
-
-    // delete global descriptors:
-    delete globalThis.Math;
-    ...
-  }
-}
-```
-
-### Example: DOM mocking
-
-```js
-class FakeWindow extends Realm {
-  constructor(...args) {
-    super(...args);
-    let globalThis = this.globalThis;
-
-    globalThis.document = new FakeDocument(...);
-    globalThis.alert = new Proxy(fakeAlert, { ... });
-    ...
-  }
-}
-```
+See some other examples [here](EXAMPLES.md).
 
 ## Presentations
 
@@ -163,14 +107,3 @@ open dist/index.html
 ```
 
 Alternatively, you can use `npm run watch`.
-
-[travis-svg]: https://travis-ci.com/tc39/proposal-realms.svg?branch=master
-[travis-url]: https://travis-ci.com/tc39/proposal-realms
-[coveralls-svg]: https://coveralls.io/repos/github/tc39/proposal-realms/badge.svg
-[coveralls-url]: https://coveralls.io/github/tc39/proposal-realms
-[deps-svg]: https://david-dm.org/tc39/proposal-realms.svg
-[deps-url]: https://david-dm.org/tc39/proposal-realms
-[dev-deps-svg]: https://david-dm.org/tc39/proposal-realms/dev-status.svg
-[dev-deps-url]: https://david-dm.org/tc39/proposal-realms?type=dev
-[license-image]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
-[license-url]: shim/LICENSE
