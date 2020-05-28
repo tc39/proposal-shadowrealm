@@ -138,6 +138,10 @@ emu-note > div.note-contents > p:last-of-type {
   margin-bottom: 0;
 }
 
+emu-table td code {
+  white-space: normal;
+} 
+
 emu-figure {
   display: block;
 }
