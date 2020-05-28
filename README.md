@@ -1,10 +1,27 @@
 # ECMAScript spec proposal for Realms API
 
+## Index
+
+- [Status](#status)
+- [Spec Text](#spec-text)
+- [History](#history)
+- [What Are Realms?](#what-are-realms)
+- [API](#api-typescript-format)
+- [Examples](#examples)
+- [Presentations](#presentations)
+- [Contributing](#contributing)
+
+### Other documents:
+
+- [Code of Conduct](https://tc39.es/code-of-conduct/)
+- [Explainer](explainer.md)
+- [Examples](EXAMPLES.md)
+
 ## Status
 
 ### Current Stage
 
-This proposal is at stage 2 of [the TC39 Process](https://tc39.github.io/process-document/).
+This proposal is at stage 2 of [the TC39 Process](https://tc39.es/process-document/).
 
 ### Champions
 
@@ -16,8 +33,6 @@ This proposal is at stage 2 of [the TC39 Process](https://tc39.github.io/process
 
 You can view the spec rendered as [HTML](https://tc39.es/proposal-realms/).
 
-# Realms
-
 ## History
 
 * we worked on this during ES2015 time frame, so never went through stages process ([ES6 Realm Objects proto-spec.pdf](https://github.com/tc39/proposal-realms/files/717415/ES6.Realm.Objects.proto-spec.pdf))
@@ -25,86 +40,11 @@ You can view the spec rendered as [HTML](https://tc39.es/proposal-realms/).
 * goal of this proposal: resume work on this, reassert committee interest via advancing to stage 2
 * original idea from @dherman: [What are Realms?](https://gist.github.com/dherman/7568885)
 
-## Intuitions
+## What are realms?
 
-* sandbox
-* iframe without DOM
-* principled version of Node's `'vm'` module
-* sync Worker
+Realms are a distinct global environment, with its own global object containing its own intrinsics and built-ins (standard objects that are not bound to global variables, like the initial value of Object.prototype).
 
-## Why we need realms?
-
-Realms allow virtualization of the language itself.
-
-Various examples of why Realms are needed:
-
-  * Web-based IDEs or any kind of 3rd party code execution uses same origin evaluation.
-  * Fiddler & Co.
-  * JSPerf & Co.
-  * Test frameworks (in-browser tests, but also in node using `vm`).
-  * testing/mocking (e.g., jsdom)
-  * Most plugin mechanism for the web (e.g., spreadsheet functions).
-  * Sandboxing (e.g.: Oasis Project)
-  * Server side rendering (to avoid collision and data leakage)
-  * in-browser code editors
-  * in-browser transpilation
-
-Note: the majority of the examples above will require synchronous operations to be supported, which makes it almost impossible to use Workers & co., or any other isolation mechanism in browsers and nodejs today.
-
-## Examples
-
-### Example: simple realm
-
-```js
-let g = window; // outer global
-let r = new Realm(); // root realm
-
-let f = r.globalThis.eval("(function() { return 17 })");
-
-f() === 17 // true
-
-Reflect.getPrototypeOf(f) === g.Function.prototype // false
-Reflect.getPrototypeOf(f) === r.globalThis.Function.prototype // true
-```
-
-### Example: simple subclass
-
-```js
-class EmptyRealm extends Realm {
-  constructor(...args) {
-    super(...args);
-    let globalThis = this.globalThis;
-
-    // delete global descriptors:
-    delete globalThis.Math;
-    ...
-  }
-}
-```
-
-### Example: DOM mocking
-
-```js
-class FakeWindow extends Realm {
-  constructor(...args) {
-    super(...args);
-    let globalThis = this.globalThis;
-
-    globalThis.document = new FakeDocument(...);
-    globalThis.alert = new Proxy(fakeAlert, { ... });
-    ...
-  }
-}
-```
-
-### Example: Importing Module
-
-```js
-let r = new Realm();
-const { x } = await r.import('/path/to/foo.js');
-```
-
-In this example, the new realm will fetch, and evaluate the module, and extract the `x` named export from that module namespace. `Realm.prototype.import` is equivalent to the dynamic import syntax (e.g.: `const { x } = await import('/path/to/foo.js');` from within the realm. In some cases, evaluation will not be available (e.g.: in browsers, CSP might block unsafe-eval), while importing from module is still possible.
+See more at the [explainer](explainer.md) document.
 
 ## API (TypeScript Format)
 
@@ -116,6 +56,35 @@ declare class Realm {
 }
 ```
 
+## Examples
+
+```js
+// this is the root realm
+var x = 39;
+const realm = new Realm();
+
+// globals from the root/parent realm are not leaked to the nested realms
+realm.globalThis.x; // undefined
+
+// evaluation occurs within the nested realm
+realm.globalThis.eval("var x = 42");
+
+// global names can be regularly observed in the realm's globalThis
+realm.globalThis.x; // 42
+
+// global values are not leaked to the parent realms
+x; // 39
+
+// built-ins configurability are not different
+delete realm.globalThis.Math;
+
+// realms can dynamic import module that will execute within it's own
+// environment. Imports can be observed from the parent realm.
+realm.import('./file.js').then(ns => ns.execCustomCode());
+```
+
+See some other examples [here](EXAMPLES.md).
+
 ## Presentations
 
 * [TC39 Incubator Call May 26th 2020](https://docs.google.com/presentation/d/1FMQB8fu059zSJOtC3uOCbBCYiXAcvHojxzcDjoVQYAo/edit)
@@ -126,27 +95,15 @@ declare class Realm {
 
 ### Updating the spec text for this proposal
 
-The source for the spec text is located in [spec/index.emu](spec/index.emu) and it is written in
+The source for the spec text is located in [spec.html](spec.emu) and it is written in
 [ecmarkup](https://github.com/bterlson/ecmarkup) language.
 
-When modifying the spec text, you should be able to build the HTML version in
-`index.html` by using the following command:
+When modifying the spec text, you should be able to build the HTML version by using the following command:
 
 ```bash
 npm install
 npm run build
-open index.html
+open dist/index.html
 ```
 
-Alternative, you can use `npm run watch`.
-
-[travis-svg]: https://travis-ci.com/tc39/proposal-realms.svg?branch=master
-[travis-url]: https://travis-ci.com/tc39/proposal-realms
-[coveralls-svg]: https://coveralls.io/repos/github/tc39/proposal-realms/badge.svg
-[coveralls-url]: https://coveralls.io/github/tc39/proposal-realms
-[deps-svg]: https://david-dm.org/tc39/proposal-realms.svg
-[deps-url]: https://david-dm.org/tc39/proposal-realms
-[dev-deps-svg]: https://david-dm.org/tc39/proposal-realms/dev-status.svg
-[dev-deps-url]: https://david-dm.org/tc39/proposal-realms?type=dev
-[license-image]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
-[license-url]: shim/LICENSE
+Alternatively, you can use `npm run watch`.
