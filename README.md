@@ -14,7 +14,7 @@ This proposal is at stage 2 of [the TC39 Process](https://tc39.github.io/process
 
 ### Spec Text
 
-You can view the spec rendered as [HTML](https://rawgit.com/tc39/proposal-realms/master/index.html).
+You can view the spec rendered as [HTML](https://tc39.es/proposal-realms/).
 
 # Realms
 
