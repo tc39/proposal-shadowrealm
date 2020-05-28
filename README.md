@@ -126,16 +126,16 @@ declare class Realm {
 
 ### Updating the spec text for this proposal
 
-The source for the spec text is located in [spec/index.emu](spec/index.emu) and it is written in
+The source for the spec text is located in [spec.html](spec.html) and it is written in
 [ecmarkup](https://github.com/bterlson/ecmarkup) language.
 
-When modifying the spec text, you should be able to build the HTML version in
-`index.html` by using the following command:
+When modifying the spec text, you should be able to build the HTML in
+`dist/index.html` by using the following command:
 
 ```bash
 npm install
 npm run build
-open index.html
+open dist/index.html
 ```
 
 Alternative, you can use `npm run watch`.
