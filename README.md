@@ -95,7 +95,7 @@ See some other examples [here](EXAMPLES.md).
 
 ### Updating the spec text for this proposal
 
-The source for the spec text is located in [spec.html](spec.emu) and it is written in
+The source for the spec text is located in [spec.html](spec.html) and it is written in
 [ecmarkup](https://github.com/bterlson/ecmarkup) language.
 
 When modifying the spec text, you should be able to build the HTML version by using the following command:
