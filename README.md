@@ -23,11 +23,17 @@
 
 This proposal is at stage 2 of [the TC39 Process](https://tc39.es/process-document/).
 
+### Authors
+
+  * @jfparadis
+  * @caridy
+  * @dherman
+
 ### Champions
 
- * @dherman
- * @caridy
- * @erights
+  * @caridy
+  * @erights
+  * @leobalter
 
 ### Spec Text
 
