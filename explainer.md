@@ -1,6 +1,43 @@
 # Realms Explainer
 
-## Introduction
+<!-- vscode-markdown-toc -->
+* [Introduction](#Introduction)
+* [API (TypeScript Format)](#APITypeScriptFormat)
+* [Motivations](#Motivations)
+* [Clarifications](#Clarifications)
+	* [Terminology](#Terminology)
+	* [The Realm's Global Object](#TheRealmsGlobalObject)
+	* [Evaluation](#Evaluation)
+	* [Module graph](#Modulegraph)
+	* [Compartments](#Compartments)
+* [Use Cases](#UseCases)
+	* [Third Party Scripts](#ThirdPartyScripts)
+	* [Code Testing](#CodeTesting)
+		* [Running tests in a Realm](#RunningtestsinaRealm)
+		* [Test FWs + Tooling to run tests in a realm](#TestFWsToolingtoruntestsinarealm)
+	* [Codebase segmentation](#Codebasesegmentation)
+	* [Template libraries](#Templatelibraries)
+	* [DOM Virtualization](#DOMVirtualization)
+		* [DOM Virtualization: AMP WorkerDOM Challenge](#DOMVirtualization:AMPWorkerDOMChallenge)
+* [More Examples](#MoreExamples)
+* [Modules](#Modules)
+* [General Goals and Values for Realms](#GeneralGoalsandValuesforRealms)
+	* [Integrity](#Integrity)
+		* [Security vs Integrity](#SecurityvsIntegrity)
+	* [Virtualized Environment](#VirtualizedEnvironment)
+		* [DOM mocking](#DOMmocking)
+* [ Alternatives](#Alternatives)
+	* [Status Quo](#StatusQuo)
+	* [Iframes](#Iframes)
+	* [Why not separate processes?](#Whynotseparateprocesses)
+
+<!-- vscode-markdown-toc-config
+	numbering=false
+	autoSave=true
+	/vscode-markdown-toc-config -->
+<!-- /vscode-markdown-toc -->
+
+## <a name='Introduction'></a>Introduction
 
 Realms are a distinct global environment, with its own global object containing its own intrinsics and built-ins (standard objects that are not bound to global variables, like the initial value of Object.prototype).
 
@@ -10,7 +47,7 @@ The Realms API does not create - or rely on - a new executing thread. New realms
 
 Any code executed within this realm may introduce changes to global variables or built-ins, but limited to the realm global Record.
 
-## API (TypeScript Format)
+## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
 ```ts
 declare class Realm {
@@ -20,15 +57,7 @@ declare class Realm {
 }
 ```
 
-### Intuitions
-
-* sandbox
-* virtualization / testing
-* iframe without DOM
-* principled version of Node's `'vm'` module
-* sync Worker
-
-## Motivations
+## <a name='Motivations'></a>Motivations
 
 Why do developers need realms?
 
@@ -37,8 +66,9 @@ It's quite common for an applications to contain programs from multiple sources,
 Various examples where Realms can be used to avoid this:
 
   * Web-based IDEs or any kind of 3rd party code execution uses same origin evaluation.
-  * Test frameworks (in-browser tests, but also in node using `vm`).
-  * testing/mocking (e.g., jsdom)
+  * DOM Virtualization (e.g.: AMP)
+  * Test frameworks and reporters(in-browser tests, but also in node using `vm`).
+  * testing/mocking (e.g.: jsdom)
   * Most plugin mechanism for the web (e.g., spreadsheet functions).
   * Sandboxing (e.g.: Oasis Project)
   * Server side rendering (to avoid collision and data leakage)
@@ -47,42 +77,158 @@ Various examples where Realms can be used to avoid this:
 
 Note: the majority of the examples above will require synchronous operations to be supported, which makes it almost impossible to use Workers & co., or any other isolation mechanism in browsers and nodejs today.
 
-## Overview
+## <a name='Clarifications'></a>Clarifications
 
-## API
+### <a name='Terminology'></a>Terminology
 
-A walk-through of the Realm API with examples and explanations:
+In the Web Platform, both `Realm` and `Global Object` are usually associated to Window, Worker, and Worklets semantics. They are also associated to their detachable nature.
 
-## Examples
+This proposal is limited to the semantics specified by ECMA-262 with no extra requirements from the web counterparts.
+
+### <a name='TheRealmsGlobalObject'></a>The Realm's Global Object
+
+- The Realm's [Global Object](https://tc39.es/ecma262/#sec-ordinary-object) is an [Ordinary Object](https://tc39.es/ecma262/#sec-ordinary-object).
+- A Realm Object (and its global object) are not detachable
+- A Realm Object has a lifeline to its incubator Realm
+
+![](assets/detachable-realms.png)
+
+### <a name='Evaluation'></a>Evaluation
+
+The Realm API does not introduce a new way to evaluate code, it reuses the existing evaluation mechanisms:
+
+- If you disable CSP `unsafe-eval`, you cannot evaluate code synchronously.
+- If you disable CSP `default-src`, you cannot use `Realm.prototype.import()`.
+
+### <a name='Modulegraph'></a>Module graph
+
+Every Realm object has its own module graph.
 
 ```js
-// this is the root realm
-var x = 39;
 const realm = new Realm();
 
-// globals from the root/parent realm are not leaked to the nested realms
-realm.globalThis.x; // undefined
+// imports code that executes within its own environment.
+const { doSomething } = await realm.import('./file.js');
 
-// evaluation occurs within the nested realm
-realm.globalThis.eval("var x = 42");
-
-// global names can be regularly observed in the realm's globalThis
-realm.globalThis.x; // 42
-
-// global values are not leaked to the parent realms
-x; // 39
-
-// built-ins configurability are not different
-delete realm.globalThis.Math;
-
-// realms can dynamic import module that will execute within it's own
-// environment. Imports can be observed from the parent realm.
-realm.import('./file.js').then(ns => ns.execCustomCode());
+doSomething();
 ```
+
+### <a name='Compartments'></a>Compartments
+
+- A new [compartment](https://github.com/tc39/proposal-compartments) provides a new Realm constructor
+- A realm object created from a compartment is subject to the compartment's virtualization mechanism
+
+```js
+const compartment = new Compartment(options);
+const VirtualizedRealm = compartment.globalThis.Realm;
+const realm = new VirtualizedRealm();
+const { doSomething } = await realm.import('./file.js');
+```
+
+## <a name='UseCases'></a>Use Cases
+
+- Third Party Scripts
+- Code Testing
+- Codebase segmentation
+- Template libraries
+- DOM Virtualization
+
+### <a name='ThirdPartyScripts'></a>Third Party Scripts
+
+- We want a quick and simple execution of third party scripts.
+- Not one, not two, not three, but many scripts.
+- We don't need a new host/agent, but just integrity of the expected Intrinsics.
+- Non-blocking async loading and execution via `realm.import`.
+- No immediate access to application globals (e.g. `window`) is also convenient.
+- No immediate access to unforgeables (e.g. `window.top`, `window.location`) is great.
+
+```js
+import { api } from 'pluginFramework';
+const realm = new Realm();
+
+realm.globalThis.api = api;
+
+await realm.import('./plugin1.js');
+```
+
+### <a name='CodeTesting'></a>Code Testing
+
+While threading is good for testing, the layering from Realms is also great.
+
+Test frameworks can use Realms to inject code and also control the order the injections if necessary.
+
+#### <a name='RunningtestsinaRealm'></a>Running tests in a Realm
+
+```js
+import { test } from 'testFramework';
+const realm = new Realm();
+
+realm.globalThis.test = test;
+await realm.import('./main-spec.js');
+
+test.report();
+```
+
+#### <a name='TestFWsToolingtoruntestsinarealm'></a>Test FWs + Tooling to run tests in a realm
+
+```js
+const realm = new Realm();
+const [ framework, { tap } ] = await Promise.all([
+ realm.import('testFramework'),
+ realm.import('reporters')
+]);
+
+framework.use(tap);
+await realm.import('./main-spec.js');
+```
+
+### <a name='Codebasesegmentation'></a>Codebase segmentation
+
+- A big codebase tend to evolve slowly.
+- Old code vs new code is a constant struggle.
+- Modifying code to resolve a conflict (e.g.: global variables) is non-trivial.
+- With a lightweight mechanism to preserve the integrity of the intrinsics you could isolate libraries, or logical pieces of the codebase.
+
+### <a name='Templatelibraries'></a>Template libraries
+
+Code generation should not be subject to pollution (global, prototype, etc.). E.g.: Lodash's `_.template()` uses `Function(...)` to create a compiled template function, instead it could use a Realm to avoid leaking global variables. The same Realm could be reused multiple times.
+
+```js
+var compiled = _.template(
+'<% _.forEach(users, function(user) { %><li><%- user %></li><% }); %>'
+);
+
+compiled({ users: ['user1', 'user2'] });
+```
+
+### <a name='DOMVirtualization'></a>DOM Virtualization
+
+- We still want things to still interact with the DOM
+- We don't want to spend any excessive amount of resources
+- We want to emulate the DOM as best as possible
+  - Requiring other libraries to change to meet our requirements is difficult
+
+```js
+import virtualDocument from 'virtual-document';
+
+const realm = new Realm();
+
+realm.globalThis.document = virtualDocument;
+
+await realm.import('./publisher-amin.js');
+```
+
+#### <a name='DOMVirtualization:AMPWorkerDOMChallenge'></a>DOM Virtualization: AMP WorkerDOM Challenge
+
+Problem: Element.getBoundingClientRect() doesn't work over async comm channels (i.e. [worker-dom](https://github.com/ampproject/worker-dom)).
+
+![AMP WorkerDOM Challenge diagram](assets/amp-workerdom-challenge.png)
+
+## <a name='MoreExamples'></a>More Examples
 
 See some other examples [here](EXAMPLES.md).
 
-### Modules
+## <a name='Modules'></a>Modules
 
 In principle, the Realm proposal does not provide the controls for the module graphs. Every new Realm initializes its own module graph, while any invocation to `Realm.prototype.import()` method, or by using `import()` when evaluating code inside the realm, will populate this module graph. This is analogous to same-domain iframes, and VM in nodejs.
 
@@ -100,9 +246,9 @@ There are some precedents on how to solve the identity discontinuity issues by u
 
 There is one important thing to keep in mind when it comes to sharing module graphs. The ESM linkage is not asynchronous. This dictates that in order to share modules between realms, those realms should share the same process, otherwise the bindings between those modules cannot work according to the language. This is another reason to support our claim that Realms should be running within the same process.
 
-## Use Cases
+## <a name='GeneralGoalsandValuesforRealms'></a>General Goals and Values for Realms
 
-### Integrity
+### <a name='Integrity'></a>Integrity
 
 We believe that realms can be a good complement to integrity mechanisms by providing ways to evaluate code who access different object graphs (different global objects) while maintaining the integrity of the outer realm. A concrete example of this is the Google's AMP current mechanism:
 
@@ -110,15 +256,13 @@ We believe that realms can be a good complement to integrity mechanisms by provi
 * Each sub-app runs in a cross-domain iframe (communicating with the main app via post-message).
 * Each vendor (one per app) can attempt to enhance their sub-app that display their content by executing their code in a realm that provide access to a well defined set of APIs to preserve the integrity of the sub-app.
 
-_TODO: cc @jridgewell to see if this is accurate._
-
 There are many examples like this for the web: Google Sheets, Figma's plugins, or Salesforce's Locker Service for Web Components.
 
-#### Security vs Integrity
+#### <a name='SecurityvsIntegrity'></a>Security vs Integrity
 
 There are also other more exotic cases in which measuring of time ("security") is not a concern, especially in IOT where many devices might not have process boundaries at all. Or examples where security is not a concern, e.g.: test runners like jest (from facebook) that relies on nodejs, JSDOM and VM contexts to execute individual tests while sharing a segment of the object graph to achieve the desired performance budget. No doubts that this type of tools are extremely popular these days, e.g.: JSDOM has 10M installs per week according to NPM's registry.
 
-### Virtualized Environment
+### <a name='VirtualizedEnvironment'></a>Virtualized Environment
 
 The usage of different realms allow customized access to the global environment. To start, The global object could be immediately frozen.
 
@@ -147,7 +291,7 @@ realm.import('./file.js');
 iframe.contentWindow.eval("import('./file.js')");
 ```
 
-#### DOM mocking
+#### <a name='DOMmocking'></a>DOM mocking
 
 The Realms API allows a much smarter approach for DOM mocking, where the globalThis can be setup in userland. This also takes advantage of the Realm constructor being subclassable:
 
@@ -166,42 +310,13 @@ class FakeWindow extends Realm {
 
 This code allows a customized set of properties to each new Realm and avoid issues on handling immutable accessors/properties from the Window proxy. e.g.: `window.top`, `window.location`, etc..
 
-## Testing
+## <a name='Alternatives'></a> Alternatives
 
-The Realms API is very useful for testing purposes. It can provide a limited context that can observe code reliance:
-
-```js
-import Tester from 'myTestFramework';
-
-class TestRealm extends Realm {
-  constructor(...args) {
-    super(...args);
-    const globalThis = this.globalThis;
-
-    // Loads the globalThis with the Tester API
-    Object.assign(globalThis, new Tester());
-
-    Object.freeze(globalThis);
-  }
-
-  async exec(testFile) {
-    // Assuming testFile matches a valid loader specifier
-    return await this.import(testFile);
-  }
-}
-
-const myTests = new TestRealm();
-
-myTests.exec('./hanoi-tower-spec.js');
-```
-
-##  Alternatives
-
-### Status Quo
+### <a name='StatusQuo'></a>Status Quo
 
 Using VM module in nodejs, and same-domain iframes in browsers. Although, VM modules in node is a very good approximation to this proposal, iframes are problematic. 
 
-### Iframes
+### <a name='Iframes'></a>Iframes
 
 Developers can technically already create a new Realm by creating new same-domain iframe, but there are few impediments to use this as a reliable mechanism:
 
@@ -209,7 +324,7 @@ Developers can technically already create a new Realm by creating new same-domai
 * there are multiple ~~unforgeable~~ unvirtualizable objects due to the DOM semantics, this makes it almost impossible to eliminate certain capabilities while downgrading the window to a brand new global without DOM.
 * global `top` reference is ~~unforgeable~~ not virtualizable and leaks a reference to another global object. The only way to null out this behavior is to detach the iframe, which imposes other problems, the more relevant is dynamic `import()` calls, __which cannot work in detached realms__.
 
-### Why not separate processes?
+### <a name='Whynotseparateprocesses'></a>Why not separate processes?
 
 This is another alternative, creating a Realm that runs in a separate process, while allowing users to define and create their own protocol of communication between these processes. This alternative was discarded for two main reasons:
 
