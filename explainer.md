@@ -39,15 +39,19 @@
 
 ## <a name='Introduction'></a>Introduction
 
-Realms are a distinct global environment, with its own global object containing its own intrinsics and built-ins (standard objects that are not bound to global variables, like the initial value of Object.prototype).
+A Realm is a distinct global environment with its own global object, built-ins, and intrinsics, such as standard objects that are not bound to global variables, like the initial value of `Object.prototype`.
 
-The Realms API allow execution of script within an isolated [global environment record](https://tc39.es/ecma262/#sec-global-environment-records). Just like the the Global Environment Record, each new realm will provide the [bindings for built-in globals](https://tc39.es/ecma262/#table-7), properties of the [global object](https://tc39.es/ecma262/#sec-global-object), and for all top-level declarations that occur within the Realm's Script.
+Each new Realm from the Realms API has a specific [Global Environment Record](https://tc39.es/ecma262/#sec-global-environment-records) providing the [bindings for built-in globals](https://tc39.es/ecma262/#table-7), properties of the [global object](https://tc39.es/ecma262/#sec-global-object) and a top-level declaration model that occur within the Realm's Script.
 
-The Realms API does not create - or rely on - a new executing thread. New realms will not behave like different [Agents](https://tc39.es/ecma262/#sec-agents). Although, the Realms API offers a way to import modules asynchronously, just like the `import()` expression, following the same design patterns. It also offers a way to execute code synchronously, through regular evaluation built-ins.
+Code can be evaluated and executed within the Realm's Environment Record and Execution Context.
 
-Any code executed within this realm may introduce changes to global variables or built-ins, but limited to the realm global Record.
+The Realms API offers a way to import modules asynchronously, just like the `import()` expression, following the same design patterns. It does not restrict code to be synchronously executed through regular evaluation built-ins (e.g. `eval` and `Function`). The Realms will not behave like different [Agents](https://tc39.es/ecma262/#sec-agents). They do not create - neither rely on - multi-threading.
+
+Any code executed within a Realm may introduce changes to the Realm global variables or built-ins, limited to the Realm's Execution Context.
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
+
+This is the Realms API description in TypeScript format:
 
 ```ts
 declare class Realm {
@@ -57,13 +61,23 @@ declare class Realm {
 }
 ```
 
+The proposed specification defines:
+
+- The [`constructor`](https://tc39.es/proposal-realms/#sec-realm).
+- The [`Realm#import()`](https://tc39.es/proposal-realms/#sec-realm.prototype.import) method, equivalent to the `import()` expression.
+- The [`get Realm#globalThis`](https://tc39.es/proposal-realms/#sec-realm.prototype.import) accessor to the Realm's `globalThis`. This global 
+
 ## <a name='Motivations'></a>Motivations
 
 Why do developers need realms?
 
 It's quite common for an applications to contain programs from multiple sources, whether from different teams, vendors, package managers, etc. These programs must currently contend for the global shared resources, specifically, the shared global object, and the side effect of executing those programs are often hard to observe, causing conflicts between the different programs, and potentially affecting the integrity of the app itself.
 
-Various examples where Realms can be used to avoid this:
+There are existing protocols for asychronous communications such as Workers. Although, for many use-cases, asynchronous communication is a deal-breaker and sometimes just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be stringified before it's sent back and forth.
+
+Another goal for Realms is to provide a lightweight funcionality instead of creating the objects loaded with unused or unforgeable APIs such as the iframes.
+
+There are various examples where Realms can be used to avoid this:
 
   * Web-based IDEs or any kind of 3rd party code execution uses same origin evaluation.
   * DOM Virtualization (e.g.: AMP)
@@ -75,7 +89,7 @@ Various examples where Realms can be used to avoid this:
   * in-browser code editors
   * in-browser transpilation
 
-Note: the majority of the examples above will require synchronous operations to be supported, which makes it almost impossible to use Workers & co., or any other isolation mechanism in browsers and nodejs today.
+Note: the majority of the examples above will require synchronous operations to be supported, which makes it almost impossible to use Workers or similars, or any other isolation mechanisms in browsers and nodejs today.
 
 ## <a name='Clarifications'></a>Clarifications
 
