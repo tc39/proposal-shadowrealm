@@ -28,6 +28,7 @@ This proposal is at stage 2 of [the TC39 Process](https://tc39.es/process-docume
  * @dherman
  * @caridy
  * @erights
+ * @leobalter
 
 ### Spec Text
 
