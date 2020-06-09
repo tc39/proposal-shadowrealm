@@ -106,7 +106,7 @@ This proposal is limited to the semantics specified by ECMA-262 with no extra re
 
 Each Realm's [Global Object](https://tc39.es/ecma262/#sec-ordinary-object) is an [Ordinary Object](https://tc39.es/ecma262/#sec-ordinary-object). It does not require exotic internals or new primitives.
 
-Instances of Realms and their Global Objects are not detachable if compared to iframes, and have their lifeline coupled to their incubator Realm. They are not expected to be kept alive 
+Instances of Realm Objects and their Global Objects are not detachable. They have a lifeline to their incubator Realm. Instead, they work as a group, sharing the settings of their incubator Realm. In other words, they act as encapsulation boundaries, they are analogous to a closure or a private field.
 
 ![](assets/detachable-realms.png)
 
