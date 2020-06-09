@@ -101,22 +101,24 @@ This proposal is limited to the semantics specified by ECMA-262 with no extra re
 
 ### <a name='TheRealmsGlobalObject'></a>The Realm's Global Object
 
-- The Realm's [Global Object](https://tc39.es/ecma262/#sec-ordinary-object) is an [Ordinary Object](https://tc39.es/ecma262/#sec-ordinary-object).
-- A Realm Object (and its global object) are not detachable
-- A Realm Object has a lifeline to its incubator Realm
+
+Each Realm's [Global Object](https://tc39.es/ecma262/#sec-ordinary-object) is an [Ordinary Object](https://tc39.es/ecma262/#sec-ordinary-object). It does not require exotic internals or new primitives.
+
+Instances of Realms and their Global Objects are not detachable if compared to iframes, and have their lifeline coupled to their incubator Realm. They are not expected to be kept alive 
 
 ![](assets/detachable-realms.png)
 
 ### <a name='Evaluation'></a>Evaluation
 
-The Realm API does not introduce a new way to evaluate code, it reuses the existing evaluation mechanisms:
+The Realm API does not introduce a new way to evaluate code, it is subject to the existing evaluation mechanisms such as the [Content-Security-Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
 
-- If you disable CSP `unsafe-eval`, you cannot evaluate code synchronously.
-- If you disable CSP `default-src`, you cannot use `Realm.prototype.import()`.
+If the CSP directive from a page disallows `unsafe-eval`, it prevents synchronous evaluation in the Realm. E.g.: `Realm#globalThis.eval`, `Realm#globalThis.Function`.
 
-### <a name='Modulegraph'></a>Module graph
+The CSP of a page can also set directives like the `default-src` to prevent a Realm from using `Realm#import()`.
 
-Every Realm object has its own module graph.
+### <a name='Modulegraph'></a>Module Graph
+
+Each instance of Realms must have its own Module Graph.
 
 ```js
 const realm = new Realm();
@@ -129,8 +131,9 @@ doSomething();
 
 ### <a name='Compartments'></a>Compartments
 
-- A new [compartment](https://github.com/tc39/proposal-compartments) provides a new Realm constructor
-- A realm object created from a compartment is subject to the compartment's virtualization mechanism
+This proposal does not define any compartmentalization of host behavior. Therefore, it distinguishes itself from the current existing [Compartments](https://github.com/tc39/proposal-compartments) proposal.
+
+A new [Compartment](https://github.com/tc39/proposal-compartments) provides a new Realm constructor. A Realm object from a Compartment is subject to the Compartment's virtualization mechanism.
 
 ```js
 const compartment = new Compartment(options);
@@ -141,6 +144,8 @@ const { doSomething } = await realm.import('./file.js');
 
 ## <a name='UseCases'></a>Use Cases
 
+These are some of the key use cases where the Realms API becomes very useful and important:
+
 - Third Party Scripts
 - Code Testing
 - Codebase segmentation
@@ -149,27 +154,30 @@ const { doSomething } = await realm.import('./file.js');
 
 ### <a name='ThirdPartyScripts'></a>Third Party Scripts
 
-- We want a quick and simple execution of third party scripts.
-- Not one, not two, not three, but many scripts.
-- We don't need a new host/agent, but just integrity of the expected Intrinsics.
-- Non-blocking async loading and execution via `realm.import`.
-- No immediate access to application globals (e.g. `window`) is also convenient.
-- No immediate access to unforgeables (e.g. `window.top`, `window.location`) is great.
+We acknowledge that applications need a quick and simple execution of Third Party Scripts. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent. 
+
+The Realms API allows integrity preservation of globals - including built-ins - of root and incubator Realms, setting specific boundaries for the Environment Records.
+
+Third Party Scripts can be executed in a non-blocking asynchronous evaluation through the `Realm#import()`.
+
+There is no immediate access to the application globals - e.g. `window`, `document`. This comes as a convenience for the application that can provide - or not - values and API in different ways, like frozen properties set in the `Realm#globalThis`. This also creates several opportunities for customization with the Realm Globals not colliding with unforgeables values (`window.top`, `window.location`, etc).
 
 ```js
-import { api } from 'pluginFramework';
+import { fmw } from 'pluginFramework';
 const realm = new Realm();
 
-realm.globalThis.api = api;
+// fmw becomes available in the Realm
+realm.globalThis.fmw = fmw;
 
-await realm.import('./plugin1.js');
+// The Plugin Script will execute within the Realm
+await realm.import('./pluginScript.js');
 ```
 
 ### <a name='CodeTesting'></a>Code Testing
 
-While threading is good for testing, the layering from Realms is also great.
+While multi-threading is useful for testing, the layering enabled from Realms is also great. Test frameworks can use Realms to inject code and also control the order the injections if necessary.
 
-Test frameworks can use Realms to inject code and also control the order the injections if necessary.
+Testing code can run autonomously within the boundaries set from the Realm Record, without immediately conflicting with other tests.
 
 #### <a name='RunningtestsinaRealm'></a>Running tests in a Realm
 
@@ -198,10 +206,11 @@ await realm.import('./main-spec.js');
 
 ### <a name='Codebasesegmentation'></a>Codebase segmentation
 
-- A big codebase tend to evolve slowly.
-- Old code vs new code is a constant struggle.
-- Modifying code to resolve a conflict (e.g.: global variables) is non-trivial.
-- With a lightweight mechanism to preserve the integrity of the intrinsics you could isolate libraries, or logical pieces of the codebase.
+A big codebase tend to evolve slowly and soon becomes legacy code. Old code vs new code is a constant struggle for developers.
+
+Modifying code to resolve a conflict (e.g.: global variables) is non-trivial, specially in big codebases.
+
+The Realms API can provide a lightweight mechanism to preserve the integrity of the intrinsics you could isolate libraries, or logical pieces of the codebase.
 
 ### <a name='Templatelibraries'></a>Template libraries
 
@@ -217,10 +226,12 @@ compiled({ users: ['user1', 'user2'] });
 
 ### <a name='DOMVirtualization'></a>DOM Virtualization
 
-- We still want things to still interact with the DOM
-- We don't want to spend any excessive amount of resources
-- We want to emulate the DOM as best as possible
-  - Requiring other libraries to change to meet our requirements is difficult
+Applications should have control over their own codebase, and requiring other libraries to change to meet our requirements is not trivial.
+
+We still want things to still interact with the DOM without spending any excessive amount of resources.
+
+It is important for applications to emulate the DOM as best as possible.
+
 
 ```js
 import virtualDocument from 'virtual-document';
@@ -234,13 +245,13 @@ await realm.import('./publisher-amin.js');
 
 #### <a name='DOMVirtualization:AMPWorkerDOMChallenge'></a>DOM Virtualization: AMP WorkerDOM Challenge
 
-Problem: Element.getBoundingClientRect() doesn't work over async comm channels (i.e. [worker-dom](https://github.com/ampproject/worker-dom)).
+Problem: `Element.getBoundingClientRect()` doesn't work over async comm channels (i.e. [worker-dom](https://github.com/ampproject/worker-dom)).
 
 ![AMP WorkerDOM Challenge diagram](assets/amp-workerdom-challenge.png)
 
 ## <a name='MoreExamples'></a>More Examples
 
-See some other examples [here](EXAMPLES.md).
+There is a list of other examples [here](EXAMPLES.md).
 
 ## <a name='Modules'></a>Modules
 
