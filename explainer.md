@@ -41,7 +41,7 @@
 
 A Realm is a distinct global environment with its own global object, built-ins, and intrinsics, such as standard objects that are not bound to global variables, like the initial value of `Object.prototype`.
 
-Each new Realm from the Realms API has a specific [Global Environment Record](https://tc39.es/ecma262/#sec-global-environment-records) providing the [bindings for built-in globals](https://tc39.es/ecma262/#table-7), properties of the [global object](https://tc39.es/ecma262/#sec-global-object) and a top-level declaration model that occur within the Realm's Script.
+Each new Realm from The Realms API has a specific [Global Environment Record](https://tc39.es/ecma262/#sec-global-environment-records) providing the [bindings for built-in globals](https://tc39.es/ecma262/#table-7), properties of the [global object](https://tc39.es/ecma262/#sec-global-object) and a top-level declaration model that occur within the Realm's Script.
 
 Code can be evaluated and executed within the Realm's Environment Record and Execution Context.
 
@@ -51,7 +51,7 @@ Any code executed within a Realm may introduce changes to the Realm global varia
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
-This is the Realms API description in TypeScript format:
+This is The Realms API description in TypeScript format:
 
 ```ts
 declare class Realm {
@@ -112,7 +112,7 @@ Instances of Realm Objects and their Global Objects are not detachable. They hav
 
 ### <a name='Evaluation'></a>Evaluation
 
-The Realm API does not introduce a new way to evaluate code, it is subject to the existing evaluation mechanisms such as the [Content-Security-Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
+The Realms API does not introduce a new way to evaluate code, it is subject to the existing evaluation mechanisms such as the [Content-Security-Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
 
 If the CSP directive from a page disallows `unsafe-eval`, it prevents synchronous evaluation in the Realm. E.g.: `Realm#globalThis.eval`, `Realm#globalThis.Function`.
 
@@ -144,9 +144,11 @@ const realm = new VirtualizedRealm();
 const { doSomething } = await realm.import('./file.js');
 ```
 
+The Realms API does not introduce a new way to evaluate code, it is subject to the existing evaluation mechanisms such as the [Content-Security-Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
+
 ## <a name='UseCases'></a>Use Cases
 
-These are some of the key use cases where the Realms API becomes very useful and important:
+These are some of the key use cases where The Realms API becomes very useful and important:
 
 - Third Party Scripts
 - Code Testing
@@ -156,13 +158,13 @@ These are some of the key use cases where the Realms API becomes very useful and
 
 ### <a name='ThirdPartyScripts'></a>Third Party Scripts
 
-We acknowledge that applications need a quick and simple execution of Third Party Scripts. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent. 
+We acknowledge that applications need a quick and simple execution of Third Party Scripts. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent.
 
-The Realms API allows integrity preservation of globals - including built-ins - of root and incubator Realms, setting specific boundaries for the Environment Records.
+The Realms API provides integrity preserving semantics - including built-ins - of root and incubator Realms, setting specific boundaries for the Environment Records.
 
 Third Party Scripts can be executed in a non-blocking asynchronous evaluation through the `Realm#import()`.
 
-There is no immediate access to the application globals - e.g. `window`, `document`. This comes as a convenience for the application that can provide - or not - values and API in different ways, like frozen properties set in the `Realm#globalThis`. This also creates several opportunities for customization with the Realm Globals not colliding with unforgeables values (`window.top`, `window.location`, etc).
+There is no need for immediate access to the application globals - e.g. `window`, `document`. This comes as a convenience for the application that can provide - or not - values and API in different ways, like frozen properties set in the `Realm#globalThis`. This also creates several opportunities for customization with the Realm Globals and prevent collision with other global values and other third party scripts.
 
 ```js
 import { fmw } from 'pluginFramework';
