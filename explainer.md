@@ -75,7 +75,9 @@ It's quite common for an applications to contain programs from multiple sources,
 
 Asynchronous communication is a deal-breaker for many use cases. It usually just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be stringified before it's sent back and forth.
 
-Another goal for Realms is to provide a _lightweight funcionality_ - optimistically! - instead of creating iframes or Workers.
+It would be good to provide a _lightweight funcionality_ - optimistically! - instead of creating iframes or Workers.
+
+The functionalities of the VM module in Node can also be standardized here.
 
 There are various examples where Realms can be used to avoid this:
 
