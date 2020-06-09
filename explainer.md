@@ -181,7 +181,7 @@ await realm.import('./pluginScript.js');
 
 While multi-threading is useful for testing, the layering enabled from Realms is also great. Test frameworks can use Realms to inject code and also control the order the injections if necessary.
 
-Testing code can run autonomously within the boundaries set from the Realm Record, without immediately conflicting with other tests.
+Testing code can run autonomously within the boundaries set from the Realm object, without immediately conflicting with other tests.
 
 #### <a name='RunningtestsinaRealm'></a>Running tests in a Realm
 
@@ -214,7 +214,7 @@ A big codebase tend to evolve slowly and soon becomes legacy code. Old code vs n
 
 Modifying code to resolve a conflict (e.g.: global variables) is non-trivial, specially in big codebases.
 
-The Realms API can provide a lightweight mechanism to preserve the integrity of the intrinsics you could isolate libraries, or logical pieces of the codebase.
+The Realms API can provide a _lightweight_ mechanism to preserve the integrity of the intrinsics.0 Therefore, it could isolate libraries or logical pieces of the codebase per Realm.
 
 ### <a name='Templatelibraries'></a>Template libraries
 
@@ -230,12 +230,9 @@ compiled({ users: ['user1', 'user2'] });
 
 ### <a name='DOMVirtualization'></a>DOM Virtualization
 
-Applications should have control over their own codebase, and requiring other libraries to change to meet our requirements is not trivial.
+We still want things to interact with the DOM without spending any excessive amount of resources.
 
-We still want things to still interact with the DOM without spending any excessive amount of resources.
-
-It is important for applications to emulate the DOM as best as possible.
-
+It is important for applications to emulate the DOM as best as possible. Requiring authors to change their code to run in our virtualized environment is difficult. Specially if they are using third party libraries.
 
 ```js
 import virtualDocument from 'virtual-document';
