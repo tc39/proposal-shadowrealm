@@ -8,10 +8,10 @@
 	* [Terminology](#Terminology)
 	* [The Realm's Global Object](#TheRealmsGlobalObject)
 	* [Evaluation](#Evaluation)
-	* [Module graph](#Modulegraph)
+	* [Module Graph](#ModuleGraph)
 	* [Compartments](#Compartments)
 * [Use Cases](#UseCases)
-	* [Third Party Scripts](#ThirdPartyScripts)
+	* [_Trusted_ Third Party Scripts](#Trusted_ThirdPartyScripts)
 	* [Code Testing](#CodeTesting)
 		* [Running tests in a Realm](#RunningtestsinaRealm)
 		* [Test FWs + Tooling to run tests in a realm](#TestFWsToolingtoruntestsinarealm)
@@ -19,16 +19,17 @@
 	* [Template libraries](#Templatelibraries)
 	* [DOM Virtualization](#DOMVirtualization)
 		* [DOM Virtualization: AMP WorkerDOM Challenge](#DOMVirtualization:AMPWorkerDOMChallenge)
-* [More Examples](#MoreExamples)
-* [Modules](#Modules)
-* [General Goals and Values for Realms](#GeneralGoalsandValuesforRealms)
-	* [Integrity](#Integrity)
-		* [Security vs Integrity](#SecurityvsIntegrity)
+		* [JSDOM + vm Modules](#JSDOMvmModules)
 	* [Virtualized Environment](#VirtualizedEnvironment)
 		* [DOM mocking](#DOMmocking)
+* [Modules](#Modules)
+* [Integrity](#Integrity)
+	* [Security vs Integrity](#SecurityvsIntegrity)
+* [More Examples](#MoreExamples)
 * [ Alternatives](#Alternatives)
 	* [Status Quo](#StatusQuo)
 	* [Iframes](#Iframes)
+		* [Detachable](#Detachable)
 	* [Why not separate processes?](#Whynotseparateprocesses)
 
 <!-- vscode-markdown-toc-config
@@ -117,7 +118,7 @@ If the CSP directive from a page disallows `unsafe-eval`, it prevents synchronou
 
 The CSP of a page can also set directives like the `default-src` to prevent a Realm from using `Realm#import()`.
 
-### <a name='Modulegraph'></a>Module Graph
+### <a name='ModuleGraph'></a>Module Graph
 
 Each instance of Realms must have its own Module Graph.
 
@@ -155,7 +156,7 @@ These are some of the key use cases where The Realms API becomes very useful and
 - Template libraries
 - DOM Virtualization
 
-### <a name='ThirdPartyScripts'></a>_Trusted_ Third Party Scripts
+### <a name='Trusted_ThirdPartyScripts'></a>_Trusted_ Third Party Scripts
 
 We acknowledge that applications need a quick and simple execution of Third Party Scripts. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent. This is also not aiming for prevention over non-Trusted Third Party Scripts like malicious code or xss injections. Our focus is on multi libraries and building script blocks from different authors.
 
@@ -251,43 +252,11 @@ Problem: `Element.getBoundingClientRect()` doesn't work over async comm channels
 
 The communication is also limited by serialization aspects of [transferable objects](https://html.spec.whatwg.org/multipage/structured-data.html#transferable-objects), e.g.: functions or Proxy objects are not _transferable_.
 
-## <a name='MoreExamples'></a>More Examples
+#### <a name='JSDOMvmModules'></a>JSDOM + vm Modules
 
-There is a list of other examples [here](EXAMPLES.md).
+JSDOM [relies on VM](https://github.com/jsdom/jsdom/blob/0b1f84f499a0b23fad054228b34412869f940765/lib/jsdom/living/nodes/HTMLScriptElement-impl.js#L221-L248) functionality to emulate the __HTMLScriptElement__ and maintains a [shim of the vm module](https://github.com/jsdom/jsdom/blob/bfe7de63d6b1841053d572a915b2ff06bd4357b9/lib/jsdom/vm-shim.js) when it is bundled to run in a webpage where it doesn’t have access to the Node's __vm__ module.
 
-## <a name='Modules'></a>Modules
-
-In principle, the Realm proposal does not provide the controls for the module graphs. Every new Realm initializes its own module graph, while any invocation to `Realm.prototype.import()` method, or by using `import()` when evaluating code inside the realm, will populate this module graph. This is analogous to same-domain iframes, and VM in nodejs.
-
-However, the [Compartments]() proposal plans to provide the low level hooks to control the module graph per Realm. This is one of the intersection semantics between the two proposals. Although, the biggest challenge when sharing modules across realms is the hazard of the identity discontinuity. For example, when interacting with a module evaluated in another Realm:
-
-```js
-import { x } from '/path/to/foo.js';
-const d = new Date();
-x(d);
-```
-
-If `x` function attempt to check `arguments[0] instanceof Date`, it yields `false` since the date object was created from a constructor from another realm.
-
-There are some precedents on how to solve the identity discontinuity issues by using a "near membrane" via proxies. For now, providing the Realms as building block seems sufficient.
-
-There is one important thing to keep in mind when it comes to sharing module graphs. The ESM linkage is not asynchronous. This dictates that in order to share modules between realms, those realms should share the same process, otherwise the bindings between those modules cannot work according to the language. This is another reason to support our claim that Realms should be running within the same process.
-
-## <a name='GeneralGoalsandValuesforRealms'></a>General Goals and Values for Realms
-
-### <a name='Integrity'></a>Integrity
-
-We believe that realms can be a good complement to integrity mechanisms by providing ways to evaluate code who access different object graphs (different global objects) while maintaining the integrity of the outer realm. A concrete example of this is the Google's AMP current mechanism:
-
-* Google News App creates multiples sub-apps that can be presented to the user.
-* Each sub-app runs in a cross-domain iframe (communicating with the main app via post-message).
-* Each vendor (one per app) can attempt to enhance their sub-app that display their content by executing their code in a realm that provide access to a well defined set of APIs to preserve the integrity of the sub-app.
-
-There are many examples like this for the web: Google Sheets, Figma's plugins, or Salesforce's Locker Service for Web Components.
-
-#### <a name='SecurityvsIntegrity'></a>Security vs Integrity
-
-There are also other more exotic cases in which measuring of time ("security") is not a concern, especially in IOT where many devices might not have process boundaries at all. Or examples where security is not a concern, e.g.: test runners like jest (from facebook) that relies on nodejs, JSDOM and VM contexts to execute individual tests while sharing a segment of the object graph to achieve the desired performance budget. No doubts that this type of tools are extremely popular these days, e.g.: JSDOM has 10M installs per week according to NPM's registry.
+The Realms API provides a single API for this virtualization in both browsers and NodeJS.
 
 ### <a name='VirtualizedEnvironment'></a>Virtualized Environment
 
@@ -337,6 +306,42 @@ class FakeWindow extends Realm {
 
 This code allows a customized set of properties to each new Realm and avoid issues on handling immutable accessors/properties from the Window proxy. e.g.: `window.top`, `window.location`, etc..
 
+## <a name='Modules'></a>Modules
+
+In principle, the Realm proposal does not provide the controls for the module graphs. Every new Realm initializes its own module graph, while any invocation to `Realm.prototype.import()` method, or by using `import()` when evaluating code inside the realm, will populate this module graph. This is analogous to same-domain iframes, and VM in nodejs.
+
+However, the [Compartments]() proposal plans to provide the low level hooks to control the module graph per Realm. This is one of the intersection semantics between the two proposals. Although, the biggest challenge when sharing modules across realms is the hazard of the identity discontinuity. For example, when interacting with a module evaluated in another Realm:
+
+```js
+import { x } from '/path/to/foo.js';
+const d = new Date();
+x(d);
+```
+
+If `x` function attempt to check `arguments[0] instanceof Date`, it yields `false` since the date object was created from a constructor from another realm.
+
+There are some precedents on how to solve the identity discontinuity issues by using a "near membrane" via proxies. For now, providing the Realms as building block seems sufficient.
+
+There is one important thing to keep in mind when it comes to sharing module graphs. The ESM linkage is not asynchronous. This dictates that in order to share modules between realms, those realms should share the same process, otherwise the bindings between those modules cannot work according to the language. This is another reason to support our claim that Realms should be running within the same process.
+
+## <a name='Integrity'></a>Integrity
+
+We believe that realms can be a good complement to integrity mechanisms by providing ways to evaluate code who access different object graphs (different global objects) while maintaining the integrity of the outer realm. A concrete example of this is the Google's AMP current mechanism:
+
+* Google News App creates multiples sub-apps that can be presented to the user.
+* Each sub-app runs in a cross-domain iframe (communicating with the main app via post-message).
+* Each vendor (one per app) can attempt to enhance their sub-app that display their content by executing their code in a realm that provide access to a well defined set of APIs to preserve the integrity of the sub-app.
+
+There are many examples like this for the web: Google Sheets, Figma's plugins, or Salesforce's Locker Service for Web Components.
+
+### <a name='SecurityvsIntegrity'></a>Security vs Integrity
+
+There are also other more exotic cases in which measuring of time ("security") is not a concern, especially in IOT where many devices might not have process boundaries at all. Or examples where security is not a concern, e.g.: test runners like jest (from facebook) that relies on nodejs, JSDOM and VM contexts to execute individual tests while sharing a segment of the object graph to achieve the desired performance budget. No doubts that this type of tools are extremely popular these days, e.g.: JSDOM has 10M installs per week according to NPM's registry.
+
+## <a name='MoreExamples'></a>More Examples
+
+There is a list of other examples [here](EXAMPLES.md).
+
 ## <a name='Alternatives'></a> Alternatives
 
 ### <a name='StatusQuo'></a>Status Quo
@@ -351,7 +356,7 @@ Developers can technically already create a new Realm by creating new same-domai
 * There are multiple ~~unforgeable~~ unvirtualizable objects due to the DOM semantics, this makes it almost impossible to eliminate certain capabilities while downgrading the window to a brand new global without DOM.
 * The global `top` reference cannot be redefined and leaks a reference to another global object. The only way to null out this behavior is to _detach__ the iframe, which imposes other problems, the more relevant is dynamic `import()` calls.
 
-#### Detachable
+#### <a name='Detachable'></a>Detachable
 
 For clarifications, the term detachable means an iframe pulled out from the DOM tree:
 
