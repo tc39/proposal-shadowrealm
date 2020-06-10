@@ -156,9 +156,9 @@ These are some of the key use cases where The Realms API becomes very useful and
 - Template libraries
 - DOM Virtualization
 
-### <a name='ThirdPartyScripts'></a>Third Party Scripts
+### <a name='ThirdPartyScripts'></a>_Trusted_ Third Party Scripts
 
-We acknowledge that applications need a quick and simple execution of Third Party Scripts. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent.
+We acknowledge that applications need a quick and simple execution of Third Party Scripts. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent. This is also not aiming for prevention over non-Trusted Third Party Scripts like malicious code or xss injections. Our focus is on multi libraries and building script blocks from different authors.
 
 The Realms API provides integrity preserving semantics - including built-ins - of root and incubator Realms, setting specific boundaries for the Environment Records.
 
