@@ -97,16 +97,15 @@ Note: the majority of the examples above will require synchronous operations to 
 
 ### <a name='Terminology'></a>Terminology
 
-In the Web Platform, both `Realm` and `Global Object` are usually associated to Window, Worker, and Worklets semantics. They are also associated to their detachable nature.
+In the Web Platform, both `Realm` and `Global Object` are usually associated to Window, Worker, and Worklets semantics. They are also associated to their detachable nature, where they can be pulled out from their parent DOM tree.
 
 This proposal is limited to the semantics specified by ECMA-262 with no extra requirements from the web counterparts.
 
 ### <a name='TheRealmsGlobalObject'></a>The Realm's Global Object
 
-
 Each Realm's [Global Object](https://tc39.es/ecma262/#sec-ordinary-object) is an [Ordinary Object](https://tc39.es/ecma262/#sec-ordinary-object). It does not require exotic internals or new primitives.
 
-Instances of Realm Objects and their Global Objects are not detachable. They have a lifeline to their incubator Realm. Instead, they work as a group, sharing the settings of their incubator Realm. In other words, they act as encapsulation boundaries, they are analogous to a closure or a private field.
+Instances of Realm Objects and their Global Objects have their lifeline to their incubator Realm, they are not _detachable_ from it. Instead, they work as a group, sharing the settings of their incubator Realm. In other words, they act as encapsulation boundaries, they are analogous to a closure or a private field.
 
 ![](assets/detachable-realms.png)
 
@@ -349,8 +348,29 @@ Using VM module in nodejs, and same-domain iframes in browsers. Although, VM mod
 Developers can technically already create a new Realm by creating new same-domain iframe, but there are few impediments to use this as a reliable mechanism:
 
 * the global object of the iframe is a window proxy, which implements a bizarre behavior, including its unforgeable proto chain.
-* there are multiple ~~unforgeable~~ unvirtualizable objects due to the DOM semantics, this makes it almost impossible to eliminate certain capabilities while downgrading the window to a brand new global without DOM.
-* global `top` reference is ~~unforgeable~~ not virtualizable and leaks a reference to another global object. The only way to null out this behavior is to detach the iframe, which imposes other problems, the more relevant is dynamic `import()` calls, __which cannot work in detached realms__.
+* There are multiple ~~unforgeable~~ unvirtualizable objects due to the DOM semantics, this makes it almost impossible to eliminate certain capabilities while downgrading the window to a brand new global without DOM.
+* The global `top` reference cannot be redefined and leaks a reference to another global object. The only way to null out this behavior is to _detach__ the iframe, which imposes other problems, the more relevant is dynamic `import()` calls.
+
+#### Detachable
+
+For clarifications, the term detachable means an iframe pulled out from the DOM tree:
+
+```js
+var iframe = document.createElement("iframe");
+
+ // attaching the iframe to the DOM tree
+document.body.appendChild(iframe);
+
+var win = iframe.contentWindow;
+
+// Get accessor that returns the topmost window.
+win.top; // Cannot be properly redefined/virtualized: { get: top(), set: undefined, enumerable: true, configurable: false }
+
+// **detaching** the iframe
+document.body.appendChild(iframe);
+
+win.top; // get accessor still exists, now returns null
+```
 
 ### <a name='Whynotseparateprocesses'></a>Why not separate processes?
 
