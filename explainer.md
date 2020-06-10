@@ -3,6 +3,7 @@
 <!-- vscode-markdown-toc -->
 * [Introduction](#Introduction)
 * [API (TypeScript Format)](#APITypeScriptFormat)
+	* [Quick API Usage Example](#QuickAPIUsageExample)
 * [Motivations](#Motivations)
 * [Clarifications](#Clarifications)
 	* [Terminology](#Terminology)
@@ -26,10 +27,19 @@
 * [Integrity](#Integrity)
 	* [Security vs Integrity](#SecurityvsIntegrity)
 * [More Examples](#MoreExamples)
-* [ Alternatives](#Alternatives)
-	* [Status Quo](#StatusQuo)
-	* [Iframes](#Iframes)
-		* [Detachable](#Detachable)
+	* [Example: Simple Realm](#Example:SimpleRealm)
+	* [Example: Importing Module](#Example:ImportingModule)
+	* [Example: Virtualized Contexts](#Example:VirtualizedContexts)
+	* [Example: Simple Subclass](#Example:SimpleSubclass)
+	* [Example: DOM Mocking](#Example:DOMMocking)
+	* [Example: iframes vs Realms](#Example:iframesvsRealms)
+	* [Example: Indirect Evaluation](#Example:IndirectEvaluation)
+	* [Example: Direct Evaluation](#Example:DirectEvaluation)
+	* [Example: Identity Discontinuity](#Example:IdentityDiscontinuity)
+* [Example: Node's vm objects vs Realms](#Example:NodesvmobjectsvsRealms)
+* [Status Quo](#StatusQuo)
+* [Iframes](#Iframes)
+	* [Detachable](#Detachable)
 	* [Why not separate processes?](#Whynotseparateprocesses)
 
 <!-- vscode-markdown-toc-config
@@ -67,6 +77,33 @@ The proposed specification defines:
 - The [`constructor`](https://tc39.es/proposal-realms/#sec-realm).
 - The [`Realm#import()`](https://tc39.es/proposal-realms/#sec-realm.prototype.import) method, equivalent to the `import()` expression.
 - The [`get Realm#globalThis`](https://tc39.es/proposal-realms/#sec-realm.prototype.import) accessor to the Realm's `globalThis`. This global 
+
+### <a name='QuickAPIUsageExample'></a>Quick API Usage Example
+
+```js
+// this is the root realm
+var x = 39;
+const realm = new Realm();
+
+// globals from the root/parent realm are not leaked to the nested realms
+realm.globalThis.x; // undefined
+
+// evaluation occurs within the nested realm
+realm.globalThis.eval("var x = 42");
+
+// global names can be regularly observed in the realm's globalThis
+realm.globalThis.x; // 42
+
+// global values are not leaked to the parent realms
+x; // 39
+
+// built-ins configurability are not different
+delete realm.globalThis.Math;
+
+// realms can dynamic import module that will execute within it's own
+// environment. Imports can be observed from the parent realm.
+realm.import('./file.js').then(ns => ns.execCustomCode());
+```
 
 ## <a name='Motivations'></a>Motivations
 
@@ -340,15 +377,178 @@ There are also other more exotic cases in which measuring of time ("security") i
 
 ## <a name='MoreExamples'></a>More Examples
 
-There is a list of other examples [here](EXAMPLES.md).
+### <a name='Example:SimpleRealm'></a>Example: Simple Realm
 
-## <a name='Alternatives'></a> Alternatives
+```js
+let g = globalThis; // outer global
+let r = new Realm(); // root realm
 
-### <a name='StatusQuo'></a>Status Quo
+let f = r.globalThis.Function("return 17");
+
+f() === 17 // true
+
+Reflect.getPrototypeOf(f) === g.Function.prototype // false
+Reflect.getPrototypeOf(f) === r.globalThis.Function.prototype // true
+```
+
+### <a name='Example:ImportingModule'></a>Example: Importing Module
+
+```js
+let r = new Realm();
+const { x } = await r.import('/path/to/foo.js');
+```
+
+In this example, the new realm will fetch, and evaluate the module, and extract the `x` named export from that module namespace. `Realm.prototype.import` is equivalent to the dynamic import syntax (e.g.: `const { x } = await import('/path/to/foo.js');` from within the realm. In some cases, evaluation will not be available (e.g.: in browsers, CSP might block unsafe-eval), while importing from module is still possible.
+
+### <a name='Example:VirtualizedContexts'></a>Example: Virtualized Contexts
+
+Importing modules allow us to run asynchronous executions with set boundaries for access to global environment contexts.
+
+- `main.js`:
+
+```js
+globalThis.DATA = "a global value";
+
+let r = new Realm();
+
+// r.import is equivalent to the dynamic import expression
+// It provides asynchronous execution, without creating or relying in a
+// different thread or process.
+r.import("./sandbox.js").then(({test}) => {
+
+  // globals in this root realm are not leaked
+  test("DATA"); // undefined
+
+  let desc = test("Array"); // {writable: true, enumerable: false, configurable: true, value: ƒ}
+  let Arr = desc.value;
+
+  Arr === r.globalThis.Array; // true
+  Arr === Array; // false
+
+  // foo and bar are immediately visible as globals here.
+});
+```
+
+- `sandbox.js`:
+
+```js
+// DATA is not available as a global name here
+
+// Names here are not leaked to the root realm
+var foo = 42;
+globalThis.bar = 39;
+
+export function test(property) {
+
+  // Built-ins like `Object` are included.
+  return Object.getPropertyDescriptor(globalThis, property);
+}
+```
+
+### <a name='Example:SimpleSubclass'></a>Example: Simple Subclass
+
+```js
+class EmptyRealm extends Realm {
+  constructor(...args) {
+    super(...args);
+    let globalThis = this.globalThis;
+
+    // delete global descriptors:
+    delete globalThis.Math;
+    ...
+  }
+}
+```
+
+### <a name='Example:DOMMocking'></a>Example: DOM Mocking
+
+```js
+class FakeWindow extends Realm {
+  constructor(...args) {
+    super(...args);
+    let globalThis = this.globalThis;
+
+    globalThis.document = new FakeDocument(...);
+    globalThis.alert = new Proxy(fakeAlert, { ... });
+    ...
+  }
+}
+```
+
+### <a name='Example:iframesvsRealms'></a>Example: iframes vs Realms
+
+If you're using anonymous iframes today to "evaluate" javascript code in a different realm, you can replace it with a new Realm, as a more performant option, e.g.:
+
+```js
+const globalOne = window;
+let iframe = document.createElement('iframe');
+document.body.appendChild(iframe);
+const globalTwo = iframe.contentWindow;
+```
+
+will become:
+
+```js
+const globalOne = window;
+const globalTwo = new Realm().globalThis;
+```
+
+### <a name='Example:IndirectEvaluation'></a>Example: Indirect Evaluation
+
+This operation should be equivalent, in both scenarios:
+
+```js
+globalOne.eval('1 + 2'); // yield 3
+globalTwo.eval('1 + 2'); // yield 3
+```
+
+### <a name='Example:DirectEvaluation'></a>Example: Direct Evaluation
+
+This operation should be equivalent, in both scenarios:
+
+```js
+globalOne.eval('eval("1 + 2")'); // yield 3
+globalTwo.eval('eval("1 + 2")'); // yield 3
+```
+
+### <a name='Example:IdentityDiscontinuity'></a>Example: Identity Discontinuity
+
+Considering that you're creating a brand new realm, with its brand new global variable,
+the identity discontinuity is still present, just like in the iframe example:
+
+```js
+let a1 = globalOne.eval('[1,2,3]');
+let a2 = globalTwo.eval('[1,2,3]');
+a1.prototype === a2.prototype; // yield false
+a1 instanceof globalTwo.Array; // yield false
+a2 instanceof globalOne.Array; // yield false
+```
+
+## <a name='Example:NodesvmobjectsvsRealms'></a>Example: Node's vm objects vs Realms
+
+If you're using node's `vm` module today to "evaluate" javascript code in a different realm, you can replace it with a new Realm, e.g.:
+
+```js
+const vm = require('vm');
+const script = new vm.Script('this');
+const globalOne = globalThis;
+const globalTwo = script.runInContext(new vm.createContext());
+```
+
+will become:
+
+```js
+const globalOne = globalThis;
+const globalTwo = new Realm().globalThis;
+```
+
+_Note: these two are equivalent in functionality._
+
+## <a name='StatusQuo'></a>Status Quo
 
 Using VM module in nodejs, and same-domain iframes in browsers. Although, VM modules in node is a very good approximation to this proposal, iframes are problematic. 
 
-### <a name='Iframes'></a>Iframes
+## <a name='Iframes'></a>Iframes
 
 Developers can technically already create a new Realm by creating new same-domain iframe, but there are few impediments to use this as a reliable mechanism:
 
@@ -356,7 +556,7 @@ Developers can technically already create a new Realm by creating new same-domai
 * There are multiple ~~unforgeable~~ unvirtualizable objects due to the DOM semantics, this makes it almost impossible to eliminate certain capabilities while downgrading the window to a brand new global without DOM.
 * The global `top` reference cannot be redefined and leaks a reference to another global object. The only way to null out this behavior is to _detach__ the iframe, which imposes other problems, the more relevant is dynamic `import()` calls.
 
-#### <a name='Detachable'></a>Detachable
+### <a name='Detachable'></a>Detachable
 
 For clarifications, the term detachable means an iframe pulled out from the DOM tree:
 
@@ -379,7 +579,9 @@ win.top; // get accessor still exists, now returns null
 
 ### <a name='Whynotseparateprocesses'></a>Why not separate processes?
 
-This is another alternative, creating a Realm that runs in a separate process, while allowing users to define and create their own protocol of communication between these processes. This alternative was discarded for two main reasons:
+Creating a Realm that runs in a separate process is another alternative, while allowing users to define and create their own protocol of communication between these processes.
+
+This alternative was discarded for two main reasons:
 
 1. There are existing mechanism to achieve this today in both browsers, and nodejs. E.g.: cross domain iframes, workers, etc. They seem to be good enough when asynchronous communication is sufficient to implement the feature.
 2. Asynchronous communication is a deal-breaker for many use-cases, and sometimes it just added complexity for cases where a same-process Realm is sufficient.
