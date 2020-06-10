@@ -73,7 +73,7 @@ Why do developers need realms?
 
 It's quite common for an applications to contain programs from multiple sources, whether from different teams, vendors, package managers, etc. These programs must currently contend for the global shared resources, specifically, the shared global object, and the side effect of executing those programs are often hard to observe, causing conflicts between the different programs, and potentially affecting the integrity of the app itself.
 
-Asynchronous communication is a deal-breaker for many use cases. It usually just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be stringified before it's sent back and forth.
+Asynchronous communication is a deal-breaker for many use cases. It usually just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be serialized before it's sent back and forth.
 
 It would be good to provide a _lightweight funcionality_ - optimistically! - instead of creating iframes or Workers.
 
@@ -249,6 +249,8 @@ await realm.import('./publisher-amin.js');
 Problem: `Element.getBoundingClientRect()` doesn't work over async comm channels (i.e. [worker-dom](https://github.com/ampproject/worker-dom)).
 
 ![AMP WorkerDOM Challenge diagram](assets/amp-workerdom-challenge.png)
+
+The communication is also limited by serialization aspects of [transferable objects](https://html.spec.whatwg.org/multipage/structured-data.html#transferable-objects), e.g.: functions or Proxy objects are not _transferable_.
 
 ## <a name='MoreExamples'></a>More Examples
 
