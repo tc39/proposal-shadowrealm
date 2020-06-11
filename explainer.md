@@ -195,7 +195,7 @@ These are some of the key use cases where The Realms API becomes very useful and
 
 ### <a name='Trusted_ThirdPartyScripts'></a>_Trusted_ Third Party Scripts
 
-We acknowledge that applications need a quick and simple execution of Third Party Scripts. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent. This is also not aiming for prevention over non-Trusted Third Party Scripts like malicious code or xss injections. Our focus is on multi libraries and building script blocks from different authors.
+We acknowledge that applications need a quick and simple execution of Third Party Scripts. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent. This is also not aiming for prevention over non-Trusted Third Party Scripts like malicious code or xss injections. Our focus is on multi libraries and building blocks from different authors.
 
 The Realms API provides integrity preserving semantics - including built-ins - of root and incubator Realms, setting specific boundaries for the Environment Records.
 
@@ -554,7 +554,7 @@ Developers can technically already create a new Realm by creating new same-domai
 
 * the global object of the iframe is a window proxy, which implements a bizarre behavior, including its unforgeable proto chain.
 * There are multiple ~~unforgeable~~ unvirtualizable objects due to the DOM semantics, this makes it almost impossible to eliminate certain capabilities while downgrading the window to a brand new global without DOM.
-* The global `top` reference cannot be redefined and leaks a reference to another global object. The only way to null out this behavior is to _detach__ the iframe, which imposes other problems, the more relevant is dynamic `import()` calls.
+* The global `top` reference cannot be redefined and leaks a reference to another global object. The only way to null out this behavior is to __detach__ the iframe, which imposes other problems, the more relevant is dynamic `import()` calls.
 
 ### <a name='Detachable'></a>Detachable
 
@@ -566,15 +566,16 @@ var iframe = document.createElement("iframe");
  // attaching the iframe to the DOM tree
 document.body.appendChild(iframe);
 
-var win = iframe.contentWindow;
+var iframeWindow = iframe.contentWindow;
 
 // Get accessor that returns the topmost window.
-win.top; // Cannot be properly redefined/virtualized: { get: top(), set: undefined, enumerable: true, configurable: false }
+iframeWindow.top; // Cannot be properly redefined/virtualized: { get: top(), set: undefined, enumerable: true, configurable: false }
 
 // **detaching** the iframe
-document.body.appendChild(iframe);
+document.body.removeChild(iframe);
 
-win.top; // get accessor still exists, now returns null
+// get accessor still exists, now returns null
+iframeWindow.top;
 ```
 
 ### <a name='Whynotseparateprocesses'></a>Why not separate processes?
