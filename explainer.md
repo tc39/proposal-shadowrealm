@@ -87,9 +87,7 @@ const realm = new Realm();
 
 // globals from the root/parent realm are not leaked to the nested realms
 realm.globalThis.x; // undefined
-
-// evaluation occurs within the nested realm
-realm.globalThis.eval("var x = 42");
+realm.globalThis.x = 42; // 42
 
 // global names can be regularly observed in the realm's globalThis
 realm.globalThis.x; // 42
@@ -305,7 +303,7 @@ let realm = new Realm();
 Object.freeze(realm.globalThis);
 ```
 
-In web browsers, this is currently not possible. The way to get manage new realms would be through iframes, but they also share a window proxy object.
+In web browsers, this is currently not possible. The way to get manage new Realms would be through iframes, but they also share a window proxy object.
 
 ```js
 let iframe = document.createElement('iframe');
@@ -315,14 +313,7 @@ const rGlobal = iframe.contentWindow; // same as iframe.contentWindow.globalThis
 Object.freeze(rGlobal); // TypeError, cannot freeze window proxy
 ```
 
-The same iframe approach won't also have a direct access to import modules dynamically.
-
-```js
-realm.import('./file.js');
-
-// instead of (roughly)
-iframe.contentWindow.eval("import('./file.js')");
-```
+The same iframe approach won't also have a direct access to import modules dynamically. The usage of `realm.import('./file.js');` is possible instead of roughly using eval functions or setting _script type module_ in the iframe, if available.
 
 #### <a name='DOMmocking'></a>DOM mocking
 
@@ -332,11 +323,10 @@ The Realms API allows a much smarter approach for DOM mocking, where the globalT
 class FakeWindow extends Realm {
   constructor(...args) {
     super(...args);
-    let globalThis = this.globalThis;
+    let realmGlobal = this.globalThis;
 
-    globalThis.document = new FakeDocument(...);
-    globalThis.alert = new Proxy(fakeAlert, { ... });
-    ...
+    realmGlobal.document = new FakeDocument();
+    realmGlobal.top = 'https://example.com';
   }
 }
 ```
