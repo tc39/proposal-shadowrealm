@@ -12,32 +12,30 @@ location: https://tc39.es/proposal-realms/
 <script src="ecmarkup.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
-<emu-table id="table-1" caption="Well-known Intrinsic Objects">
-	<table>
-		<tbody>
-			<tr>
-				<th>Intrinsic Name</th>
-				<th>Global Name</th>
-				<th>ECMAScript Language Association</th>
-			</tr>
-			<tr>
-				<td>%Realm%</td>
-				<td><code>Realm</code></td>
-				<td>…</td>
-			</tr>
-			<tr>
-				<td>%RealmPrototype%</td>
-				<td><code>Realm.prototype</code></td>
-				<td>…</td>
-			</tr>
-		</tbody>
-	</table>
-</emu-table>
+<emu-clause id="sec-well-known-intrinsic-objects">
+  	<h1>Well-known intrinsic objects</h1>
+	<emu-table id="table-7" caption="Well-known Intrinsic Objects">
+		<table>
+			<tbody>
+				<tr>
+					<th>Intrinsic Name</th>
+					<th>Global Name</th>
+					<th>ECMAScript Language Association</th>
+				</tr>
+				<tr>
+					<td>%Realm%</td>
+					<td>`Realm`</td>
+					<td>The Realm constructor (<emu-xref href="#sec-realm-constructor"></emu-xref>)</td>
+				</tr>
+			</tbody>
+		</table>
+	</emu-table>
+</emu-clause>
 
 <emu-clause id="sec-realm-objects">
 	<h1>Realm Objects</h1>
 
-	<emu-clause id="sec-the-realm-constructor">
+	<emu-clause id="sec-realm-constructor">
 		<h1>The Realm Constructor</h1>
 		<p>The Realm constructor:</p>
 		<ul>
@@ -53,7 +51,7 @@ location: https://tc39.es/proposal-realms/
 			<p>When the `Realm` function is called with no arguments, the following steps are taken:</p>
 			<emu-alg>
 				1. If NewTarget is *undefined*, throw a *TypeError* exception.
-				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%RealmPrototype%", « [[Realm]], [[ExecutionContext]] »).
+				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%Realm.prototype%", « [[Realm]], [[ExecutionContext]] »).
 				1. Let _realmRec_ be CreateRealm().
 				1. Set _O_.[[Realm]] to _realmRec_.
 				1. Let _context_ be a new execution context.
@@ -71,18 +69,32 @@ location: https://tc39.es/proposal-realms/
 
 	<emu-clause id="sec-properties-of-the-realm-constructor">
 		<h1>Properties of the Realm Constructor</h1>
+		<p>The Realm constructor:</p>
+		<ul>
+			<li>as a [[Prototype]] internal slot whose value is %Function.prototype%.</li>
+			<li>has the following properties:</li>
+		</ul>
 
-		<p>The value of the [[Prototype]] internal slot of the *Realm* constructor is the intrinsic object %FunctionPrototype%.</p>
+		<emu-clause id="sec-realm.prototype">
+			<h1>Realm.prototype</h1>
+			<p>The initial value of *Realm.prototype* is %Realm.prototype%.</p>
+			<p>This property has the attributes { [[Writable]]: *false*, [[Enumerable]]: *false*, [[Configurable]]: *false* }.</p>
+		</emu-clause>
 	</emu-clause>
 
 	<emu-clause id="sec-properties-of-the-realm-prototype-object">
 		<h1>Properties of the Realm Prototype Object</h1>
+		<p>The Realm prototype object:</p>
+		<ul>
+			<li>is the intrinsic object <dfn>%Realm.prototype%</dfn>.</li>
+			<li>is the initial value of the "*prototype*" property of %Realm%.</li>
+			<li>is an ordinary object.</li>
+			<li>is not a Realm instance and does not have a [[Realm]] internal slot.</li>
+		</ul>
 
 		<emu-clause id="sec-realm.prototype.import">
 			<h1>Realm.prototype.import ( _specifier_ )</h1>
-
-			<p>The following steps are taken:</p>
-
+			<p>The following steps are performed:</p>
 			<emu-alg>
 				1. Let _O_ be *this* value.
 				1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
@@ -108,7 +120,6 @@ location: https://tc39.es/proposal-realms/
 
 		<emu-clause id="sec-realm.prototype.globalthis">
 			<h1>get Realm.prototype.globalThis</h1>
-
 			<p>Realm.prototype.globalThis is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:</p>
 
 			<emu-alg>
@@ -120,19 +131,16 @@ location: https://tc39.es/proposal-realms/
 
 		<emu-clause id="sec-realm.prototype-@@tostringtag">
 			<h1>Realm.prototype [ @@toStringTag ]</h1>
-
 			<p>The initial value of the @@toStringTag property is the String value "Realm".</p>
-
-			<p>This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.</p>
+			<p>This property has the attributes { [[Writable]]: *false*, [[Enumerable]]: *false*, [[Configurable]]: *true* }.</p>
 		</emu-clause>
 	</emu-clause>
 
 	<emu-clause id="sec-properties-of-realm-instances">
 		<h1>Properties of Realm Instances</h1>
+		<p>Realm instances are ordinary objects that inherit properties from the Realm prototype object (the intrinsic, %Realm.prototype%). Realm instances are initially created with the internal slots described in <emu-xref href="#table-internal-slots-of-realm-instances"></emu-xref>.</p>
 
-		<p>Realm instances are ordinary objects that inherit properties from the Realm prototype object (the intrinsic, %RealmPrototype%). Realm instances are initially created with the internal slots described in <emu-xref href="#table-3"></emu-xref>.</p>
-
-		<emu-table id="table-3" caption="Internal Slots of Realm Instances">
+		<emu-table id="table-internal-slots-of-realm-instances" caption="Internal Slots of Realm Instances">
 			<table>
 				<tbody>
 					<tr>
