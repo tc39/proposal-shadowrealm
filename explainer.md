@@ -58,9 +58,9 @@ Same-origin iframes also create a new global object which is synchronously acces
 
 Sites like salesforce.com make extensive use of same-origin iframes to create such global objects. Our experience with same-origin iframes motivated us to create this proposal, which has the following advantages:
 
-We hope that it will be somewhat lighter weight (both in terms of memory and CPU) for the browser to create new Realms than iframes.
-Frameworks do not need to first clear out existing Web APIs when customizing the global object of the Realm.
-The framework can determine the set of APIs exposed to code which executes in the Realm, which is difficult to achieve in iframes due to the presence of `[LegacyUnforgeable]` attributes like `Window.top`
+- We hope that it will be somewhat lighter weight (both in terms of memory and CPU) for the browser to create new Realms than iframes.
+- Frameworks do not need to first clear out existing Web APIs when customizing the global object of the Realm.
+- The framework can determine the set of APIs exposed to code which executes in the Realm, which is difficult to achieve in iframes due to the presence of `[LegacyUnforgeable]` attributes like `Window.top`
 
 Realms are complementary to stronger isolation mechanisms such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. Realms avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
 
