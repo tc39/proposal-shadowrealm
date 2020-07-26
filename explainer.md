@@ -50,15 +50,21 @@
 
 ## <a name='Introduction'></a>Introduction
 
-A Realm is a distinct global environment with its own global object, built-ins, and intrinsics, such as standard objects that are not bound to global variables, like the initial value of `Object.prototype`.
+The Realms proposal provides a new mechanism to execute JavaScript code within the context of a new global object and set of JavaScript built-ins. The `Realm` constructor creates this kind of a new global object.
 
-Each new Realm from The Realms API has a specific [Global Environment Record](https://tc39.es/ecma262/#sec-global-environment-records) providing the [bindings for built-in globals](https://tc39.es/ecma262/#table-7), properties of the [global object](https://tc39.es/ecma262/#sec-global-object) and a top-level declaration model that occur within the Realm's Script.
+Realms execute code with the same JavaScript heap as the surrounding context where the Realm is created. Code runs synchronously in the same thread.
 
-Code can be evaluated and executed within the Realm's Environment Record and Execution Context.
+Same-origin iframes also create a new global object which is synchronously accessible. Realms differ from same-origin iframes by omitting Web APIs such as the DOM.
 
-The Realms API offers a way to import modules asynchronously, just like the `import()` expression, following the same design patterns. It does not restrict code to be synchronously executed through regular evaluation built-ins (e.g. `eval` and `Function`). The Realms will not behave like different [Agents](https://tc39.es/ecma262/#sec-agents). They do not create - neither rely on - multi-threading.
+Sites like salesforce.com make extensive use of same-origin iframes to create such global objects. Our experience with same-origin iframes motivated us to create this proposal, which has the following advantages:
 
-Any code executed within a Realm may introduce changes to the Realm global variables or built-ins, limited to the Realm's Execution Context.
+We hope that it will be somewhat lighter weight (both in terms of memory and CPU) for the browser to create new Realms than iframes.
+Frameworks do not need to first clear out existing Web APIs when customizing the global object of the Realm.
+The framework can determine the set of APIs exposed to code which executes in the Realm, which is difficult to achieve in iframes due to the presence of `[LegacyUnforgeable]` attributes like `Window.top`
+
+Realms are complementary to stronger isolation mechanisms such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. Realms avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
+
+JavaScript modules are associated with a global object and set of built-ins. Realms contain their own separate module graph which runs in the context of that Realm, so that a full JavaScript development experience is available
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
