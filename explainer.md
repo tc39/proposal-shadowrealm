@@ -64,7 +64,7 @@ The framework can determine the set of APIs exposed to code which executes in th
 
 Realms are complementary to stronger isolation mechanisms such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. Realms avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
 
-JavaScript modules are associated with a global object and set of built-ins. Realms contain their own separate module graph which runs in the context of that Realm, so that a full JavaScript development experience is available
+JavaScript modules are associated with a global object and set of built-ins. Realms contain their own separate module graph which runs in the context of that Realm, so that a full JavaScript development experience is available, and so Realms can execute code when `eval` is disabled by CSP.
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
