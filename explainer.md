@@ -52,19 +52,21 @@
 
 The Realms proposal provides a new mechanism to execute JavaScript code within the context of a new global object and set of JavaScript built-ins. The `Realm` constructor creates this kind of a new global object.
 
-Realms execute code with the same JavaScript heap as the surrounding context where the Realm is created. Code runs synchronously in the same thread.
+Realms execute code with the same JavaScript heap as the surrounding context where the Realm is created. Code runs synchronously in the same thread. Note: The surrounding context is often referenced as the _incubator realm_ within this proposal.
 
 Same-origin iframes also create a new global object which is synchronously accessible. Realms differ from same-origin iframes by omitting Web APIs such as the DOM.
 
-Sites like salesforce.com make extensive use of same-origin iframes to create such global objects. Our experience with same-origin iframes motivated us to create this proposal, which has the following advantages:
+Sites like Salesforce.com make extensive use of same-origin iframes to create such global objects. Our experience with same-origin iframes motivated us to steer this proposal forward, which has the following advantages:
 
-- We hope that it will be somewhat lighter weight (both in terms of memory and CPU) for the browser to create new Realms than iframes.
-- Frameworks do not need to first clear out existing Web APIs when customizing the global object of the Realm.
-- The framework can determine the set of APIs exposed to code which executes in the Realm, which is difficult to achieve in iframes due to the presence of `[LegacyUnforgeable]` attributes like `Window.top`
+- Frameworks would be able to better craft the available API within the global object of the Realm, aiming for what is necessary to evaluate the code that might need no access or just limited access to the DOM or other Web APIs.
+- Tailoring up the exposed set of APIs exposed to the code within the Realm provides a better developer experience for a less expensive work compared to tailoring down a full set of exposed APIs - e.g. iframes - that includes handling presence of `[LegacyUnforgeable]` attributes like `Window.top`.
+- We hope the usage of Realms will be somewhat lighter weight (both in terms of memory and CPU) for the browser if compared to iframes, especially when frameworks rely on several Realms in the same application.
 
 Realms are complementary to stronger isolation mechanisms such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. Realms avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
 
-JavaScript modules are associated with a global object and set of built-ins. Realms contain their own separate module graph which runs in the context of that Realm, so that a full JavaScript development experience is available, and so Realms can execute code when `eval` is disabled by CSP.
+The Realms API does __not__ introduce a new evaluation mechanism. The code evaluation is subject to the [same restrictions of the incubator realm via CSP](#Evaluation), or any other restriction in Node.
+
+JavaScript modules are associated with a global object and set of built-ins. Realms contain their own separate module graph which runs in the context of that Realm, so that a full JavaScript development experience is available.
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
@@ -187,7 +189,7 @@ const { doSomething } = await realm.import('./file.js');
 
 The Realms API does not introduce a new way to evaluate code, it is subject to the existing evaluation mechanisms such as the [Content-Security-Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
 
-## <a name='Whynotseparateprocesses'></a>Why not separate processes?
+### <a name='Whynotseparateprocesses'></a>Why not separate processes?
 
 Creating a Realm that runs in a separate process is another alternative, while allowing users to define and create their own protocol of communication between these processes.
 
