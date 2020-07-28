@@ -196,10 +196,11 @@ Creating a Realm that runs in a separate process is another alternative, while a
 This alternative was discarded for two main reasons:
 
 1. There are existing mechanism to achieve this today in both browsers, and nodejs. E.g.: cross domain iframes, workers, etc. They seem to be good enough when asynchronous communication is sufficient to implement the feature.
-2. Asynchronous communication is a deal-breaker for many use-cases, and sometimes it just added complexity for cases where a same-process Realm is sufficient.
+2. Asynchronous communication is a deal-breaker for many use-cases, specially when security is __not__ an issue, and sometimes it just added complexity for cases where a same-process Realm is sufficient.
+
+E.g. Google AMP run in a cross domain iframe, and just want more control about what code they executed in that cross domain application.
 
 There are some identified challenges explained within the current use cases for Realms such as the [WorkerDOM Virtualization challenge for Google AMP](#DOMVirtualization) and the current use of [JSDOM and Node VM modules](#JSDOMvmModules) that would be better placed using an interoperable Realms API as presented by this proposal.
-
 
 ## <a name='UseCases'></a>Use Cases
 
