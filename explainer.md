@@ -61,6 +61,7 @@ Sites like Salesforce.com make extensive use of same-origin iframes to create su
 - Frameworks would be able to better craft the available API within the global object of the Realm, aiming for what is necessary to evaluate the code that might need no access or just limited access to the DOM or other Web APIs.
 - Tailoring up the exposed set of APIs into the code within the Realm provides a better developer experience for a less expensive work compared to tailoring down a full set of exposed APIs - e.g. iframes - that includes handling presence of `[LegacyUnforgeable]` attributes like `Window.top`.
 - We hope the usage of Realms will be somewhat lighter weight (both in terms of memory and CPU) for the browser if compared to iframes, especially when frameworks rely on several Realms in the same application.
+- Realms are not accessible from by traversing the DOM of the incubator realm. This will ideal and/or better approach compared to attaching iframes elements and their contentWindow to the DOM. Detaching iframes would even add a new own set of problems.
 
 Realms are complementary to stronger isolation mechanisms such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. Realms avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
 
