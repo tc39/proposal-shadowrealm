@@ -11,6 +11,7 @@
 	* [Evaluation](#Evaluation)
 	* [Module Graph](#ModuleGraph)
 	* [Compartments](#Compartments)
+* [Why not separate processes?](#Whynotseparateprocesses)
 * [Use Cases](#UseCases)
 	* [_Trusted_ Third Party Scripts](#Trusted_ThirdPartyScripts)
 	* [Code Testing](#CodeTesting)
@@ -40,7 +41,6 @@
 * [Status Quo](#StatusQuo)
 * [Iframes](#Iframes)
 	* [Detachable](#Detachable)
-	* [Why not separate processes?](#Whynotseparateprocesses)
 
 <!-- vscode-markdown-toc-config
 	numbering=false
@@ -50,15 +50,25 @@
 
 ## <a name='Introduction'></a>Introduction
 
-A Realm is a distinct global environment with its own global object, built-ins, and intrinsics, such as standard objects that are not bound to global variables, like the initial value of `Object.prototype`.
+The Realms proposal provides a new mechanism to execute JavaScript code within the context of a new global object and set of JavaScript built-ins. The `Realm` constructor creates this kind of a new global object.
 
-Each new Realm from The Realms API has a specific [Global Environment Record](https://tc39.es/ecma262/#sec-global-environment-records) providing the [bindings for built-in globals](https://tc39.es/ecma262/#table-7), properties of the [global object](https://tc39.es/ecma262/#sec-global-object) and a top-level declaration model that occur within the Realm's Script.
+Realms execute code with the same JavaScript heap as the surrounding context where the Realm is created. Code runs synchronously in the same thread. Note: The surrounding context is often referenced as the _incubator realm_ within this proposal.
 
-Code can be evaluated and executed within the Realm's Environment Record and Execution Context.
+Same-origin iframes also create a new global object which is synchronously accessible. Realms differ from same-origin iframes by omitting Web APIs such as the DOM.
 
-The Realms API offers a way to import modules asynchronously, just like the `import()` expression, following the same design patterns. It does not restrict code to be synchronously executed through regular evaluation built-ins (e.g. `eval` and `Function`). The Realms will not behave like different [Agents](https://tc39.es/ecma262/#sec-agents). They do not create - neither rely on - multi-threading.
+Sites like Salesforce.com make extensive use of same-origin iframes to create such global objects. Our experience with same-origin iframes motivated us to steer this proposal forward, which has the following advantages:
 
-Any code executed within a Realm may introduce changes to the Realm global variables or built-ins, limited to the Realm's Execution Context.
+- Frameworks would be able to better craft the available API within the global object of the Realm, aiming for what is necessary to evaluate the code that might need no access or just limited access to the DOM or other Web APIs.
+- Tailoring up [the exposed set of APIs into the code](#VirtualizedEnvironment) within the Realm provides a better developer experience for a less expensive work compared to tailoring down a full set of exposed APIs - e.g. iframes - that includes handling presence of `[LegacyUnforgeable]` attributes like `Window.top`.
+- We hope the usage of Realms will be somewhat lighter weight (both in terms of memory and CPU) for the browser if compared to iframes, especially when frameworks rely on several Realms in the same application.
+- Realms are not accessible from by traversing the DOM of the incubator realm. This will ideal and/or better approach compared to attaching iframes elements and their contentWindow to the DOM. [Detaching iframes](#Iframes) would even add a new own set of problems.
+- A newly created realm does not have immediate access to any object from the incubator realm and won't have access to `Window.top` as iframes would.
+
+Realms are complementary to stronger isolation mechanisms such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. Realms avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
+
+The Realms API does __not__ introduce a new evaluation mechanism. The code evaluation is subject to the [same restrictions of the incubator realm via CSP](#Evaluation), or any other restriction in Node.
+
+JavaScript modules are associated with a global object and set of built-ins. Realms contain their own separate module graph which runs in the context of that Realm, so that a full JavaScript development experience is available.
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
@@ -180,6 +190,19 @@ const { doSomething } = await realm.import('./file.js');
 ```
 
 The Realms API does not introduce a new way to evaluate code, it is subject to the existing evaluation mechanisms such as the [Content-Security-Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
+
+### <a name='Whynotseparateprocesses'></a>Why not separate processes?
+
+Creating a Realm that runs in a separate process is another alternative, while allowing users to define and create their own protocol of communication between these processes.
+
+This alternative was discarded for two main reasons:
+
+1. There are existing mechanism to achieve this today in both browsers, and nodejs. E.g.: cross domain iframes, workers, etc. They seem to be good enough when asynchronous communication is sufficient to implement the feature.
+2. Asynchronous communication is a deal-breaker for many use-cases, specially when security is __not__ an issue, and sometimes it just added complexity for cases where a same-process Realm is sufficient.
+
+E.g. Google AMP run in a cross domain iframe, and just want more control about what code they executed in that cross domain application.
+
+There are some identified challenges explained within the current use cases for Realms such as the [WorkerDOM Virtualization challenge for Google AMP](#DOMVirtualization) and the current use of [JSDOM and Node VM modules](#JSDOMvmModules) that would be better placed using an interoperable Realms API as presented by this proposal.
 
 ## <a name='UseCases'></a>Use Cases
 
@@ -567,12 +590,3 @@ document.body.removeChild(iframe);
 // get accessor still exists, now returns null
 iframeWindow.top;
 ```
-
-### <a name='Whynotseparateprocesses'></a>Why not separate processes?
-
-Creating a Realm that runs in a separate process is another alternative, while allowing users to define and create their own protocol of communication between these processes.
-
-This alternative was discarded for two main reasons:
-
-1. There are existing mechanism to achieve this today in both browsers, and nodejs. E.g.: cross domain iframes, workers, etc. They seem to be good enough when asynchronous communication is sufficient to implement the feature.
-2. Asynchronous communication is a deal-breaker for many use-cases, and sometimes it just added complexity for cases where a same-process Realm is sufficient.
