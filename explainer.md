@@ -377,6 +377,19 @@ class FakeWindow extends Realm {
 }
 ```
 
+Or even better:
+
+```js
+class FakeWindow extends Realm {
+  constructor() {
+    super();
+    this.globalThis;
+
+    installFakeDOM(this.globalThis);
+  }
+}
+```
+
 This code allows a customized set of properties to each new Realm and avoid issues on handling immutable accessors/properties from the Window proxy. e.g.: `window.top`, `window.location`, etc..
 
 ## <a name='Modules'></a>Modules
