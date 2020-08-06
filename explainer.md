@@ -344,16 +344,39 @@ The Realms API allows a much smarter approach for DOM mocking, where the globalT
 
 ```js
 class FakeWindow extends Realm {
+  #global;
   constructor() {
     super();
-    let realmGlobal = this.globalThis;
+    this.#global = this.globalThis;
+
+    realmGlobal.top = 'https://example.com';
+  }
+
+  async initDocument() {
+    const { FakeDocument } = await this.import('fake-document.js');
+
+    // As FakeDocument comes from the new realm, this will allow the Realm to
+    // operate seamlessly in instance checks like:
+    // `document instanceof Object`
+    return this.#global.document = new FakeDocument();
+  }
+}
+```
+
+Or even better:
+
+```js
+class FakeWindow extends Realm {
+  constructor() {
+    super();
+    this.globalThis;
 
     installFakeDOM(this.globalThis);
   }
 }
 ```
 
-This code allows a customized set of properties to each new Realm (e.g.: a global `document`) and avoid issues on handling immutable accessors/properties from the Window proxy. e.g.: `window.top`, `window.location`, etc..
+This code allows a customized set of properties to each new Realm - e.g. `document` - and avoid issues on handling immutable accessors/properties from the Window proxy. e.g.: `window.top`, `window.location`, etc..
 
 ## <a name='Modules'></a>Modules
 
