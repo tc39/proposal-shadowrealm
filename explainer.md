@@ -348,49 +348,12 @@ class FakeWindow extends Realm {
     super();
     let realmGlobal = this.globalThis;
 
-    realmGlobal.document = new FakeDocument();
-    realmGlobal.top = 'https://example.com';
-  }
-}
-```
-
-Note that cross-realm evaluations are observable and the example above should be enhanced by reusing newly created Realm:
-
-```js
-class FakeWindow extends Realm {
-  #global;
-  constructor() {
-    super();
-    this.#global = this.globalThis;
-
-    realmGlobal.top = 'https://example.com';
-  }
-
-  async initDocument() {
-    const { FakeDocument } = await this.import('fake-document.js');
-
-    // As FakeDocument comes from the new realm, this will allow the Realm to
-    // operate seamlessly in instance checks like:
-    // `document instanceof Object`
-    return this.#global.document = new FakeDocument();
-  }
-}
-```
-
-Or even better:
-
-```js
-class FakeWindow extends Realm {
-  constructor() {
-    super();
-    this.globalThis;
-
     installFakeDOM(this.globalThis);
   }
 }
 ```
 
-This code allows a customized set of properties to each new Realm and avoid issues on handling immutable accessors/properties from the Window proxy. e.g.: `window.top`, `window.location`, etc..
+This code allows a customized set of properties to each new Realm (e.g.: a global `document`) and avoid issues on handling immutable accessors/properties from the Window proxy. e.g.: `window.top`, `window.location`, etc..
 
 ## <a name='Modules'></a>Modules
 
