@@ -340,40 +340,17 @@ The same iframe approach won't also have a direct access to import modules dynam
 
 #### <a name='DOMmocking'></a>DOM mocking
 
-The Realms API allows a much smarter approach for DOM mocking, where the globalThis can be setup in userland. This also takes advantage of the Realm constructor being subclassable:
+The Realms API allows a much smarter approach for DOM mocking, where the globalThis can be setup in userland:
 
 ```js
-class FakeWindow extends Realm {
-  #global;
-  constructor() {
-    super();
-    this.#global = this.globalThis;
+const realm = new Realm();
 
-    realmGlobal.top = 'https://example.com';
-  }
+await installFakeDOM(realm.globalThis);
 
-  async initDocument() {
-    const { FakeDocument } = await this.import('fake-document.js');
-
-    // As FakeDocument comes from the new realm, this will allow the Realm to
-    // operate seamlessly in instance checks like:
-    // `document instanceof Object`
-    return this.#global.document = new FakeDocument();
-  }
-}
-```
-
-Or even better:
-
-```js
-class FakeWindow extends Realm {
-  constructor() {
-    super();
-    this.globalThis;
-
-    installFakeDOM(this.globalThis);
-  }
-}
+// Custom properties are now added to the Realm such as
+realm.globalThis.document;
+realm.globalThis.top;
+realm.globalThis.location;
 ```
 
 This code allows a customized set of properties to each new Realm - e.g. `document` - and avoid issues on handling immutable accessors/properties from the Window proxy. e.g.: `window.top`, `window.location`, etc..
@@ -498,16 +475,14 @@ class EmptyRealm extends Realm {
 ### <a name='Example:DOMMocking'></a>Example: DOM Mocking
 
 ```js
-class FakeWindow extends Realm {
-  constructor(...args) {
-    super(...args);
-    let globalThis = this.globalThis;
+const realm = new Realm();
 
-    globalThis.document = new FakeDocument(...);
-    globalThis.alert = new Proxy(fakeAlert, { ... });
-    ...
-  }
-}
+await installFakeDOM(realm.globalThis);
+
+// Custom properties are now added to the Realm such as
+realm.globalThis.document;
+realm.globalThis.top;
+realm.globalThis.location;
 ```
 
 ### <a name='Example:iframesvsRealms'></a>Example: iframes vs Realms
