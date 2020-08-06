@@ -367,7 +367,11 @@ class FakeWindow extends Realm {
   }
 
   async initDocument() {
-    const FakeDocument = await this.import('fake-document.js');
+    const { FakeDocument } = await this.import('fake-document.js');
+
+    // As FakeDocument comes from the new realm, this will allow the Realm to
+    // operate seamlessly in instance checks like:
+    // `document instanceof Object`
     return this.#global.document = new FakeDocument();
   }
 }
