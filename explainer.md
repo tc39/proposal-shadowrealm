@@ -86,7 +86,7 @@ The proposed specification defines:
 
 - The [`constructor`](https://tc39.es/proposal-realms/#sec-realm).
 - The [`Realm#import()`](https://tc39.es/proposal-realms/#sec-realm.prototype.import) method, equivalent to the `import()` expression.
-- The [`get Realm#globalThis`](https://tc39.es/proposal-realms/#sec-realm.prototype.import) accessor to the Realm's `globalThis`. This global 
+- The [`get Realm#globalThis`](https://tc39.es/proposal-realms/#sec-realm.prototype.import) accessor to the Realm's `globalThis`.
 
 ### <a name='QuickAPIUsageExample'></a>Quick API Usage Example
 
