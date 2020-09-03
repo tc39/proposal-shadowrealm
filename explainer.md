@@ -121,7 +121,7 @@ It's quite common for an applications to contain programs from multiple sources,
 
 Asynchronous communication is a deal-breaker for many use cases. It usually just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be serialized before it's sent back and forth.
 
-It would be good to provide a _lightweight funcionality_ - optimistically! - instead of creating iframes or Workers.
+It would be good to provide a _lightweight functionality_ - optimistically! - instead of creating iframes or Workers.
 
 The functionalities of the VM module in Node can also be standardized here.
 
@@ -237,9 +237,9 @@ await realm.import('./pluginScript.js');
 
 ### <a name='CodeTesting'></a>Code Testing
 
-While multi-threading is useful for testing, the layering enabled from Realms is also great. Test frameworks can use Realms to inject code and also control the order the injections if necessary.
+While multi-threading is useful for testing, the layering enabled from Realms is also great. Test frameworks can use Realms to inject code and also control the order of the injections if necessary.
 
-Testing code can run autonomously within the boundaries set from the Realm object, without immediately conflicting with other tests.
+Testing code can run autonomously within the boundaries set from the Realm object without immediately conflicting with other tests.
 
 #### <a name='RunningtestsinaRealm'></a>Running tests in a Realm
 
@@ -560,7 +560,7 @@ Using VM module in nodejs, and same-domain iframes in browsers. Although, VM mod
 
 ## <a name='Iframes'></a>Iframes
 
-Developers can technically already create a new Realm by creating new same-domain iframe, but there are few impediments to use this as a reliable mechanism:
+Developers can technically already create a new Realm by creating a new same-domain iframe, but there are a few impediments to using this as a reliable mechanism:
 
 * the global object of the iframe is a window proxy, which implements a bizarre behavior, including its unforgeable proto chain.
 * There are multiple ~~unforgeable~~ unvirtualizable objects due to the DOM semantics, this makes it almost impossible to eliminate certain capabilities while downgrading the window to a brand new global without DOM.
