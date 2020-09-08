@@ -90,26 +90,12 @@ The proposed specification defines:
 ### <a name='QuickAPIUsageExample'></a>Quick API Usage Example
 
 ```js
-// this is the root realm
-var x = 39;
 const realm = new Realm();
-
-// globals from the root/parent realm are not leaked to the nested realms
-realm.globalThis.x; // undefined
-realm.globalThis.x = 42; // 42
-
-// global names can be regularly observed in the realm's globalThis
-realm.globalThis.x; // 42
-
-// global values are not leaked to the parent realms
-x; // 39
-
-// built-ins configurability are not different
-delete realm.globalThis.Math;
-
-// realms can dynamic import module that will execute within it's own
-// environment. Imports can be observed from the parent realm.
-realm.import('./file.js').then(ns => ns.execCustomCode());
+// realms can import module that will execute within it's own environment.
+realm.import('./file.js');
+// realms exposes access to its ordinary global object as a communication
+// channel between the incubator realm and the newly created realm.
+realm.globalThis;
 ```
 
 ## <a name='Motivations'></a>Motivations
@@ -118,7 +104,7 @@ Why do developers need realms?
 
 It's quite common for an applications to contain programs from multiple sources, whether from different teams, vendors, package managers, etc. These programs must currently contend for the global shared resources, specifically, the shared global object, and the side effect of executing those programs are often hard to observe, causing conflicts between the different programs, and potentially affecting the integrity of the app itself.
 
-Asynchronous communication is a deal-breaker for many use cases. It usually just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be serialized before it's sent back and forth.
+Attempting to solve this with existing DOM APIs will require to implement an asynchronous communication protocol, which is often a deal-breaker for many use cases. It usually just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be serialized before it's sent back and forth.
 
 It would be good to provide a _lightweight functionality_ - optimistically! - instead of creating iframes or Workers.
 
@@ -132,11 +118,11 @@ Same-origin iframes also create a new global object which is synchronously acces
 
 Sites like Salesforce.com make extensive use of same-origin iframes to create such global objects. Our experience with same-origin iframes motivated us to steer this proposal forward, which has the following advantages:
 
-- Frameworks would be able to better craft the available API within the global object of the Realm, aiming for what is necessary to evaluate the code that might need no access or just limited access to the DOM or other Web APIs.
-- Tailoring up [the exposed set of APIs into the code](#VirtualizedEnvironment) within the Realm provides a better developer experience for a less expensive work compared to tailoring down a full set of exposed APIs - e.g. iframes - that includes handling presence of `[LegacyUnforgeable]` attributes like `Window.top`.
+- Frameworks would be able to better craft the available API within the global object of the Realm, aiming for what is necessary to evaluate the program.
+- Tailoring up [the exposed set of APIs into the code](#VirtualizedEnvironment) within the Realm provides a better developer experience for a less expensive work compared to tailoring down a full set of exposed APIs - e.g. iframes - that includes handling presence of `[LegacyUnforgeable]` attributes like `window.top`.
 - We hope the usage of Realms will be somewhat lighter weight (both in terms of memory and CPU) for the browser if compared to iframes, especially when frameworks rely on several Realms in the same application.
 - Realms are not accessible from by traversing the DOM of the incubator realm. This will ideal and/or better approach compared to attaching iframes elements and their contentWindow to the DOM. [Detaching iframes](#Iframes) would even add a new own set of problems.
-- A newly created realm does not have immediate access to any object from the incubator realm and won't have access to `Window.top` as iframes would.
+- A newly created realm does not have immediate access to any object from the incubator realm and won't have access to `window.top` as iframes would.
 
 Realms are complementary to stronger isolation mechanisms such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. Realms avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
 
@@ -183,9 +169,9 @@ doSomething();
 
 ### <a name='Compartments'></a>Compartments
 
-This proposal does not define any compartmentalization of host behavior. Therefore, it distinguishes itself from the current existing [Compartments](https://github.com/tc39/proposal-compartments) proposal.
+This proposal does not define any virtualization mechanism for host behavior. Therefore, it distinguishes itself from the current existing [Compartments](https://github.com/tc39/proposal-compartments) proposal.
 
-A new [Compartment](https://github.com/tc39/proposal-compartments) provides a new Realm constructor. A Realm object from a Compartment is subject to the Compartment's virtualization mechanism.
+A new [Compartment](https://github.com/tc39/proposal-compartments) provides a new Realm constructor. A Realm object from a Compartment is subject to the Compartment's host virtualization mechanism.
 
 ```js
 const compartment = new Compartment(options);
@@ -193,8 +179,6 @@ const VirtualizedRealm = compartment.globalThis.Realm;
 const realm = new VirtualizedRealm();
 const { doSomething } = await realm.import('./file.js');
 ```
-
-The Realms API does not introduce a new way to evaluate code, it is subject to the existing evaluation mechanisms such as the [Content-Security-Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
 
 ### <a name='Whynotseparateprocesses'></a>Why not separate processes?
 
@@ -364,19 +348,7 @@ This code allows a customized set of properties to each new Realm - e.g. `docume
 
 In principle, the Realm proposal does not provide the controls for the module graphs. Every new Realm initializes its own module graph, while any invocation to `Realm.prototype.import()` method, or by using `import()` when evaluating code inside the realm, will populate this module graph. This is analogous to same-domain iframes, and VM in nodejs.
 
-However, the [Compartments]() proposal plans to provide the low level hooks to control the module graph per Realm. This is one of the intersection semantics between the two proposals. Although, the biggest challenge when sharing modules across realms is the hazard of the identity discontinuity. For example, when interacting with a module evaluated in another Realm:
-
-```js
-import { x } from '/path/to/foo.js';
-const d = new Date();
-x(d);
-```
-
-If `x` function attempt to check `arguments[0] instanceof Date`, it yields `false` since the date object was created from a constructor from another realm.
-
-There are some precedents on how to solve the identity discontinuity issues by using a "near membrane" via proxies. For now, providing the Realms as building block seems sufficient.
-
-There is one important thing to keep in mind when it comes to sharing module graphs. The ESM linkage is not asynchronous. This dictates that in order to share modules between realms, those realms should share the same process, otherwise the bindings between those modules cannot work according to the language. This is another reason to support our claim that Realms should be running within the same process.
+However, the [Compartments]() proposal plans to provide the low level hooks to control the module graph per Realm. This is one of the intersection semantics between the two proposals.
 
 ## <a name='Integrity'></a>Integrity
 
@@ -393,20 +365,6 @@ There are many examples like this for the web: Google Sheets, Figma's plugins, o
 There are also other more exotic cases in which measuring of time ("security") is not a concern, especially in IOT where many devices might not have process boundaries at all. Or examples where security is not a concern, e.g.: test runners like jest (from facebook) that relies on nodejs, JSDOM and VM contexts to execute individual tests while sharing a segment of the object graph to achieve the desired performance budget. No doubts that this type of tools are extremely popular these days, e.g.: JSDOM has 10M installs per week according to NPM's registry.
 
 ## <a name='MoreExamples'></a>More Examples
-
-### <a name='Example:SimpleRealm'></a>Example: Simple Realm
-
-```js
-let g = globalThis; // outer global
-let r = new Realm(); // root realm
-
-let f = r.globalThis.Function("return 17");
-
-f() === 17 // true
-
-Reflect.getPrototypeOf(f) === g.Function.prototype // false
-Reflect.getPrototypeOf(f) === r.globalThis.Function.prototype // true
-```
 
 ### <a name='Example:ImportingModule'></a>Example: Importing Module
 
@@ -476,6 +434,8 @@ class EmptyRealm extends Realm {
   }
 }
 ```
+
+In the example above, the global object of a newly created realm of `EmptyRealm` will have no global `Math` available.
 
 ### <a name='Example:DOMMocking'></a>Example: DOM Mocking
 
