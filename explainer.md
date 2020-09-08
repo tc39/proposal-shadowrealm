@@ -100,15 +100,19 @@ realm.globalThis;
 
 ## <a name='Motivations'></a>Motivations
 
-Why do developers need realms?
+It's quite common for an applications to contain programs from multiple sources, whether from different teams, vendors, package managers, etc, or just programs with different set of requirements from the environment.
 
-It's quite common for an applications to contain programs from multiple sources, whether from different teams, vendors, package managers, etc. These programs must currently contend for the global shared resources, specifically, the shared global object, and the side effect of executing those programs are often hard to observe, causing conflicts between the different programs, and potentially affecting the integrity of the app itself.
+These programs must currently contend for the global shared resources, specifically, the shared global object, and the side effect of executing those programs are often hard to observe, causing conflicts between the different programs, and potentially affecting the integrity of the app itself.
 
-Attempting to solve this with existing DOM APIs will require to implement an asynchronous communication protocol, which is often a deal-breaker for many use cases. It usually just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be serialized before it's sent back and forth.
+Attempting to solve these problems with existing DOM APIs will require to implement an asynchronous communication protocol, which is often a deal-breaker for many use cases. It usually just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be serialized before it's sent back and forth.
 
-It would be good to provide a _lightweight functionality_ - optimistically! - instead of creating iframes or Workers.
+The primary goal of this proposal is to provide a mechanism of control of the execution of a program, providing a new global object, a new set of intrinsics, no default access to the incubator realm's global object, a separate module graph and synchronous communication with the incubator realm.
 
-The functionalities of the VM module in Node can also be standardized here.
+In addition to the motivations given above, another commonly-cited motivation is virtualization and portability. Some of the functionalities of the VM module in Node can also be standardized, providing the infrastructure for virtualization of JavaScript programs in all environments.
+
+Finally, a distinct but related problem that this proposal could solve is the current inability to completely virtualize the environment where the program should be executed. With this proposal, we are taking a giant step toward that missing feature of the language.
+
+Realms is an often-requested feature from developers, directly or indirectly. It was original part of ES6 spec, but didn't make the initial cut. This proposal attempts to resolve prior objections and get to a solution that all implementers can agree upon.
 
 ### <a name='Operation'></a>How does Realms operate?
 
