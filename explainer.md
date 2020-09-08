@@ -5,6 +5,7 @@
 * [API (TypeScript Format)](#APITypeScriptFormat)
 	* [Quick API Usage Example](#QuickAPIUsageExample)
 * [Motivations](#Motivations)
+    * [How does Realms operate?](#Operation)
 * [Clarifications](#Clarifications)
 	* [Terminology](#Terminology)
 	* [The Realm's Global Object](#TheRealmsGlobalObject)
@@ -50,25 +51,23 @@
 
 ## <a name='Introduction'></a>Introduction
 
-The Realms proposal provides a new mechanism to execute JavaScript code within the context of a new global object and set of JavaScript built-ins. The `Realm` constructor creates this kind of a new global object.
+The Realms proposal provides a new mechanism to execute JavaScript code within the context of a new global object and set of JavaScript built-ins.
 
-Realms execute code with the same JavaScript heap as the surrounding context where the Realm is created. Code runs synchronously in the same thread. Note: The surrounding context is often referenced as the _incubator realm_ within this proposal.
+The API enables control over the execution of different programs within a Realm, providing a proper mechanism for virtualization. This is not possible in the Web Platform today and the proposed API is aimed to a seamless solution for all JS enviroments.
 
-Same-origin iframes also create a new global object which is synchronously accessible. Realms differ from same-origin iframes by omitting Web APIs such as the DOM.
+There are various examples where Realms can be well applied to:
 
-Sites like Salesforce.com make extensive use of same-origin iframes to create such global objects. Our experience with same-origin iframes motivated us to steer this proposal forward, which has the following advantages:
+  * Web-based IDEs or any kind of 3rd party code execution using same origin evaluation policies.
+  * DOM Virtualization (e.g.: Google AMP)
+  * Test frameworks and reporters (in-browser tests, but also in node using `vm`).
+  * testing/mocking (e.g.: jsdom)
+  * Most plugin mechanism for the web (e.g., spreadsheet functions).
+  * Sandboxing (e.g.: Oasis Project)
+  * Server side rendering (to avoid collision and data leakage)
+  * in-browser code editors
+  * in-browser transpilation
 
-- Frameworks would be able to better craft the available API within the global object of the Realm, aiming for what is necessary to evaluate the code that might need no access or just limited access to the DOM or other Web APIs.
-- Tailoring up [the exposed set of APIs into the code](#VirtualizedEnvironment) within the Realm provides a better developer experience for a less expensive work compared to tailoring down a full set of exposed APIs - e.g. iframes - that includes handling presence of `[LegacyUnforgeable]` attributes like `Window.top`.
-- We hope the usage of Realms will be somewhat lighter weight (both in terms of memory and CPU) for the browser if compared to iframes, especially when frameworks rely on several Realms in the same application.
-- Realms are not accessible from by traversing the DOM of the incubator realm. This will ideal and/or better approach compared to attaching iframes elements and their contentWindow to the DOM. [Detaching iframes](#Iframes) would even add a new own set of problems.
-- A newly created realm does not have immediate access to any object from the incubator realm and won't have access to `Window.top` as iframes would.
-
-Realms are complementary to stronger isolation mechanisms such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. Realms avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
-
-The Realms API does __not__ introduce a new evaluation mechanism. The code evaluation is subject to the [same restrictions of the incubator realm via CSP](#Evaluation), or any other restriction in Node.
-
-JavaScript modules are associated with a global object and set of built-ins. Realms contain their own separate module graph which runs in the context of that Realm, so that a full JavaScript development experience is available.
+This document expands a list of some of these [use cases with examples](#UseCases).
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
@@ -125,19 +124,25 @@ It would be good to provide a _lightweight functionality_ - optimistically! - in
 
 The functionalities of the VM module in Node can also be standardized here.
 
-There are various examples where Realms can be used to avoid this:
+### <a name='Operation'></a>How does Realms operate?
 
-  * Web-based IDEs or any kind of 3rd party code execution uses same origin evaluation.
-  * DOM Virtualization (e.g.: AMP)
-  * Test frameworks and reporters(in-browser tests, but also in node using `vm`).
-  * testing/mocking (e.g.: jsdom)
-  * Most plugin mechanism for the web (e.g., spreadsheet functions).
-  * Sandboxing (e.g.: Oasis Project)
-  * Server side rendering (to avoid collision and data leakage)
-  * in-browser code editors
-  * in-browser transpilation
+Realms execute code with the same JavaScript heap as the surrounding context where the Realm is created. Code runs synchronously in the same thread. Note: The surrounding context is often referenced as the _incubator realm_ within this proposal.
 
-Note: the majority of the examples above will require synchronous operations to be supported, which makes it almost impossible to use Workers or similars, or any other isolation mechanisms in browsers and nodejs today.
+Same-origin iframes also create a new global object which is synchronously accessible. Realms differ from same-origin iframes by omitting Web APIs such as the DOM.
+
+Sites like Salesforce.com make extensive use of same-origin iframes to create such global objects. Our experience with same-origin iframes motivated us to steer this proposal forward, which has the following advantages:
+
+- Frameworks would be able to better craft the available API within the global object of the Realm, aiming for what is necessary to evaluate the code that might need no access or just limited access to the DOM or other Web APIs.
+- Tailoring up [the exposed set of APIs into the code](#VirtualizedEnvironment) within the Realm provides a better developer experience for a less expensive work compared to tailoring down a full set of exposed APIs - e.g. iframes - that includes handling presence of `[LegacyUnforgeable]` attributes like `Window.top`.
+- We hope the usage of Realms will be somewhat lighter weight (both in terms of memory and CPU) for the browser if compared to iframes, especially when frameworks rely on several Realms in the same application.
+- Realms are not accessible from by traversing the DOM of the incubator realm. This will ideal and/or better approach compared to attaching iframes elements and their contentWindow to the DOM. [Detaching iframes](#Iframes) would even add a new own set of problems.
+- A newly created realm does not have immediate access to any object from the incubator realm and won't have access to `Window.top` as iframes would.
+
+Realms are complementary to stronger isolation mechanisms such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. Realms avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
+
+The Realms API does __not__ introduce a new evaluation mechanism. The code evaluation is subject to the [same restrictions of the incubator realm via CSP](#Evaluation), or any other restriction in Node.
+
+JavaScript modules are associated with a global object and set of built-ins. Realms contain their own separate module graph which runs in the context of that Realm, so that a full JavaScript development experience is available.
 
 ## <a name='Clarifications'></a>Clarifications
 
