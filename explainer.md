@@ -198,9 +198,7 @@ The initial Realms proposal had more content and more ways to access things. We 
 
 > The explainer talks about Compartments but it would be nice with a quick intro to that work and how all of this relates.
 
-Thanks for catching that up! The correct link is [here](https://github.com/tc39/proposal-compartments).
-
-Compartments is a more complex API that offers tailoring over aspects beyond the global APIs but with modifications to internal structure such as module graph. The Realms API just offers immediate access to what is already specified in ECMAScript as it's already structured to distinguish different references from realms.
+Thanks for catching that up! The correct link is [here](https://github.com/tc39/proposal-compartments). I added a bit more context in this [explainer](#Compartments).
 
 ## <a name='Clarifications'></a>Other Clarifications
 
@@ -251,6 +249,8 @@ const VirtualizedRealm = compartment.globalThis.Realm;
 const realm = new VirtualizedRealm();
 const { doSomething } = await realm.import('./file.js');
 ```
+
+The Compartments proposal offers a more complex API that offers tailoring over aspects beyond the global APIs but with modifications to internal structure such as module graph. The Realms API just offers immediate access to what is already specified in ECMAScript as it's already structured to distinguish different references from realms.
 
 ### <a name='Whynotseparateprocesses'></a>Why not separate processes?
 
