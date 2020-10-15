@@ -351,6 +351,39 @@ realm.globalThis.location;
 
 This code allows a customized set of properties to each new Realm - e.g. `document` - and avoid issues on handling immutable accessors/properties from the Window proxy. e.g.: `window.top`, `window.location`, etc..
 
+This explainer document speculates a `installFakeDOM` API to set up a proper frame emulation. We understand there might be many ways to explore how to emulate frames with plenty of room for improvement, as seen in [some previous discussions](https://github.com/tc39/proposal-realms/issues/268#issuecomment-674338593), as in the following pseudo-code:
+
+```js
+function installFakeDOM(realmGlobalThis) {
+    const someRealmIntrinsicsNeededForWrappers = extractIntrinsicsFromGlobal(realmGlobalThis);
+    Object.defineProperties({
+         document: createFakeDocumentDescriptor(someRealmIntrinsicsNeededForWrappers),
+         Element: createFakeElementDescriptor(someRealmIntrinsicsNeededForWrappers),
+         Node: ...
+         ... // all necessary DOM related globals should be defined here
+    });
+}
+
+function createFakeDocumentDescriptor(someIntrinsics) {
+     return {
+          enumerable: true,
+          configurable: false,
+          get: new someIntrinsics.Proxy(document, createHandlerWithDistortionsForDocument(someIntrinsics));
+     };
+}
+
+function extractIntrinsicsFromGlobal(realmGlobalThis) {
+   return {
+       Proxy: realmGlobalThis.Proxy,
+       ObjectPrototype: Object.prototype,
+       create: Object.create,
+       ... // whatever you need to facilitate the creation of proper identities for the fake DOM
+   };
+}
+```
+
+That's one option to use proxies, notice that the `Proxy` constructor used is from the Realm, same for any proxy handler, or object/function/array accessible from inside the realm (e.g.: the one produced by `createHandlerWithDistortionsForDocument` should be an object with `__proto__` set to `realmGlobalThis.Object.prototype`, this helps with the errors identity). Again, identity issues are hard to solve when multiple realms are playing together, but libraries and frameworks can tackle that at the lower level.
+
 ## <a name='Modules'></a>Modules
 
 In principle, the Realm proposal does not provide the controls for the module graphs. Every new Realm initializes its own module graph, while any invocation to `Realm.prototype.import()` method, or by using `import()` when evaluating code inside the realm, will populate this module graph. This is analogous to same-domain iframes, and VM in nodejs.
