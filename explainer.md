@@ -42,6 +42,7 @@
 * [Status Quo](#StatusQuo)
 * [Iframes](#Iframes)
 	* [Detachable](#Detachable)
+* [FAQ](#FAQ)
 
 <!-- vscode-markdown-toc-config
 	numbering=false
@@ -183,6 +184,8 @@ const VirtualizedRealm = compartment.globalThis.Realm;
 const realm = new VirtualizedRealm();
 const { doSomething } = await realm.import('./file.js');
 ```
+
+The Compartments proposal offers a more complex API that offers tailoring over aspects beyond the global APIs but with modifications to internal structure such as module graph. The Realms API just offers immediate access to what is already specified in ECMAScript as it's already structured to distinguish different references from realms.
 
 ### <a name='Whynotseparateprocesses'></a>Why not separate processes?
 
@@ -556,3 +559,61 @@ document.body.removeChild(iframe);
 // get accessor still exists, now returns null
 iframeWindow.top;
 ```
+
+## <a name='FAQ'></a>FAQ
+
+### So do Realms only have the ECMAScript APIs available?
+
+Yes! It only exposes a new copy of the built-ins from ECMAScript, but [it allows extensions defined by each host](https://tc39.es/proposal-realms/#sec-realm).
+
+```
+// Proposal:
+
+Realm ()
+
+...
+11. Perform ? SetDefaultGlobalBindings(O.[[Realm]]).
+...
+```
+
+```
+// ECMAScript
+
+SetDefaultGlobalBindings ( realmRec )
+
+1. Let global be realmRec.[[GlobalObject]].
+2. For each property of the Global Object specified in clause 18, do
+...
+
+18 The Global Object
+
+...
+- may have host defined properties in addition to the properties defined in this specification. This may include a property whose value is the global object itself.
+
+```
+
+### Most libraries won't work unless they add dependencies manually
+
+> Doesn't this mean that most libraries won't work unless to add its dependencies manually, like `realm.globalThis.fetch = fetch`. Like we could see people using this even to isolate WebAssembly code, thought that requires you adding the methods needed for that.
+
+Absolutely, this is equivalent to what happens to [Node VM](https://nodejs.org/api/vm.html) today as a low level API prior art. As a developer you need to setup the environment to execute code.
+
+Ideally the Realms would arrive a clean state, allowing tailoring for what is necessary to be added. This contrasts with the tailoring over unforgeables. e.g. `window.top`, `window.location`, etc
+
+Considering all the trade offs, the clean state seems the best option, in our opinion. It allows tailoring for multiple purposes and comprehends more use cases.
+
+### The top-level Realm cannot be accessed
+
+> We are also a bit afraid that regular developers will have a hard time understanding all these concepts (realms, globals, this) and how they relate to each other: realms, like what is a realm really, especially since the top-level realm (like the one with window === globalThis) cannot be accessed as a Realm object.
+
+Executed code doesn't need to know it's in a realm, this is designed to be a concern for those setting the realm up. Ideally, code executed in a realm would run seamlessly. There is prior art for this (iframes, Workers, node.vm).
+
+_Additional feedback from @littledan:_
+
+One thing to understand here is that Realms are generally intended to be a sort of metaprogramming construct, which would be used by frameworks and libraries to build emulated JS environments for developers. I understand the feedback that this concept may be difficult for JS developers to understand; probably an introduction in the explainer to show how múltiple globals in JS already work would help make this document more accessible. Either way, it is an underlying primitive in the platform.
+
+### Realm MVP or max/min
+
+> Maybe for consistency sake it would make sense to have an accessor to expose it as a realm, thought currently the only thing exposed is `globalThis` and `import` - but we assume that could be extended in the future.
+
+The initial Realms proposal had more content and more ways to access things. We tried to build a MVP and hope we can explore expansions of the API in the future.
