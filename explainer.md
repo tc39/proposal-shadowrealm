@@ -617,9 +617,3 @@ One thing to understand here is that Realms are generally intended to be a sort 
 > Maybe for consistency sake it would make sense to have an accessor to expose it as a realm, thought currently the only thing exposed is `globalThis` and `import` - but we assume that could be extended in the future.
 
 The initial Realms proposal had more content and more ways to access things. We tried to build a MVP and hope we can explore expansions of the API in the future.
-
-### How the Compartments proposal relates to Realms
-
-> The explainer talks about Compartments but it would be nice with a quick intro to that work and how all of this relates.
-
-Thanks for catching that up! The correct link is [here](https://github.com/tc39/proposal-compartments). I added a bit more context in this [explainer](#Compartments).
