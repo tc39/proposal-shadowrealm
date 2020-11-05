@@ -97,7 +97,7 @@ location: https://tc39.es/proposal-realms/
 			<p>The following steps are performed:</p>
 			<emu-alg>
 				1. Let _O_ be *this* value.
-				1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
+				1. Perform ? ValidateRealmObject(_O_).
 				1. Let _referencingScriptOrModule_ be *null*.
 				1. Let _specifierString_ be ? ToString(_specifier_).
 				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
@@ -118,13 +118,24 @@ location: https://tc39.es/proposal-realms/
 			</emu-note>
 		</emu-clause>
 
+		<emu-clause id="sec-validaterealmobject">
+			<h1>ValidateRealmObject( _argument_ )</h1>
+			<p>The abstract operation ValidateRealmObject takes argument _argument_. It performs the following steps when called:</p>
+
+			<emu-alg>
+				1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
+				1. Perform ? RequireInternalSlot(_O_, [[ExecutionContext]]).
+			</emu-alg>
+		</emu-clause>
+
+
 		<emu-clause id="sec-realm.prototype.globalthis">
 			<h1>get Realm.prototype.globalThis</h1>
 			<p>Realm.prototype.globalThis is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:</p>
 
 			<emu-alg>
 				1. Let _O_ be *this* value.
-				1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
+				1. Perform ? ValidateRealmObject(_O_).
 				1. Return _O_.[[Realm]].[[GlobalEnv]].[[GlobalThisValue]].
 			</emu-alg>
 		</emu-clause>
