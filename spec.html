@@ -86,8 +86,8 @@ location: https://tc39.es/proposal-realms/
 		<h1>Properties of the Realm Prototype Object</h1>
 		<p>The Realm prototype object:</p>
 		<ul>
-			<li>is the intrinsic object <dfn>%Realm.prototype%</dfn>.</li>
-			<li>is the initial value of the "*prototype*" property of %Realm%.</li>
+			<li>has a [[Prototype]] internal slot whose value is <dfn>%Object.prototype%</dfn>.</li>
+			<li>is %Realm.prototype%.</li>
 			<li>is an ordinary object.</li>
 			<li>does not have a [[Realm]] or any other of the internal slots that are specific to _Realm_ instance objects.</li>
 		</ul>
