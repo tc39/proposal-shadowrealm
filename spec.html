@@ -71,7 +71,7 @@ location: https://tc39.es/proposal-realms/
 		<h1>Properties of the Realm Constructor</h1>
 		<p>The Realm constructor:</p>
 		<ul>
-			<li>as a [[Prototype]] internal slot whose value is %Function.prototype%.</li>
+			<li>has a [[Prototype]] internal slot whose value is %Function.prototype%.</li>
 			<li>has the following properties:</li>
 		</ul>
 
@@ -178,7 +178,7 @@ location: https://tc39.es/proposal-realms/
 		<emu-clause id="sec-host-initialize-user-realm" aoid="HostInitializeUserRealm">
 			<h1>Runtime Semantics: HostInitializeUserRealm ( _realm_ )</h1>
 			<p>
-				HostInitializerUserRealm is an implementation-defined abstract
+				HostInitializeUserRealm is an implementation-defined abstract
 				operation used to inform the host of any newly created realms from
 				the Realm constructor. Its return value is not used, though it may
 				throw an exception. The idea of this hook is to initialize host
