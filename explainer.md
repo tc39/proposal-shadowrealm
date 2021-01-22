@@ -117,6 +117,8 @@ Realms is an often-requested feature from developers, directly or indirectly. It
 
 ### <a name='Operation'></a>How does Realms operate?
 
+> __Jargon__: The synthetic Realms can also create new Realms. All the origin Realms are called the incubator realms when compared to new realms created within. The new created Realms are also called child realms of respective incubator realm.
+
 Realms execute code with the same JavaScript heap as the surrounding context where the Realm is created. Code runs synchronously in the same thread. Note: The surrounding context is often referenced as the _incubator realm_ within this proposal.
 
 Same-origin iframes also create a new global object which is synchronously accessible. Realms differ from same-origin iframes by omitting Web APIs such as the DOM.
@@ -134,6 +136,38 @@ Realms are complementary to stronger isolation mechanisms such as Workers and cr
 The Realms API does __not__ introduce a new evaluation mechanism. The code evaluation is subject to the [same restrictions of the incubator realm via CSP](#Evaluation), or any other restriction in Node.
 
 JavaScript modules are associated with a global object and set of built-ins. Realms contain their own separate module graph which runs in the context of that Realm, so that a full JavaScript development experience is available.
+
+### The Realm instance
+
+The instance of a new Realm will provide access to the Realm's `globalThis` and a dynamic (async) `import()`. Nothing else. The `globalThis.eval` is still subject to CSP.
+
+There is a similarity over iframes, but with a proposed idea of not loading anything in the synthetic Realm beyond the intrinsics of ECMAScript. The issue with iframes is a big load including a new Window, DOM API, and unforgeable names such as `window.top` and `window.location`. Some of those values, specially `window.top` creates a non removable fingerprint reavealing the code is not running in the top origin Realm.
+
+The exposure of `globalThis` is only from the synthetic Realm to the incubator Realm. The only way for the synthetic Realm to see values and names from the incubator Realm is if a code within the incubator Realm adds a reference into the realms. Globals and other values are not leaked via `import()` as the module map is not shared.
+
+The advantage of having a visible `globalThis` is providing immediate integration of the code executed in the synthetic Realm with the origin Realm's DOM API. 
+
+### Identity Discontinuity and Membranes
+
+There is a known concern about _Identity Discontinuity_, e.g.: 
+
+```javascript
+Array === new Realm().globalThis.Array; // false
+Object === new Realm().globalThis.Object; // false
+```
+
+This is not new and has been handled for a while as a a known characteristic of Realms in ECMAScript, unregarding the new API, and can be seen similarly in iframes, Node's `vm` and in many other ways where new Realms can be created.
+
+One way to approach this is through membranes. We have libraries such as [Salesforce's Near Membranes](https://github.com/salesforce/observable-membrane) to properly connect two Realm running on the same process. The membrane enables the code evaluated inside the Child Realm to function as if it is evaluated in the Incubator Realm, exhibiting identity continuity, while preserving the integrity of the Incubator Realm by limiting the side effects that such code can have.
+
+This library offers a complete membrane implementation while the Realms still offers flexibility over more lightweight approaches.
+
+#### Membrane Goals
+
+The goals of the membranes are fit within the goals of this proposal:
+
+- Code executed inside the sandboxed environment cannot observe the sandbox.
+- Mutations on the object graph should only affect the sandboxed environment.
 
 ## <a name='Clarifications'></a>Clarifications
 
@@ -230,6 +264,22 @@ realm.globalThis.fmw = fmw;
 // The Plugin Script will execute within the Realm
 await realm.import('./pluginScript.js');
 ```
+
+#### Compartmentized Scripts for Enterprise and Multi-source applications
+
+The Realms enables compartmentized scripts for the same process, and this is a common use case of large (enterprise) applications and anything that runs over integration of multiple clients code. There is a need to guard the integrity of the main application code and each of those composition of clients code.
+
+From a developer perspective, this can be seen as Web-based IDEs (e.g. Visual Studio Code) running different sets of third party extensions. The extensions are provided by different users and organizations, and therefore set as trusted or verified third party scripts.
+
+From a general perspective, there is the example of SaaS and B2B Marketplaces. A web application can be composed of a fundamental structure that provides a marketplace, aka app store that lead to to a user made composition of the main application with many third party applications. This provides a custom set to the user needs.
+
+There is no illusion of extra security provided by the proposal, but there is an idea of better integrity of those third party code being properly compartmentized without leaking to each other or compromising the fundamental structure.
+
+#### Extensions and App Marketplaces
+
+This App Marketplace model is a common reflection of the era we live in and a raising need of business moving to the Web. It is not something being invented, it is a business model being used. 
+
+Browsers extentions/plugins/addons/devtools share a similar capacity of being executed while in need to have proper access to the structure of a given web application.
 
 ### <a name='CodeTesting'></a>Code Testing
 
@@ -570,6 +620,11 @@ Developers can technically already create a new Realm by creating a new same-dom
 * the global object of the iframe is a window proxy, which implements a bizarre behavior, including its unforgeable proto chain.
 * There are multiple ~~unforgeable~~ unvirtualizable objects due to the DOM semantics, this makes it almost impossible to eliminate certain capabilities while downgrading the window to a brand new global without DOM.
 * The global `top` reference cannot be redefined and leaks a reference to another global object. The only way to null out this behavior is to __detach__ the iframe, which imposes other problems, the more relevant is dynamic `import()` calls.
+* There is a challenge of [window location discontinuity in iframes](https://github.com/salesforce/near-membrane#challenges) that should be avoided with the Realms API.
+
+A common misconcept of the Realms proposal is creating a new Realm to run only a very specific function or methods as if they were a different process.
+
+The idea of the code executed in the Realms is to run them seamlessly, without observation that it is in a sandbox (or an iframe). Realms is a first step, followed by the membranes. This is important to preserve integrity of the code and keeping things robust.
 
 ### <a name='Detachable'></a>Detachable
 
