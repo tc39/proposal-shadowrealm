@@ -32,8 +32,118 @@ location: https://tc39.es/proposal-realms/
 	</emu-table>
 </emu-clause>
 
+<emu-clause id="sec-wrapped-function-exotic-objects">
+	<h1>Wrapped Function Exotic Objects</h1>
+	<p>A wrapped function exotic object is an exotic object that wraps a callable object. A wrapped function exotic object is callable (it has a [[Call]] internal method). Calling a wrapped function exotic object generally results in a call of its wrapped function.</p>
+
+	<p>An object is a <dfn id="wrapped-function-exotic-object">wrapped function exotic object</dfn> if its [[Call]] internal method use the following implementations, and its other essential internal methods use the definitions found in <emu-xref href="#sec-ordinary-object-internal-methods-and-internal-slots"></emu-xref>. These methods are installed in WrappedFunctionCreate.</p>
+
+	<p>Wrapped function exotic objects do not have the internal slots of ECMAScript function objects listed in <emu-xref href="#table-internal-slots-of-ecmascript-function-objects"></emu-xref>. Instead they have the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, in addition to [[Prototype]] and [[Extensible]].</p>
+	<emu-table id="table-internal-slots-of-wrapped-function-exotic-objects" caption="Internal Slots of Wrapped Function Exotic Objects" oldids="table-28">
+	<table>
+		<tbody>
+		<tr>
+		<th>
+			Internal Slot
+		</th>
+		<th>
+			Type
+		</th>
+		<th>
+			Description
+		</th>
+		</tr>
+		<tr>
+		<td>
+			[[WrappedTargetFunction]]
+		</td>
+		<td>
+			Callable Object
+		</td>
+		<td>
+			The wrapped function object.
+		</td>
+		</tr>
+		<tr>
+		<td>
+			[[Realm]]
+		</td>
+		<td>
+			Realm Record
+		</td>
+		<td>
+			The realm in which the wrapped function object was created.
+		</td>
+		</tr>
+		</tbody>
+	</table>
+	</emu-table>
+
+	<emu-clause id="sec-wrapped-function-exotic-objects-call-thisargument-argumentslist">
+	<h1>[[Call]] ( _thisArgument_, _argumentsList_ )</h1>
+	<p>The [[Call]] internal method of a wrapped function exotic object _F_ takes arguments _thisArgument_ (an ECMAScript language value) and _argumentsList_ (a List of ECMAScript language values). It performs the following steps when called:</p>
+	<emu-alg>
+		1. Let _target_ be _F_.[[WrappedTargetFunction]].
+		1. Assert: IsCallable(_target_) is *true*.
+		1. Let _targetRealm_ be ? GetFunctionRealm(_target_).
+		1. Let _callerRealm_ be ? GetFunctionRealm(_F_).
+		1. For each element _key_ of _argumentsList_, do
+			1. Let o be _argumentsList_[_key_].
+			1. Set _argumentsList_[_key_] to ? GetWrappedValue(_targetRealm_, _o_).
+		1. Let _wrappedThisArgument_ to ? GetWrappedValue(_targetRealm_, _thisArgument_).
+		1. Let _value_ be ? Call(_target_, _wrappedThisArgument_, _argumentsList_).
+		1. Return ? GetWrappedValue(_callerRealm_, _value_).
+	</emu-alg>
+	</emu-clause>
+
+	<emu-clause id="sec-wrappedfunctioncreate" aoid="WrappedFunctionCreate">
+	<h1>WrappedFunctionCreate ( _callerRealm_, _targetFunction_ )</h1>
+	<p>The abstract operation WrappedFunctionCreate takes arguments _callerRealm_ and _targetFunction_. It is used to specify the creation of new wrapped function exotic objects. It performs the following steps when called:</p>
+	<emu-alg>
+		1. Assert: _callerRealm_ is a Realm Record.
+		1. Assert: IsCallable(_targetFunction_) is *true*.
+		1. Let _internalSlotsList_ be the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, plus [[Prototype]] and [[Extensible]].
+		1. Let _obj_ be ! MakeBasicObject(_internalSlotsList_).
+		1. Set _obj_.[[Prototype]] to %Function.prototype% from _callerRealm_.
+		1. Set _obj_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
+		1. Set _obj_.[[Realm]] to _callerRealm_.
+		1. Set _obj_.[[WrappedTargetFunction]] to _targetFunction_.
+		1. Return _obj_.
+	</emu-alg>
+	</emu-clause>
+</emu-clause>
+
 <emu-clause id="sec-realm-objects">
 	<h1>Realm Objects</h1>
+	<emu-clause id="sec-realm-abstracts">
+		<h1>Realm Abstract Operations</h1>
+
+		<emu-clause id="sec-performrealmevaluation" aoid="PerformRealmEvaluation">
+			<h1>PerformRealmEvaluation ( _x_, _evalRealm_ )</h1>
+			<emu-alg>
+				1. Assert: Type(_x_) is String.
+				1. Assert: _evalRealm_ is a Realm Record.
+				1. Let _hostDefined_ be _evalRealm_.[[HostDefined]].
+				1. Let _s_ be ParseScript(_x_, _evalRealm_, _hostDefined_).
+				1. If _s_ is a List of errors, then
+					1. Perform HostReportErrors(_s_).
+					1. Return NormalCompletion(*undefined*).
+				1. Return ? ScriptEvaluation(_s_).
+			</emu-alg>
+		</emu-clause>
+
+		<emu-clause id="sec-getwrappedvalue" aoid="GetWrappedValue">
+			<h1>GetWrappedValue ( _callerRealm_, _value_ )</h1>
+			<emu-alg>
+				1. Assert: _callerRealm_ is a Realm Record.
+				1. If Type(_value_) is Object, then
+				  1. If IsCallable(_value_) is *false*, throw a TypeError exception.
+				  1. Return ? WrappedFunctionCreate(_callerRealm_, _value_).
+				1. Return _value_.
+			</emu-alg>
+		</emu-clause>
+
+	</emu-clause>
 
 	<emu-clause id="sec-realm-constructor">
 		<h1>The Realm Constructor</h1>
@@ -92,19 +202,39 @@ location: https://tc39.es/proposal-realms/
 			<li>does not have a [[Realm]] or any other of the internal slots that are specific to _Realm_ instance objects.</li>
 		</ul>
 
-		<emu-clause id="sec-realm.prototype.import">
-			<h1>Realm.prototype.import ( _specifier_ )</h1>
+		<emu-clause id="sec-realm.prototype.eval">
+			<h1>Realm.prototype.evaluate ( _sourceText_ )</h1>
+
+			Synchronously execute a top-level script. The _sourceText_ is interpreted as a Script and evaluated with this bound to the realm's global object.
+
+			<emu-alg>
+				1. Let _O_ be *this* value.
+				1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
+				1. If Type(_sourceText_) is not String, throw a *TypeError* exception.
+				1. Let _realm_ be _O_.[[Realm]].
+				1. Let _value_ be ? PerformRealmEvaluation(_sourceText_, _realm_).
+				1. Return ? GetWrappedValue(_realm_, _value_).
+			</emu-alg>
+
+			<emu-note>
+				Extensible web: This is the dynamic equivalent of a &lt;script&gt; in HTML.
+			</emu-note>
+		</emu-clause>
+
+		<emu-clause id="sec-realm.prototype.importBinding">
+			<h1>Realm.prototype.importBinding ( _specifier_, _bindingName_ )</h1>
 			<p>The following steps are performed:</p>
 			<emu-alg>
 				1. Let _O_ be *this* value.
 				1. Perform ? ValidateRealmObject(_O_).
 				1. Let _referencingScriptOrModule_ be *null*.
 				1. Let _specifierString_ be ? ToString(_specifier_).
+				1. Let __bindingNameString_ be ? ToString(_bindingName_).
 				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
 				1. IfAbruptRejectPromise(_specifierString_, _promiseCapability_).
 				1. Let _callerContext_ be the running execution context.
 				1. Push _O_.[[ExecutionContext]] onto the execution context stack; _O_.[[ExecutionContext]] is now the running execution context.
-				1. Perform ! HostImportModuleDynamically(_referencingScriptOrModule_, _specifierString_, _promiseCapability_).
+				1. Perform ! HostImportModuleBindingDynamically(_referencingScriptOrModule_, _specifierString_, __bindingNameString_, _promiseCapability_).
 				1. Remove _O_.[[ExecutionContext]] from the execution context stack and restore _callerContext_ as the running execution context.
 				1. Return _promiseCapability_.[[Promise]].
 			</emu-alg>
@@ -125,17 +255,6 @@ location: https://tc39.es/proposal-realms/
 			<emu-alg>
 				1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
 				1. Perform ? RequireInternalSlot(_O_, [[ExecutionContext]]).
-			</emu-alg>
-		</emu-clause>
-
-		<emu-clause id="sec-realm.prototype.globalthis">
-			<h1>get Realm.prototype.globalThis</h1>
-			<p>Realm.prototype.globalThis is an accessor property whose set accessor function is *undefined*. Its get accessor function performs the following steps:</p>
-
-			<emu-alg>
-				1. Let _O_ be *this* value.
-				1. Perform ? ValidateRealmObject(_O_).
-				1. Return _O_.[[Realm]].[[GlobalEnv]].[[GlobalThisValue]].
 			</emu-alg>
 		</emu-clause>
 
@@ -186,6 +305,33 @@ location: https://tc39.es/proposal-realms/
 				is not expected that this hook would add properties to the Realm's
 				global object.
 			</p>
+		</emu-clause>
+
+		
+		<emu-clause id="sec-hostimportmodulebindingdynamically" aoid="HostImportModuleBindingDynamically">
+			<h1>HostImportModuleBindingDynamically ( _referencingScriptOrModule_, _specifier_, _bindingName_, _promiseCapability_ )</h1>
+			<p>The host-defined abstract operation HostImportModuleBindingDynamically takes arguments _referencingScriptOrModule_ (a Script Record or Module Record or *null*), _specifier_ (a |ModuleSpecifier| String), _bindingName_ (a |IdentifierName| String) and _promiseCapability_ (a PromiseCapability Record). It performs any necessary setup work in order to make available the module corresponding to _specifier_ occurring within the context of the script or module represented by _referencingScriptOrModule_. _referencingScriptOrModule_ is *null*. It then performs FinishDynamicImport to finish the dynamic import process.</p>
+			<p>The implementation of HostImportModuleBindingDynamically must conform with the implementation of HostImportModuleDynamically first and foremost, second, it should conform with the following:</p>
+			<li>
+				The host environment must conform to one of the two following sets of requirements:
+				<dl>
+				<dt>Success path</dt>
+
+				<dd>
+					<ul>
+						<li>The completion value must be the exported value for the _bindingName_ associated to the Module Namespace Object.</li>
+					</ul>
+				</dd>
+
+				<dt>Failure path</dt>
+
+				<dd>
+					<ul>
+						<li>At some future time, the Module Namespace Object does not contain the _bindingName_ as part of the ExportNames, with the abrupt completion representing the cause of failure.</li>
+					</ul>
+				</dd>
+				</dl>
+			</li>
 		</emu-clause>
 	</emu-clause>
 
