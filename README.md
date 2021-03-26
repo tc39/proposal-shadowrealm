@@ -34,8 +34,8 @@ See more at the [explainer](explainer.md) document.
 ```ts
 declare class Realm {
     constructor();
-    readonly globalThis: typeof globalThis;
-    import(specifier: string): Promise<Namespace>;
+    importBinding(specifier: string, bindingName: string): Promise<PrimitiveValueOrCallable>;
+    evaluate(sourceText: string): PrimitiveValueOrCallable;
 }
 ```
 
