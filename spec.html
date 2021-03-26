@@ -1,5 +1,13 @@
 <!doctype html>
+<html lang="en-GB-oxendict">
+<head>
 <meta charset="utf8">
+<link href="ecmarkup.css" rel="stylesheet">
+<script src="ecmarkup.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/solarized-light.min.css">
+</head>
+
+<body>
 <pre class="metadata">
 title: 'Realms API'
 stage: 2
@@ -8,9 +16,6 @@ status: proposal
 copyright: false
 location: https://tc39.es/proposal-realms/
 </pre>
-<link href="ecmarkup.css" rel="stylesheet">
-<script src="ecmarkup.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 
 <emu-clause id="sec-well-known-intrinsic-objects">
 	<h1>Well-known intrinsic objects</h1>
@@ -39,7 +44,7 @@ location: https://tc39.es/proposal-realms/
 	<p>An object is a <dfn id="wrapped-function-exotic-object">wrapped function exotic object</dfn> if its [[Call]] internal method use the following implementations, and its other essential internal methods use the definitions found in <emu-xref href="#sec-ordinary-object-internal-methods-and-internal-slots"></emu-xref>. These methods are installed in WrappedFunctionCreate.</p>
 
 	<p>Wrapped function exotic objects do not have the internal slots of ECMAScript function objects listed in <emu-xref href="#table-internal-slots-of-ecmascript-function-objects"></emu-xref>. Instead they have the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, in addition to [[Prototype]] and [[Extensible]].</p>
-	<emu-table id="table-internal-slots-of-wrapped-function-exotic-objects" caption="Internal Slots of Wrapped Function Exotic Objects" oldids="table-28">
+	<emu-table id="table-internal-slots-of-wrapped-function-exotic-objects" caption="Internal Slots of Wrapped Function Exotic Objects">
 	<table>
 		<tbody>
 		<tr>
@@ -202,7 +207,6 @@ location: https://tc39.es/proposal-realms/
 				1. Return _value_.
 			</emu-alg>
 		</emu-clause>
-
 	</emu-clause>
 
 	<emu-clause id="sec-realm-constructor">
@@ -265,7 +269,7 @@ location: https://tc39.es/proposal-realms/
 		<emu-clause id="sec-realm.prototype.eval">
 			<h1>Realm.prototype.evaluate ( _sourceText_ )</h1>
 
-			Synchronously execute a top-level script. The _sourceText_ is interpreted as a Script and evaluated with this bound to the realm's global object.
+			<p>Synchronously execute a top-level script. The _sourceText_ is interpreted as a Script and evaluated with this bound to the realm's global object.</p>
 
 			<emu-alg>
 				1. Let _O_ be *this* value.
@@ -359,7 +363,6 @@ location: https://tc39.es/proposal-realms/
 			</p>
 		</emu-clause>
 
-		
 		<emu-clause id="sec-hostimportmodulebindingdynamically" aoid="HostImportModuleBindingDynamically">
 			<h1>HostImportModuleBindingDynamically (_callerRealm_, _evalRealm_, _specifier_, _exportName_, _promiseCapability_ )</h1>
 			<p>The host-defined abstract operation HostImportModuleBindingDynamically takes arguments _callerRealm_ (a Realm Record), _evalRealm_ (a Realm Record), _specifier_ (a |ModuleSpecifier| String), _exportName_ (a |IdentifierName| String) and _promiseCapability_ (a PromiseCapability Record). It performs any necessary setup work in order to make available the module corresponding to _specifier_ occurring within the context of the script or module represented by _referencingScriptOrModule_. _referencingScriptOrModule_ is *null*. It then performs FinishDynamicImport to finish the dynamic import process.</p>
@@ -388,3 +391,5 @@ location: https://tc39.es/proposal-realms/
 	</emu-clause>
 
 </emu-clause>
+</body>
+</html>
