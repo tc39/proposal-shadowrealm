@@ -14,6 +14,7 @@ body {
   flex-basis: 66%;
   box-sizing: border-box;
   overflow: hidden;
+  padding-bottom: 1em;
 }
 
 body.oldtoc {
@@ -21,8 +22,8 @@ body.oldtoc {
 }
 
 a {
-    text-decoration: none;
-    color: #206ca7;
+  text-decoration: none;
+  color: #206ca7;
 }
 
 a:visited {
@@ -30,15 +31,14 @@ a:visited {
 }
 
 a:hover {
-    text-decoration: underline;
-    color: #239dee;
+  text-decoration: underline;
+  color: #239dee;
 }
 
-
 code {
-    font-weight: bold;
-    font-family: Consolas, Monaco, monospace;
-    white-space: pre;
+  font-weight: bold;
+  font-family: Consolas, Monaco, monospace;
+  white-space: pre;
 }
 
 pre code {
@@ -52,13 +52,13 @@ pre code.hljs {
 }
 
 ol.toc {
-    list-style: none;
-    padding-left: 0;
+  list-style: none;
+  padding-left: 0;
 }
 
 ol.toc ol.toc {
-    padding-left: 2ex;
-    list-style: none;
+  padding-left: 2ex;
+  list-style: none;
 }
 
 var {
@@ -132,29 +132,32 @@ emu-eqn div:first-child {
 }
 
 emu-note {
-    margin: 1em 0;
-    color: #666;
-    border-left: 5px solid #ccc;
-    display: flex;
-    flex-direction: row;
+  margin: 1em 0;
+  display: flex;
+  flex-direction: row;
+  color: inherit;
+  border-left: 5px solid #52e052;
+  background: #e9fbe9;
+  padding: 10px 10px 10px 0;
 }
 
 emu-note > span.note {
-    flex-basis: 100px;
-    min-width: 100px;
-    flex-grow: 0;
-    flex-shrink: 1;
-    text-transform: uppercase;
-    padding-left: 5px;
+  flex-basis: 100px;
+  min-width: 100px;
+  flex-grow: 0;
+  flex-shrink: 1;
+  text-transform: uppercase;
+  padding-left: 5px;
 }
 
-emu-note[type=editor] {
+emu-note[type='editor'] {
   border-left-color: #faa;
 }
 
 emu-note > div.note-contents {
   flex-grow: 1;
   flex-shrink: 1;
+  overflow: auto;
 }
 
 emu-note > div.note-contents > p:first-of-type {
@@ -167,7 +170,7 @@ emu-note > div.note-contents > p:last-of-type {
 
 emu-table td code {
   white-space: normal;
-} 
+}
 
 emu-figure {
   display: block;
@@ -192,99 +195,120 @@ emu-table figure {
 }
 
 emu-production {
-    display: block;
+  display: block;
 }
 
-emu-grammar[type="example"] emu-production,
-emu-grammar[type="definition"] emu-production {
-    margin-top: 1em;
-    margin-bottom: 1em;
-    margin-left: 5ex;
+emu-grammar[type='example'] emu-production,
+emu-grammar[type='definition'] emu-production {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-left: 5ex;
 }
 
-emu-grammar.inline, emu-production.inline,
-emu-grammar.inline emu-production emu-rhs, emu-production.inline emu-rhs,
-emu-grammar[collapsed] emu-production emu-rhs, emu-production[collapsed] emu-rhs {
-    display: inline;
-    padding-left: 1ex;
-    margin-left: 0;
+emu-grammar.inline,
+emu-production.inline,
+emu-grammar.inline emu-production emu-rhs,
+emu-production.inline emu-rhs,
+emu-grammar[collapsed] emu-production emu-rhs {
+  display: inline;
+  padding-left: 1ex;
+  margin-left: 0;
 }
 
-emu-grammar[collapsed] emu-production, emu-production[collapsed] {
-    margin: 0;
+emu-production[collapsed] emu-rhs {
+  display: inline;
+  padding-left: 0.5ex;
+  margin-left: 0;
+}
+
+emu-grammar[collapsed] emu-production,
+emu-production[collapsed] {
+  margin: 0;
 }
 
 emu-constraints {
-    font-size: .75em;
-    margin-right: 1ex;
+  font-size: 0.75em;
+  margin-right: 0.5ex;
 }
 
 emu-gann {
-    margin-right: 1ex;
+  margin-right: 0.5ex;
 }
 
 emu-gann emu-t:last-child,
 emu-gann emu-gprose:last-child,
 emu-gann emu-nt:last-child {
-    margin-right: 0;
+  margin-right: 0;
 }
 
 emu-geq {
-    margin-left: 1ex;
-    font-weight: bold;
+  margin-left: 0.5ex;
+  font-weight: bold;
 }
 
 emu-oneof {
-    font-weight: bold;
-    margin-left: 1ex;
+  font-weight: bold;
+  margin-left: 0.5ex;
 }
 
 emu-nt {
-    display: inline-block;
-    font-style: italic;
-    white-space: nowrap;
-    text-indent: 0;
+  display: inline-block;
+  font-style: italic;
+  white-space: nowrap;
+  text-indent: 0;
 }
 
-emu-nt a, emu-nt a:visited {
+emu-nt a,
+emu-nt a:visited {
   color: #333;
 }
 
 emu-rhs emu-nt {
-    margin-right: 1ex;
+  margin-right: 0.5ex;
 }
 
 emu-t {
-    display: inline-block;
-    font-family: monospace;
-    font-weight: bold;
-    white-space: nowrap;
-    text-indent: 0;
+  display: inline-block;
+  font-family: monospace;
+  font-weight: bold;
+  white-space: nowrap;
+  text-indent: 0;
 }
 
 emu-production emu-t {
-    margin-right: 1ex;
+  margin-right: 0.5ex;
 }
 
 emu-rhs {
-    display: block;
-    padding-left: 75px;
-    text-indent: -25px;
+  display: block;
+  padding-left: 75px;
+  text-indent: -25px;
+}
+
+emu-production:not([collapsed]) emu-rhs {
+  border: 0.2ex dashed transparent;
+}
+
+emu-production:not([collapsed]) emu-rhs:hover {
+  border-color: #888;
+  background-color: #f0f0f0;
 }
 
 emu-mods {
-    font-size: .85em;
-    vertical-align: sub;
-    font-style: normal;
-    font-weight: normal;
+  font-size: 0.85em;
+  vertical-align: sub;
+  font-style: normal;
+  font-weight: normal;
 }
 
-emu-params, emu-opt {
+emu-params,
+emu-opt {
   margin-right: 1ex;
   font-family: monospace;
 }
 
-emu-params, emu-constraints {
+emu-params,
+emu-constraints {
   color: #2aa198;
 }
 
@@ -293,12 +317,12 @@ emu-opt {
 }
 
 emu-gprose {
-    font-size: 0.9em;
-    font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.9em;
+  font-family: Helvetica, Arial, sans-serif;
 }
 
 emu-production emu-gprose {
-    margin-right: 1ex;
+  margin-right: 1ex;
 }
 
 h1.shortname {
@@ -310,20 +334,19 @@ h1.shortname {
 h1.version {
   color: #f60;
   font-size: 1.5em;
-  margin: 0;
 }
 
 h1.title {
-  margin-top: 0;
   color: #f60;
 }
 
-h1.first {
-  margin-top: 0;
-}
-
-h1, h2, h3, h4, h5, h6 {
-    position: relative;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  position: relative;
 }
 
 h1 .secnum {
@@ -335,142 +358,267 @@ h1 span.title {
   order: 2;
 }
 
+h1 {
+  font-size: 2.67em;
+  margin-bottom: 0;
+  line-height: 1em;
+}
+h2 {
+  font-size: 2em;
+}
+h3 {
+  font-size: 1.56em;
+}
+h4 {
+  font-size: 1.25em;
+}
+h5 {
+  font-size: 1.11em;
+}
+h6 {
+  font-size: 1em;
+}
 
-h1 { font-size: 2.67em; margin-top: 2em; margin-bottom: 0; line-height: 1em;}
-h2 { font-size: 2em; }
-h3 { font-size: 1.56em; }
-h4 { font-size: 1.25em; }
-h5 { font-size: 1.11em; }
-h6 { font-size: 1em; }
+pre code.hljs {
+  background: transparent;
+}
 
-h1:hover span.utils {
+emu-clause[id],
+emu-annex[id],
+emu-intro[id] {
+  scroll-margin-top: 2ex;
+}
+
+emu-intro h1,
+emu-clause h1,
+emu-annex h1 {
+  font-size: 2em;
+}
+emu-intro h2,
+emu-clause h2,
+emu-annex h2 {
+  font-size: 1.56em;
+}
+emu-intro h3,
+emu-clause h3,
+emu-annex h3 {
+  font-size: 1.25em;
+}
+emu-intro h4,
+emu-clause h4,
+emu-annex h4 {
+  font-size: 1.11em;
+}
+emu-intro h5,
+emu-clause h5,
+emu-annex h5 {
+  font-size: 1em;
+}
+emu-intro h6,
+emu-clause h6,
+emu-annex h6 {
+  font-size: 0.9em;
+}
+emu-intro emu-intro h1,
+emu-clause emu-clause h1,
+emu-annex emu-annex h1 {
+  font-size: 1.56em;
+}
+emu-intro emu-intro h2,
+emu-clause emu-clause h2,
+emu-annex emu-annex h2 {
+  font-size: 1.25em;
+}
+emu-intro emu-intro h3,
+emu-clause emu-clause h3,
+emu-annex emu-annex h3 {
+  font-size: 1.11em;
+}
+emu-intro emu-intro h4,
+emu-clause emu-clause h4,
+emu-annex emu-annex h4 {
+  font-size: 1em;
+}
+emu-intro emu-intro h5,
+emu-clause emu-clause h5,
+emu-annex emu-annex h5 {
+  font-size: 0.9em;
+}
+emu-intro emu-intro emu-intro h1,
+emu-clause emu-clause emu-clause h1,
+emu-annex emu-annex emu-annex h1 {
+  font-size: 1.25em;
+}
+emu-intro emu-intro emu-intro h2,
+emu-clause emu-clause emu-clause h2,
+emu-annex emu-annex emu-annex h2 {
+  font-size: 1.11em;
+}
+emu-intro emu-intro emu-intro h3,
+emu-clause emu-clause emu-clause h3,
+emu-annex emu-annex emu-annex h3 {
+  font-size: 1em;
+}
+emu-intro emu-intro emu-intro h4,
+emu-clause emu-clause emu-clause h4,
+emu-annex emu-annex emu-annex h4 {
+  font-size: 0.9em;
+}
+emu-intro emu-intro emu-intro emu-intro h1,
+emu-clause emu-clause emu-clause emu-clause h1,
+emu-annex emu-annex emu-annex emu-annex h1 {
+  font-size: 1.11em;
+}
+emu-intro emu-intro emu-intro emu-intro h2,
+emu-clause emu-clause emu-clause emu-clause h2,
+emu-annex emu-annex emu-annex emu-annex h2 {
+  font-size: 1em;
+}
+emu-intro emu-intro emu-intro emu-intro h3,
+emu-clause emu-clause emu-clause emu-clause h3,
+emu-annex emu-annex emu-annex emu-annex h3 {
+  font-size: 0.9em;
+}
+emu-intro emu-intro emu-intro emu-intro emu-intro h1,
+emu-clause emu-clause emu-clause emu-clause emu-clause h1,
+emu-annex emu-annex emu-annex emu-annex emu-annex h1 {
+  font-size: 1em;
+}
+emu-intro emu-intro emu-intro emu-intro emu-intro h2,
+emu-clause emu-clause emu-clause emu-clause emu-clause h2,
+emu-annex emu-annex emu-annex emu-annex emu-annex h2 {
+  font-size: 0.9em;
+}
+emu-intro emu-intro emu-intro emu-intro emu-intro emu-intro h1,
+emu-clause emu-clause emu-clause emu-clause emu-clause emu-clause h1,
+emu-annex emu-annex emu-annex emu-annex emu-annex emu-annex h1 {
+  font-size: 0.9em;
+}
+
+emu-clause,
+emu-intro,
+emu-annex {
   display: block;
 }
 
-span.utils {
-  font-size: 18px;
-  line-height: 18px;
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  font-weight: normal;
+/* these values are twice the font-size for the <h1> titles for clauses */
+emu-intro,
+emu-clause,
+emu-annex {
+  margin-top: 4em;
+}
+emu-intro emu-intro,
+emu-clause emu-clause,
+emu-annex emu-annex {
+  margin-top: 3.12em;
+}
+emu-intro emu-intro emu-intro,
+emu-clause emu-clause emu-clause,
+emu-annex emu-annex emu-annex {
+  margin-top: 2.5em;
+}
+emu-intro emu-intro emu-intro emu-intro,
+emu-clause emu-clause emu-clause emu-clause,
+emu-annex emu-annex emu-annex emu-annex {
+  margin-top: 2.22em;
+}
+emu-intro emu-intro emu-intro emu-intro emu-intro,
+emu-clause emu-clause emu-clause emu-clause emu-clause,
+emu-annex emu-annex emu-annex emu-annex emu-annex {
+  margin-top: 2em;
+}
+emu-intro emu-intro emu-intro emu-intro emu-intro emu-intro,
+emu-clause emu-clause emu-clause emu-clause emu-clause emu-clause,
+emu-annex emu-annex emu-annex emu-annex emu-annex emu-annex {
+  margin-top: 1.8em;
 }
 
-span.utils:before {
-    content: "⤷";
-    display: inline-block;
-    padding: 0 5px;
-}
-
-span.utils > * {
-  display: inline-block;
-  margin-right: 20px;
-}
-
-h1 span.utils span.anchor a,
-h2 span.utils span.anchor a,
-h3 span.utils span.anchor a,
-h4 span.utils span.anchor a,
-h5 span.utils span.anchor a,
-h6 span.utils span.anchor a {
-  text-decoration: none;
-  font-variant: small-caps;
-}
-
-h1 span.utils span.anchor a:hover,
-h2 span.utils span.anchor a:hover,
-h3 span.utils span.anchor a:hover,
-h4 span.utils span.anchor a:hover,
-h5 span.utils span.anchor a:hover,
-h6 span.utils span.anchor a:hover {
-  color: #333;
-}
-
-emu-intro h1, emu-clause h1, emu-annex h1 { font-size: 2em; }
-emu-intro h2, emu-clause h2, emu-annex h2 { font-size: 1.56em; }
-emu-intro h3, emu-clause h3, emu-annex h3 { font-size: 1.25em; }
-emu-intro h4, emu-clause h4, emu-annex h4 { font-size: 1.11em; }
-emu-intro h5, emu-clause h5, emu-annex h5 { font-size: 1em; }
-emu-intro h6, emu-clause h6, emu-annex h6 { font-size: 0.9em; }
-emu-intro emu-intro h1, emu-clause emu-clause h1, emu-annex emu-annex h1 { font-size: 1.56em; }
-emu-intro emu-intro h2, emu-clause emu-clause h2, emu-annex emu-annex h2 { font-size: 1.25em; }
-emu-intro emu-intro h3, emu-clause emu-clause h3, emu-annex emu-annex h3 { font-size: 1.11em; }
-emu-intro emu-intro h4, emu-clause emu-clause h4, emu-annex emu-annex h4 { font-size: 1em; }
-emu-intro emu-intro h5, emu-clause emu-clause h5, emu-annex emu-annex h5 { font-size: 0.9em; }
-emu-intro emu-intro emu-intro h1, emu-clause emu-clause emu-clause h1, emu-annex emu-annex emu-annex h1 { font-size: 1.25em; }
-emu-intro emu-intro emu-intro h2, emu-clause emu-clause emu-clause h2, emu-annex emu-annex emu-annex h2 { font-size: 1.11em; }
-emu-intro emu-intro emu-intro h3, emu-clause emu-clause emu-clause h3, emu-annex emu-annex emu-annex h3 { font-size: 1em; }
-emu-intro emu-intro emu-intro h4, emu-clause emu-clause emu-clause h4, emu-annex emu-annex emu-annex h4 { font-size: 0.9em; }
-emu-intro emu-intro emu-intro emu-intro h1, emu-clause emu-clause emu-clause emu-clause h1, emu-annex emu-annex emu-annex emu-annex h1 { font-size: 1.11em; }
-emu-intro emu-intro emu-intro emu-intro h2, emu-clause emu-clause emu-clause emu-clause h2, emu-annex emu-annex emu-annex emu-annex h2 { font-size: 1em; }
-emu-intro emu-intro emu-intro emu-intro h3, emu-clause emu-clause emu-clause emu-clause h3, emu-annex emu-annex emu-annex emu-annex h3 { font-size: 0.9em; }
-emu-intro emu-intro emu-intro emu-intro emu-intro h1, emu-clause emu-clause emu-clause emu-clause emu-clause h1, emu-annex emu-annex emu-annex emu-annex emu-annex h1 { font-size: 1em; }
-emu-intro emu-intro emu-intro emu-intro emu-intro h2, emu-clause emu-clause emu-clause emu-clause emu-clause h2, emu-annex emu-annex emu-annex emu-annex emu-annex h2 { font-size: 0.9em; }
-emu-intro emu-intro emu-intro emu-intro emu-intro emu-intro h1, emu-clause emu-clause emu-clause emu-clause emu-clause emu-clause h1, emu-annex emu-annex emu-annex emu-annex emu-annex emu-annex h1 { font-size: 0.9em }
-
-emu-clause, emu-intro, emu-annex {
-    display: block;
+#spec-container > emu-intro:first-of-type,
+#spec-container > emu-clause:first-of-type,
+#spec-container > emu-annex:first-of-type {
+  margin-top: 0;
 }
 
 /* Figures and tables */
-figure { display: block; margin: 1em 0 3em 0; }
-figure object { display: block; margin: 0 auto; }
-figure table.real-table { margin: 0 auto; }
+figure {
+  display: block;
+  margin: 1em 0 3em 0;
+}
+figure object {
+  display: block;
+  margin: 0 auto;
+}
+figure table.real-table {
+  margin: 0 auto;
+}
 figure figcaption {
-    display: block;
-    color: #555555;
-    font-weight: bold;
-    text-align: center;
+  display: block;
+  color: #555555;
+  font-weight: bold;
+  text-align: center;
 }
 
 emu-table table {
   margin: 0 auto;
 }
 
-emu-table table, table.real-table {
-    border-collapse: collapse;
+emu-table table,
+table.real-table {
+  border-collapse: collapse;
 }
 
-emu-table td, emu-table th, table.real-table td, table.real-table th {
-    border: 1px solid black;
-    padding: 0.4em;
-    vertical-align: baseline;
+emu-table td,
+emu-table th,
+table.real-table td,
+table.real-table th {
+  border: 1px solid black;
+  padding: 0.4em;
+  vertical-align: baseline;
 }
-emu-table th, emu-table thead td, table.real-table th {
-    background-color: #eeeeee;
+emu-table th,
+emu-table thead td,
+table.real-table th {
+  background-color: #eeeeee;
+}
+
+emu-table td {
+  background: #fff;
 }
 
 /* Note: the left content edges of table.lightweight-table >tbody >tr >td
    and div.display line up. */
 table.lightweight-table {
-    border-collapse: collapse;
-    margin: 0 0 0 1.5em;
+  border-collapse: collapse;
+  margin: 0 0 0 1.5em;
 }
-table.lightweight-table td, table.lightweight-table th {
-    border: none;
-    padding: 0 0.5em;
-    vertical-align: baseline;
+table.lightweight-table td,
+table.lightweight-table th {
+  border: none;
+  padding: 0 0.5em;
+  vertical-align: baseline;
 }
 
 /* diff styles */
 ins {
-    background-color: #e0f8e0;
-    text-decoration: none;
-    border-bottom: 1px solid #396;
+  background-color: #e0f8e0;
+  text-decoration: none;
+  border-bottom: 1px solid #396;
 }
 
 del {
-    background-color: #fee;
+  background-color: #fee;
 }
 
-ins.block, del.block,
-emu-production > ins, emu-production > del,
-emu-grammar > ins, emu-grammar > del {
+ins.block,
+del.block,
+emu-production > ins,
+emu-production > del,
+emu-grammar > ins,
+emu-grammar > del {
   display: block;
 }
-emu-rhs > ins, emu-rhs > del { 
+emu-rhs > ins,
+emu-rhs > del {
   display: inline;
 }
 
@@ -507,7 +655,7 @@ tr.del > td {
   -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  user-select: none;;
+  user-select: none;
 
   cursor: pointer;
 }
@@ -515,7 +663,8 @@ tr.del > td {
 #menu {
   display: flex;
   flex-direction: column;
-  width: 33%; height: 100vh;
+  width: 33%;
+  height: 100vh;
   max-width: 500px;
   box-sizing: border-box;
   background-color: #ddd;
@@ -523,7 +672,8 @@ tr.del > td {
   transition: opacity 0.1s linear;
   padding: 0 5px;
   position: fixed;
-  left: 0; top: 0;
+  left: 0;
+  top: 0;
   border-right: 2px solid #bbb;
 
   z-index: 2;
@@ -584,7 +734,8 @@ tr.del > td {
   padding: 0;
 }
 
-#menu-toc > ol , #menu-toc > ol ol {
+#menu-toc > ol,
+#menu-toc > ol ol {
   list-style-type: none;
   margin: 0;
   padding: 0;
@@ -614,7 +765,7 @@ tr.del > td {
   -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  user-select: none;;
+  user-select: none;
 
   cursor: pointer;
 }
@@ -645,7 +796,7 @@ tr.del > td {
   */
 }
 
-#menu-toc li.revealed-leaf> a {
+#menu-toc li.revealed-leaf > a {
   color: #206ca7;
   /*
   background-color: #222;
@@ -681,6 +832,34 @@ tr.del > td {
   font-size: 0.8em;
 }
 
+.menu-pane-header emu-opt,
+.menu-pane-header emu-t,
+.menu-pane-header emu-nt {
+  margin-right: 0px;
+  display: inline;
+  color: inherit;
+}
+
+.menu-pane-header emu-rhs {
+  display: inline;
+  padding-left: 0px;
+  text-indent: 0px;
+}
+
+.menu-pane-header emu-geq {
+  margin-left: 0px;
+}
+
+a.menu-pane-header-production {
+  color: inherit;
+}
+
+.menu-pane-header-production {
+  text-transform: none;
+  letter-spacing: 1.5px;
+  padding-left: 0.5em;
+}
+
 #menu-toc {
   display: flex;
   flex-direction: column;
@@ -699,10 +878,10 @@ tr.del > td {
   flex-grow: 0;
   flex-shrink: 0;
   width: 100%;
-  
+
   display: flex;
   flex-direction: column;
-  
+
   max-height: 300px;
 }
 
@@ -727,43 +906,42 @@ tr.del > td {
 }
 
 li.menu-search-result-clause:before {
-    content: 'clause';
-    width: 40px;
-    display: inline-block;
-    text-align: right;
-    padding-right: 1ex;
-    color: #666;
-    font-size: 75%;
+  content: 'clause';
+  width: 40px;
+  display: inline-block;
+  text-align: right;
+  padding-right: 1ex;
+  color: #666;
+  font-size: 75%;
 }
 li.menu-search-result-op:before {
-    content: 'op';
-    width: 40px;
-    display: inline-block;
-    text-align: right;
-    padding-right: 1ex;
-    color: #666;
-    font-size: 75%;
+  content: 'op';
+  width: 40px;
+  display: inline-block;
+  text-align: right;
+  padding-right: 1ex;
+  color: #666;
+  font-size: 75%;
 }
 
 li.menu-search-result-prod:before {
-    content: 'prod';
-    width: 40px;
-    display: inline-block;
-    text-align: right;
-    padding-right: 1ex;
-    color: #666;
-    font-size: 75%
+  content: 'prod';
+  width: 40px;
+  display: inline-block;
+  text-align: right;
+  padding-right: 1ex;
+  color: #666;
+  font-size: 75%;
 }
 
-
 li.menu-search-result-term:before {
-    content: 'term';
-    width: 40px;
-    display: inline-block;
-    text-align: right;
-    padding-right: 1ex;
-    color: #666;
-    font-size: 75%
+  content: 'term';
+  width: 40px;
+  display: inline-block;
+  text-align: right;
+  padding-right: 1ex;
+  color: #666;
+  font-size: 75%;
 }
 
 #menu-search-results ul {
@@ -776,7 +954,6 @@ li.menu-search-result-term:before {
   text-overflow: ellipsis;
 }
 
-
 #menu-trace-list {
   counter-reset: item;
   margin: 0 0 0 20px;
@@ -788,19 +965,19 @@ li.menu-search-result-term:before {
 }
 
 #menu-trace-list li .secnum:after {
-  content: " ";
+  content: ' ';
 }
 #menu-trace-list li:before {
-    content: counter(item) " ";
-    background-color: #222;
-    counter-increment: item;
-    color: #999;
-    width: 20px;
-    height: 20px;
-    line-height: 20px;
-    display: inline-block;
-    text-align: center;
-    margin: 2px 4px 2px 0;
+  content: counter(item) ' ';
+  background-color: #222;
+  counter-increment: item;
+  color: #999;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  display: inline-block;
+  text-align: center;
+  margin: 2px 4px 2px 0;
 }
 
 @media (max-width: 1000px) {
@@ -842,24 +1019,29 @@ li.menu-search-result-term:before {
   }
 
   h1 .secnum:empty {
-    margin: 0; padding: 0;
+    margin: 0;
+    padding: 0;
   }
 }
 
-
 /* Toolbox */
-.toolbox {
-	position: absolute;
-	background: #ddd;
-	border: 1px solid #aaa;
+.toolbox-container {
+  position: absolute;
   display: none;
+  padding-bottom: 7px;
+}
+
+.toolbox-container.active {
+  display: inline-block;
+}
+
+.toolbox {
+  position: relative;
+  background: #ddd;
+  border: 1px solid #aaa;
   color: #eee;
   padding: 5px;
   border-radius: 3px;
-}
-
-.toolbox.active {
-  display: inline-block;
 }
 
 .toolbox a {
@@ -871,28 +1053,29 @@ li.menu-search-result-term:before {
   text-decoration: underline;
 }
 
-.toolbox:after, .toolbox:before {
-	top: 100%;
-	left: 15px;
-	border: solid transparent;
-	content: " ";
-	height: 0;
-	width: 0;
-	position: absolute;
-	pointer-events: none;
+.toolbox:after,
+.toolbox:before {
+  top: 100%;
+  left: 15px;
+  border: solid transparent;
+  content: ' ';
+  height: 0;
+  width: 0;
+  position: absolute;
+  pointer-events: none;
 }
 
 .toolbox:after {
-	border-color: rgba(0, 0, 0, 0);
-	border-top-color: #ddd;
-	border-width: 10px;
-	margin-left: -10px;
+  border-color: rgba(0, 0, 0, 0);
+  border-top-color: #ddd;
+  border-width: 10px;
+  margin-left: -10px;
 }
 .toolbox:before {
-	border-color: rgba(204, 204, 204, 0);
-	border-top-color: #aaa;
-	border-width: 12px;
-	margin-left: -12px;
+  border-color: rgba(204, 204, 204, 0);
+  border-top-color: #aaa;
+  border-width: 12px;
+  margin-left: -12px;
 }
 
 #references-pane-container {
@@ -940,6 +1123,22 @@ li.menu-search-result-term:before {
 
 @media print {
   #menu-toggle {
-    display: none; 
+    display: none;
   }
+}
+
+[normative-optional] {
+  border-left: 5px solid #ff6600;
+  padding: 0.5em;
+  display: block;
+  background: #ffeedd;
+}
+
+.normative-optional-tag {
+  text-transform: uppercase;
+  color: #884400;
+}
+
+.normative-optional-tag a {
+  color: #884400;
 }
