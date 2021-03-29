@@ -369,7 +369,7 @@ const rGlobal = iframe.contentWindow; // same as iframe.contentWindow.globalThis
 Object.freeze(rGlobal); // TypeError, cannot freeze window proxy
 ```
 
-The same iframe approach won't also have a direct access to import modules dynamically. The usage of `realm.importBindind` is possible instead of roughly using eval functions or setting _script type module_ in the iframe, if available.
+The same iframe approach won't also have a direct access to import modules dynamically. The usage of `realm.importBinding` is possible instead of roughly using eval functions or setting _script type module_ in the iframe, if available.
 
 #### <a name='DOMmocking'></a>DOM mocking
 
