@@ -311,7 +311,7 @@ It is important for applications to emulate the DOM as best as possible. Requiri
 const realm = new Realm();
 
 const initVirtualDocument = await realm.importBinding('virtual-document', 'init');
-await realm.import('./publisher-amin.js', 'symbolId');
+await realm.importBinding('./publisher-amin.js', 'symbolId');
 
 init();
 ```
