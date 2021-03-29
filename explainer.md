@@ -381,7 +381,6 @@ const realm = new Realm();
 const installFakeDOM = await realm.importBinding('./fakedom.js', 'default');
 
 // Custom properties can be added to the Realm
-// The resolution callback is used as the current API can't wrap promises
 installFakeDOM();
 ```
 
