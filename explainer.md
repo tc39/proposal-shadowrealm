@@ -158,7 +158,7 @@ Instances of Realm Objects and their Global Objects have their lifeline to their
 
 ### <a name='Evaluation'></a>Evaluation
 
-The Realms API does not introduce a new way to evaluate code. Any code is subject to the existing evaluation mechanisms such as the [Content-Security-Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
+Any code evaluation mechanism in this API is subject to the existing the [Content-Security-Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
 
 If the CSP directive from a page disallows `unsafe-eval`, it prevents synchronous evaluation in the Realm, i.e.: `Realm#evaluate`.
 
@@ -391,7 +391,7 @@ This explainer document speculates a `installFakeDOM` API to set up a proper fra
 ```javascript
 export default function() {
   const someRealmIntrinsicsNeededForWrappers = extractIntrinsicsFromGlobal(customGlobalThis);
-  Object.defineProperties({
+  Object.defineProperties(globalThis, {
     document: createFakeDocumentDescriptor(someRealmIntrinsicsNeededForWrappers),
     Element: createFakeElementDescriptor(someRealmIntrinsicsNeededForWrappers),
     Node: ...
