@@ -116,7 +116,7 @@ location: https://tc39.es/proposal-realms/
 			1. Assert: IsCallable(_targetFunction_) is *true*.
 			1. Let _internalSlotsList_ be the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, plus [[Prototype]] and [[Extensible]].
 			1. Let _obj_ be ! MakeBasicObject(_internalSlotsList_).
-			1. Set _obj_.[[Prototype]] to %Function.prototype% from _callerRealm_.
+			1. Set _obj_.[[Prototype]] to _callerRealm_.[[Intrinsics]].[[%Function.prototype%]].
 			1. Set _obj_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
 			1. Set _obj_.[[Realm]] to _callerRealm_.
 			1. Set _obj_.[[WrappedTargetFunction]] to _targetFunction_.
