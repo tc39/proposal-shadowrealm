@@ -562,7 +562,7 @@ iframeWindow.top;
 
 ### So do Realms only have the ECMAScript APIs available?
 
-Yes! It only creates a new copy of the built-ins from ECMAScript.
+Yes! It only creates a new copy of the built-ins from ECMAScript. Although, we have open discussions about additional [HTML properties](https://github.com/tc39/proposal-realms/issues/284) or [some intrinsics subset](https://github.com/tc39/proposal-realms/issues/288).
 
 ### Most libraries won't work unless they add dependencies manually
 
