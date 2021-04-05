@@ -421,7 +421,7 @@ function extractIntrinsicsFromGlobal(customGlobalThis) {
 
 In principle, the Realm proposal does not provide the controls for the module graphs. Every new Realm initializes its own module graph, while any invocation to `Realm.prototype.importBinding()` method, or by using `import()` when evaluating code inside the realm through wrapped functions, will populate this module graph. This is analogous to same-domain iframes, and VM in nodejs.
 
-However, the [Compartments]() proposal plans to provide the low level hooks to control the module graph per Realm. This is one of the intersection semantics between the two proposals.
+However, the [Compartments](https://github.com/tc39/proposal-compartments) proposal plans to provide the low level hooks to control the module graph per Realm. This is one of the intersection semantics between the two proposals.
 
 ## <a name='Integrity'></a>Integrity
 
