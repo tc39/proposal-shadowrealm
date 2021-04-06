@@ -272,35 +272,6 @@ Modifying code to resolve a conflict (e.g.: global variables) is non-trivial, sp
 
 The Realms API can provide a _lightweight_ mechanism to preserve the integrity of the intrinsics. Therefore, it could isolate libraries or logical pieces of the codebase per Realm.
 
-### <a name='Templatelibraries'></a>Template libraries
-
-Code generation should not be subject to pollution (global, prototype, etc.). E.g.: Lodash's `_.template()` uses `Function(...)` to create a compiled template function, instead it could use a Realm to avoid leaking global variables. The same Realm could be reused multiple times.
-
-```javascript
-const realm = new Realm();
-
-const [ template, usersData ] = await Promise.all([
-    realm.importBinding('lodash.template', 'default'),
-    realm.importBinding('./my-data.js', 'getUser')
-]);
-
-/**
- * my-data.js:
- *
- * const data = ['Dave', 'Mark', 'Caridy', 'Daniel', 'Leo'];
- * export function getUser(id) {
- *   return data.at(id);
- * }
- * 
- **/
-
-// template is a wrapped function returning another function to be auto wrapped
-const compiled = template('hello <%= user %>!');
-
-compiled(getUser(3));
-// => 'hello Caridy!'
-```
-
 ### <a name='DOMVirtualization'></a>DOM Virtualization
 
 We still want things to interact with the DOM without spending any excessive amount of resources.
