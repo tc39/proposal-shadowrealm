@@ -112,7 +112,7 @@ These programs must currently contend for the global shared resources, specifica
 
 Attempting to solve these problems with existing DOM APIs will require to implement an asynchronous communication protocol, which is often a deal-breaker for many use cases. It usually just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be serialized before it's sent back and forth.
 
-__The primary goal of this proposal is to provide a proper mechanism to control the execution of a program, providing a new global object, a new set of intrinsics, no access to objects cross-realms, a separate module graph and synchronous communication between both realms, while not forcing fingerprints in the constructed realm__.
+__The primary goal of this proposal is to provide a proper mechanism to control the execution of a program, providing a new global object, a new set of intrinsics, no access to objects cross-realms, a separate module graph and synchronous communication between both realms__.
 
 In addition to the motivations given above, another commonly-cited motivation is virtualization and portability. Some of the functionalities of the VM module in Node can also be standardized, providing the infrastructure for virtualization of JavaScript programs in all environments.
 
