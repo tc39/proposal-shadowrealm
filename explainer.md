@@ -492,7 +492,7 @@ This code is **not** possible with the Realms API! Non-primitive values are not 
 
 ## <a name='Example:NodesvmobjectsvsRealms'></a>Example: Node's vm objects vs Realms
 
-If you're using node's `vm` module today to "evaluate" javascript code in a different realm, you can replace it with a new Realm, e.g.:
+If you're using node's `vm` module today to "evaluate" javascript code in a different realm, you can replace some of its usage with a new Realm, e.g.:
 
 ```javascript
 const vm = require('vm');
@@ -521,7 +521,7 @@ x;
 `);
 ```
 
-_Note: these two are rough equivalents in functionality only._
+__Note__: these two are rough equivalents in functionality only. The `vm` API still has some extended capabilities and ergonomics, even if it fundamentally allow code execution in a different realm.
 
 ## <a name='StatusQuo'></a>Status Quo
 
