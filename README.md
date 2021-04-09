@@ -1,5 +1,7 @@
 # ECMAScript spec proposal for Realms API
 
+![Stage 2](https://badges.aleen42.com/src/tc39_3.svg)
+
 ## <a name='Status'></a>Status
 
 - [Explainer](explainer.md).
