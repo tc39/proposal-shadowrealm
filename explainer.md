@@ -58,7 +58,7 @@ This is The Realms API description in TypeScript format:
 ```ts
 declare class Realm {
     constructor();
-    importBinding(specifier: string, bindingName: string): Promise<PrimitiveValueOrCallable>;
+    importValue(specifier: string, bindingName: string): Promise<PrimitiveValueOrCallable>;
     evaluate(sourceText: string): PrimitiveValueOrCallable;
 }
 ```
@@ -66,7 +66,7 @@ declare class Realm {
 The proposed specification defines:
 
 - The [`constructor`](https://tc39.es/proposal-realms/#sec-realm).
-- The [`Realm#importBinding()`](https://tc39.es/proposal-realms/#sec-realm.prototype.importBinding) method, equivalent to the `import()` expression, but capturing a primitive or callable values.
+- The [`Realm#importValue()`](https://tc39.es/proposal-realms/#sec-realm.prototype.importValue) method, equivalent to the `import()` expression, but capturing a primitive or callable values.
 - The [`get Realm#evaluate`](https://tc39.es/proposal-realms/#sec-realm.prototype.evaluate) method promotes an indirect eval in the realm but only allows the return of primitive or callable values.
 - A new wrapped function exotic object with a custom `[[Call]]` internal that has a shared identity of a connected function from another realm associated to it. This identity is not exposed and there is no way to trace back to connected functions cross-realms in user-land.
 
@@ -78,7 +78,7 @@ const red = new Realm();
 // realms can import modules that will execute within it's own environment.
 // When the module is resolved, it captured the binding value, or creates a new
 // wrapped function that is connected to the callable binding.
-const redAdd = await red.importBinding('./inside-code.js', 'add');
+const redAdd = await red.importValue('./inside-code.js', 'add');
 
 // redAdd is a wrapped function exotic object that chains it's call to the
 // respective imported binding.
@@ -95,7 +95,7 @@ console.assert(globalThis.someValue === 1);
 
 // The wrapped functions can also wrap other functions the other way around.
 const setUniqueValue =
-    await red.importBinding('./inside-code.js', 'setUniqueValue');
+    await red.importValue('./inside-code.js', 'setUniqueValue');
 
 /* setUnitValue = (cb) => (cb(globalThis.someValue) * 2); */
 
@@ -162,7 +162,7 @@ Any code evaluation mechanism in this API is subject to the existing the [Conten
 
 If the CSP directive from a page disallows `unsafe-eval`, it prevents synchronous evaluation in the Realm, i.e.: `Realm#evaluate`.
 
-The CSP of a page can also set directives like the `default-src` to prevent a Realm from using `Realm#importBinding()`.
+The CSP of a page can also set directives like the `default-src` to prevent a Realm from using `Realm#importValue()`.
 
 ### <a name='ModuleGraph'></a>Module Graph
 
@@ -222,7 +222,7 @@ We acknowledge that applications need a quick and simple execution of Third Part
 
 The Realms API provides integrity preserving semantics - including built-ins - of root and incubator Realms, setting specific boundaries for the Environment Records.
 
-Third Party Scripts can be executed in a non-blocking asynchronous evaluation through the `Realm#importBinding()`.
+Third Party Scripts can be executed in a non-blocking asynchronous evaluation through the `Realm#importValue()`.
 
 There is no need for immediate access to the application globals - e.g. `window`, `document`. This comes as a convenience for the application that can provide - or not - values and API in different ways. This also creates several opportunities for customization with the Realm Globals and prevent collision with other global values and other third party scripts.
 
@@ -231,8 +231,8 @@ const realm = new Realm();
 
 // pluginFramework and pluginScript become available in the Realm
 const [ init, ready ] = await Promise.all([
-    realm.importBinding('./pluginFramework.js', 'init'),
-    realm.importBinding('./pluginScript.js', 'ready'),
+    realm.importValue('./pluginFramework.js', 'init'),
+    realm.importValue('./pluginScript.js', 'ready'),
 ]);
 
 // The Plugin Script will execute within the Realm
@@ -252,9 +252,9 @@ import { test } from 'testFramework';
 const realm = new Realm();
 
 const [ runTests, getReportString, suite ] = await Promise.all([
-    realm.importBinding('testFramework', 'runTests'),
-    realm.importBinding('testFramework', 'getReportString'),
-    realm.importBinding('./my-tests.js', 'suite'),
+    realm.importValue('testFramework', 'runTests'),
+    realm.importValue('testFramework', 'getReportString'),
+    realm.importValue('./my-tests.js', 'suite'),
 ]);
 
 // start tests execution
@@ -281,8 +281,8 @@ It is important for applications to emulate the DOM as best as possible. Requiri
 ```javascript
 const realm = new Realm();
 
-const initVirtualDocument = await realm.importBinding('virtual-document', 'init');
-await realm.importBinding('./publisher-amin.js', 'symbolId');
+const initVirtualDocument = await realm.importValue('virtual-document', 'init');
+await realm.importValue('./publisher-amin.js', 'symbolId');
 
 init();
 ```
@@ -312,7 +312,7 @@ realm.evaluate('Object.freeze(globalThis), 0');
 
 // or without CSP relaxing:
 
-const freezeRealmGlobal = await realm.importBinding('./inside-code.js', 'reflectFreezeRealmGlobal');
+const freezeRealmGlobal = await realm.importValue('./inside-code.js', 'reflectFreezeRealmGlobal');
 
 /**
  * inside-code.js
@@ -340,7 +340,7 @@ const rGlobal = iframe.contentWindow; // same as iframe.contentWindow.globalThis
 Object.freeze(rGlobal); // TypeError, cannot freeze window proxy
 ```
 
-The same iframe approach won't also have a direct access to import modules dynamically. The usage of `realm.importBinding` is possible instead of roughly using eval functions or setting _script type module_ in the iframe, if available.
+The same iframe approach won't also have a direct access to import modules dynamically. The usage of `realm.importValue` is possible instead of roughly using eval functions or setting _script type module_ in the iframe, if available.
 
 #### <a name='DOMmocking'></a>DOM mocking
 
@@ -349,7 +349,7 @@ The Realms API allows a much smarter approach for DOM mocking, where the globalT
 ```javascript
 const realm = new Realm();
 
-const installFakeDOM = await realm.importBinding('./fakedom.js', 'default');
+const installFakeDOM = await realm.importValue('./fakedom.js', 'default');
 
 // Custom properties can be added to the Realm
 installFakeDOM();
@@ -390,7 +390,7 @@ function extractIntrinsicsFromGlobal(customGlobalThis) {
 
 ## <a name='Modules'></a>Modules
 
-In principle, the Realm proposal does not provide the controls for the module graphs. Every new Realm initializes its own module graph, while any invocation to `Realm.prototype.importBinding()` method, or by using `import()` when evaluating code inside the realm through wrapped functions, will populate this module graph. This is analogous to same-domain iframes, and VM in nodejs.
+In principle, the Realm proposal does not provide the controls for the module graphs. Every new Realm initializes its own module graph, while any invocation to `Realm.prototype.importValue()` method, or by using `import()` when evaluating code inside the realm through wrapped functions, will populate this module graph. This is analogous to same-domain iframes, and VM in nodejs.
 
 However, the [Compartments](https://github.com/tc39/proposal-compartments) proposal plans to provide the low level hooks to control the module graph per Realm. This is one of the intersection semantics between the two proposals.
 
@@ -419,7 +419,7 @@ globalThis.blueValue = "a global value";
 
 const r = new Realm();
 
-r.importBinding("./sandbox.js", "test").then(test => {
+r.importValue("./sandbox.js", "test").then(test => {
 
   // globals in the incubator realm are not leaked to the constructed realm
   test("blueValue"); // undefined

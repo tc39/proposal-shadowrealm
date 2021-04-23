@@ -174,8 +174,8 @@ location: https://tc39.es/proposal-realms/
 			</emu-note>
 		</emu-clause>
 
-		<emu-clause id="sec-performrealmimportbinding" aoid="PerformRealmImportBinding">
-			<h1>PerformRealmImportBinding ( _specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_ )</h1>
+		<emu-clause id="sec-performrealmimportvalue" aoid="PerformRealmImportValue">
+			<h1>PerformRealmImportValue ( _specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_ )</h1>
 			<emu-alg>
 				1. Assert: Type(_specifierString_) is String.
 				1. Assert: Type(_exportNameString_) is String.
@@ -285,8 +285,8 @@ location: https://tc39.es/proposal-realms/
 			</emu-note>
 		</emu-clause>
 
-		<emu-clause id="sec-realm.prototype.importBinding">
-			<h1>Realm.prototype.importBinding ( _specifier_, _exportName_ )</h1>
+		<emu-clause id="sec-realm.prototype.importValue">
+			<h1>Realm.prototype.importValue ( _specifier_, _exportName_ )</h1>
 			<p>The following steps are performed:</p>
 			<emu-alg>
 				1. Let _O_ be *this* value.
@@ -296,7 +296,7 @@ location: https://tc39.es/proposal-realms/
 				1. Let _callerRealm_ be the current Realm Record.
 				1. Let _evalRealm_ be _O_.[[Realm]].
 				1. Let _evalContext_ be _O_.[[ExecutionContext]].
-				1. Return ? PerformRealmImportBinding(_specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_).
+				1. Return ? PerformRealmImportValue(_specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_).
 			</emu-alg>
 
 			<emu-note>

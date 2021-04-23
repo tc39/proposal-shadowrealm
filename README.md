@@ -34,7 +34,7 @@ See more at the [explainer](explainer.md) document.
 ```ts
 declare class Realm {
     constructor();
-    importBinding(specifier: string, bindingName: string): Promise<PrimitiveValueOrCallable>;
+    importValue(specifier: string, bindingName: string): Promise<PrimitiveValueOrCallable>;
     evaluate(sourceText: string): PrimitiveValueOrCallable;
 }
 ```
