@@ -182,7 +182,6 @@ location: https://tc39.es/proposal-realms/
 				1. Assert: _callerRealm_ is a Realm Record.
 				1. Assert: _evalRealm_ is a Realm Record.
 				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
-				1. IfAbruptRejectPromise(_specifierString_, _promiseCapability_).
 				1. Let _runningContext_ be the running execution context.
 				1. If _runningContext_ is not already suspended, suspend _runningContext_.
 				1. Push _evalContext_ onto the execution context stack; _evalContext_ is now the running execution context.
