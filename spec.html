@@ -356,10 +356,25 @@ location: https://tc39.es/proposal-realms/
 				operation used to inform the host of any newly created realms from
 				the Realm constructor. Its return value is not used, though it may
 				throw an exception. The idea of this hook is to initialize host
-				data structures related to the Realm, e.g., for module loading. It
-				is not expected that this hook would add properties to the Realm's
-				global object.
+				data structures related to the Realm, e.g., for module loading.
 			</p>
+			<p>
+				The host may use this hook to add properties to the Realm's global
+				object. Those properties must each be configurable to provide
+				platform capabilities with no authority to cause side effects such
+				as I/O or mutation of values that are shared across different
+				realms within the same host environment.
+			</p>
+			<emu-note>
+				<p>
+					This specification does not recommend any specific addition.
+					In the Web embedding, HTML and WebIDL will specify which
+					interfaces are included. The Web Platform and Web-like
+					environments may decide to include `EventTarget`,
+					`atob`, `TextEncoder`, `URL`, etc. while at the same time not
+					including `HTMLElement`, `console`, `localStorage`, `fetch`, etc..
+				</p>
+			</emu-note>
 		</emu-clause>
 
 		<emu-clause id="sec-hostimportmodulebindingdynamically" aoid="HostImportModuleBindingDynamically">
