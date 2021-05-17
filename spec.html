@@ -66,18 +66,18 @@ location: https://tc39.es/proposal-realms/
 			Callable Object
 		</td>
 		<td>
-			The wrapped function object.
+			Stores the callable object from the other Realm.
 		</td>
 		</tr>
 		<tr>
 		<td>
-			[[Realm]]
+			[[Call]]
 		</td>
 		<td>
-			Realm Record
+			The [[Call]] internal method
 		</td>
 		<td>
-			The realm in which the wrapped function object was created.
+			Executes code associated with this object's [[WrappedTargetFunction]].
 		</td>
 		</tr>
 		</tbody>
@@ -98,8 +98,7 @@ location: https://tc39.es/proposal-realms/
 			1. Let _wrappedThisArgument_ to ? GetWrappedValue(_targetRealm_, _thisArgument_).
 			1. Let _result_ be the Completion Record of Call(_target_, _wrappedThisArgument_, _argumentsList_).
 			1. If _result_.[[Type]] is ~normal~ or _result_.[[Type]] is ~return~, then
-				1. Set _value_ to NormalCompletion(_result_.[[Value]]).
-				1. Return ? GetWrappedValue(_callerRealm_, _value_).
+				1. Return ? GetWrappedValue(_callerRealm_, _result_).
 			1. Else,
 				1. Throw a newly created TypeError object associate to the _callerRealm_.
 		</emu-alg>
@@ -118,7 +117,6 @@ location: https://tc39.es/proposal-realms/
 			1. Let _obj_ be ! MakeBasicObject(_internalSlotsList_).
 			1. Set _obj_.[[Prototype]] to _callerRealm_.[[Intrinsics]].[[%Function.prototype%]].
 			1. Set _obj_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
-			1. Set _obj_.[[Realm]] to _callerRealm_.
 			1. Set _obj_.[[WrappedTargetFunction]] to _targetFunction_.
 			1. Return _obj_.
 		</emu-alg>
@@ -167,15 +165,18 @@ location: https://tc39.es/proposal-realms/
 				1. Suspend _evalContext_ and remove it from the execution context stack.
 				1. Resume the context that is now on the top of the execution context stack as the running execution context.
 				1. If _result_.[[Type]] is not ~normal~, throw a newly created TypeError object associate to the _callerRealm_.
-				1. Return ? GetWrappedValue(_callerRealm_, _result_.[[Value]]).
+				1. Return ? GetWrappedValue(_callerRealm_, _result_).
 			</emu-alg>
 			<emu-note type=editor>
 				In the case of an abrupt ~throw~ completion, the type of error to be created should match the type of the abrupt throw completion record. This could be revisited when merging into the main specification. Additionally, in the case of a ~break~ or ~continue~ completion, since those are not supported, a TypeError is expected. There should be no ~return~ completion because this is a top level script evaluation, in which case a return |Statement| must result in a parsing error.
 			</emu-note>
+			<emu-note type=editor>
+				Some steps from PerformRealmEval are shared with |eval| and |Function| and should result into a shared abstraction when merged to ECMA-262.
+			</emu-note>
 		</emu-clause>
 
-		<emu-clause id="sec-performrealmimportvalue" aoid="PerformRealmImportValue">
-			<h1>PerformRealmImportValue ( _specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_ )</h1>
+		<emu-clause id="sec-realmimportvalue" aoid="RealmImportValue">
+			<h1>RealmImportValue ( _specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_ )</h1>
 			<emu-alg>
 				1. Assert: Type(_specifierString_) is String.
 				1. Assert: Type(_exportNameString_) is String.
@@ -279,7 +280,7 @@ location: https://tc39.es/proposal-realms/
 				1. Return ? PerformRealmEval(_sourceText_, _callerRealm_, _evalRealm_).
 			</emu-alg>
 
-			<emu-note>
+			<emu-note type=editor>
 				Extensible web: This is the dynamic equivalent of a &lt;script&gt; in HTML.
 			</emu-note>
 		</emu-clause>
@@ -295,10 +296,10 @@ location: https://tc39.es/proposal-realms/
 				1. Let _callerRealm_ be the current Realm Record.
 				1. Let _evalRealm_ be _O_.[[Realm]].
 				1. Let _evalContext_ be _O_.[[ExecutionContext]].
-				1. Return ? PerformRealmImportValue(_specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_).
+				1. Return ? RealmImportValue(_specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_).
 			</emu-alg>
 
-			<emu-note>
+			<emu-note type=editor>
 				Extensible web: This is equivalent to dynamic import without having to evaluate a script source, which might not be available (e.g.: when CSP is blocking source evaluation).
 			</emu-note>
 		</emu-clause>
