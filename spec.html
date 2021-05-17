@@ -66,18 +66,18 @@ location: https://tc39.es/proposal-realms/
 			Callable Object
 		</td>
 		<td>
-			The wrapped function object.
+			Stores the callable object from the other Realm.
 		</td>
 		</tr>
 		<tr>
 		<td>
-			[[Realm]]
+			[[Call]]
 		</td>
 		<td>
-			Realm Record
+			The [[Call]] internal method
 		</td>
 		<td>
-			The realm in which the wrapped function object was created.
+			Executes code associated with this object's [[WrappedTargetFunction]].
 		</td>
 		</tr>
 		</tbody>
@@ -118,7 +118,6 @@ location: https://tc39.es/proposal-realms/
 			1. Let _obj_ be ! MakeBasicObject(_internalSlotsList_).
 			1. Set _obj_.[[Prototype]] to _callerRealm_.[[Intrinsics]].[[%Function.prototype%]].
 			1. Set _obj_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
-			1. Set _obj_.[[Realm]] to _callerRealm_.
 			1. Set _obj_.[[WrappedTargetFunction]] to _targetFunction_.
 			1. Return _obj_.
 		</emu-alg>
