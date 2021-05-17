@@ -98,7 +98,7 @@ location: https://tc39.es/proposal-realms/
 			1. Let _wrappedThisArgument_ to ? GetWrappedValue(_targetRealm_, _thisArgument_).
 			1. Let _result_ be the Completion Record of Call(_target_, _wrappedThisArgument_, _argumentsList_).
 			1. If _result_.[[Type]] is ~normal~ or _result_.[[Type]] is ~return~, then
-				1. Return ? GetWrappedValue(_callerRealm_, _value_).
+				1. Return ? GetWrappedValue(_callerRealm_, _result_).
 			1. Else,
 				1. Throw a newly created TypeError object associate to the _callerRealm_.
 		</emu-alg>
