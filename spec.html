@@ -165,7 +165,7 @@ location: https://tc39.es/proposal-realms/
 				1. Suspend _evalContext_ and remove it from the execution context stack.
 				1. Resume the context that is now on the top of the execution context stack as the running execution context.
 				1. If _result_.[[Type]] is not ~normal~, throw a newly created TypeError object associate to the _callerRealm_.
-				1. Return ? GetWrappedValue(_callerRealm_, _result_.[[Value]]).
+				1. Return ? GetWrappedValue(_callerRealm_, _result_).
 			</emu-alg>
 			<emu-note type=editor>
 				In the case of an abrupt ~throw~ completion, the type of error to be created should match the type of the abrupt throw completion record. This could be revisited when merging into the main specification. Additionally, in the case of a ~break~ or ~continue~ completion, since those are not supported, a TypeError is expected. There should be no ~return~ completion because this is a top level script evaluation, in which case a return |Statement| must result in a parsing error.
