@@ -381,9 +381,7 @@ location: https://tc39.es/proposal-realms/
 		<emu-clause id="sec-hostimportmodulebindingdynamically" aoid="HostImportModuleBindingDynamically">
 			<h1>HostImportModuleBindingDynamically (_callerRealm_, _evalRealm_, _specifier_, _exportName_, _promiseCapability_ )</h1>
 			<p>The host-defined abstract operation HostImportModuleBindingDynamically takes arguments _callerRealm_ (a Realm Record), _evalRealm_ (a Realm Record), _specifier_ (a |ModuleSpecifier| String), _exportName_ (a |IdentifierName| String) and _promiseCapability_ (a PromiseCapability Record). It performs any necessary setup work in order to make available the module corresponding to _specifier_ occurring within the context of the script or module represented by _referencingScriptOrModule_. _referencingScriptOrModule_ is *null*. It then performs FinishDynamicImport to finish the dynamic import process.</p>
-			<p>The implementation of HostImportModuleBindingDynamically must conform with the implementation of HostImportModuleDynamically first and foremost, second, it should conform with the following:</p>
-			<li>
-				The host environment must conform to one of the two following sets of requirements:
+			<p>The implementation of HostImportModuleBindingDynamically must conform with the implementation of HostImportModuleDynamically. It must also conform to one of the two following sets of requirements:
 				<dl>
 				<dt>Success path</dt>
 
