@@ -41,7 +41,7 @@ location: https://tc39.es/proposal-realms/
 	<h1>Wrapped Function Exotic Objects</h1>
 	<p>A wrapped function exotic object is an exotic object that wraps a callable object. A wrapped function exotic object is callable (it has a [[Call]] internal method). Calling a wrapped function exotic object generally results in a call of its wrapped function.</p>
 
-	<p>An object is a <dfn id="wrapped-function-exotic-object">wrapped function exotic object</dfn> if its [[Call]] internal method use the following implementations, and its other essential internal methods use the definitions found in <emu-xref href="#sec-ordinary-object-internal-methods-and-internal-slots"></emu-xref>. These methods are installed in WrappedFunctionCreate.</p>
+	<p>An object is a <dfn id="wrapped-function-exotic-object">wrapped function exotic object</dfn> if its [[Call]] internal method uses the following implementation, and its other essential internal methods use the definitions found in <emu-xref href="#sec-ordinary-object-internal-methods-and-internal-slots"></emu-xref>. These methods are installed in WrappedFunctionCreate.</p>
 
 	<p>Wrapped function exotic objects do not have the internal slots of ECMAScript function objects listed in <emu-xref href="#table-internal-slots-of-ecmascript-function-objects"></emu-xref>. Instead they have the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, in addition to [[Prototype]] and [[Extensible]].</p>
 	<emu-table id="table-internal-slots-of-wrapped-function-exotic-objects" caption="Internal Slots of Wrapped Function Exotic Objects">
@@ -93,14 +93,14 @@ location: https://tc39.es/proposal-realms/
 			1. Let _targetRealm_ be ? GetFunctionRealm(_target_).
 			1. Let _callerRealm_ be ? GetFunctionRealm(_F_).
 			1. For each element _key_ of _argumentsList_, do
-				1. Let o be _argumentsList_[_key_].
+				1. Let _o_ be _argumentsList_[_key_].
 				1. Set _argumentsList_[_key_] to ? GetWrappedValue(_targetRealm_, _o_).
 			1. Let _wrappedThisArgument_ to ? GetWrappedValue(_targetRealm_, _thisArgument_).
 			1. Let _result_ be the Completion Record of Call(_target_, _wrappedThisArgument_, _argumentsList_).
 			1. If _result_.[[Type]] is ~normal~ or _result_.[[Type]] is ~return~, then
 				1. Return ? GetWrappedValue(_callerRealm_, _result_).
 			1. Else,
-				1. Throw a newly created TypeError object associate to the _callerRealm_.
+				1. Throw a newly created TypeError object associated to the _callerRealm_.
 		</emu-alg>
 		<emu-note type=editor>
 			In the case of an abrupt ~throw~ completion, the type of error to be created should match the type of the abrupt throw completion record. This could be revisited when merging into the main specification. Additionally, in the case of a ~break~ or ~continue~ completion, since those are not supported, a TypeError is expected.
