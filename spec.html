@@ -16,6 +16,7 @@ status: proposal
 copyright: false
 location: https://tc39.es/proposal-realms/
 </pre>
+<emu-biblio href="./biblio.json"></emu-biblio>
 
 <emu-clause id="sec-well-known-intrinsic-objects">
 	<h1>Well-known intrinsic objects</h1>
@@ -43,7 +44,7 @@ location: https://tc39.es/proposal-realms/
 
 	<p>An object is a <dfn id="wrapped-function-exotic-object">wrapped function exotic object</dfn> if its [[Call]] internal method use the following implementations, and its other essential internal methods use the definitions found in <emu-xref href="#sec-ordinary-object-internal-methods-and-internal-slots"></emu-xref>. These methods are installed in WrappedFunctionCreate.</p>
 
-	<p>Wrapped function exotic objects do not have the internal slots of ECMAScript function objects listed in <emu-xref href="#table-internal-slots-of-ecmascript-function-objects"></emu-xref>. Instead they have the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, in addition to [[Prototype]] and [[Extensible]].</p>
+	<p>Wrapped function exotic objects do not have the internal slots of ECMAScript function objects listed in <emu-xref aoid="Internal Slots of ECMAScript Function Objects"></emu-xref>. Instead they have the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, in addition to [[Prototype]] and [[Extensible]].</p>
 	<emu-table id="table-internal-slots-of-wrapped-function-exotic-objects" caption="Internal Slots of Wrapped Function Exotic Objects">
 	<table>
 		<tbody>
