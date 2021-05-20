@@ -142,9 +142,9 @@ location: https://tc39.es/proposal-realms/
 					1. If _script_ is a List of errors, throw a *SyntaxError* exception.
 					1. If _script_ Contains |ScriptBody| is *false*, return *undefined*.
 					1. Let _body_ be the |ScriptBody| of _script_.
-					1. If _body_ Contains |NewTarget|, throw a *SyntaxError* exception.
-					1. If _body_ Contains |SuperProperty|, throw a *SyntaxError* exception.
-					1. If _body_ Contains |SuperCall|, throw a *SyntaxError* exception.
+					1. If _body_ Contains |NewTarget| is *true*, throw a *SyntaxError* exception.
+					1. If _body_ Contains |SuperProperty| is *true*, throw a *SyntaxError* exception.
+					1. If _body_ Contains |SuperCall| is *true*, throw a *SyntaxError* exception.
 				1. Let _strictEval_ be IsStrict of _script_.
 				1. Let _runningContext_ be the running execution context.
 				1. Let _lexEnv_ be NewDeclarativeEnvironment(_evalRealm_.[[GlobalEnv]]).
