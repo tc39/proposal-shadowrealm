@@ -221,7 +221,7 @@ location: https://tc39.es/proposal-realms/
 
 		<emu-clause id="sec-realm">
 			<h1>Realm ()</h1>
-			<p>When the `Realm` function is called with no arguments, the following steps are taken:</p>
+			<p>When the `Realm` function is called, the following steps are taken:</p>
 			<emu-alg>
 				1. If NewTarget is *undefined*, throw a *TypeError* exception.
 				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%Realm.prototype%", « [[Realm]], [[ExecutionContext]] »).
