@@ -181,19 +181,29 @@ location: https://tc39.es/proposal-realms/
 				1. Assert: Type(_exportNameString_) is String.
 				1. Assert: _callerRealm_ is a Realm Record.
 				1. Assert: _evalRealm_ is a Realm Record.
-				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
+				1. Let _innerCapability_ be ! NewPromiseCapability(%Promise%).
 				1. Let _runningContext_ be the running execution context.
 				1. If _runningContext_ is not already suspended, suspend _runningContext_.
 				1. Push _evalContext_ onto the execution context stack; _evalContext_ is now the running execution context.
-				1. Perform ! HostImportModuleBindingDynamically(_callerRealm_, _evalRealm_, _specifierString_, _exportNameString_, _promiseCapability_).
+				1. Perform ! HostImportModuleDynamically(*null*, _specifierString_, _innerCapability_).
 				1. Suspend _evalContext_ and remove it from the execution context stack.
 				1. Resume the context that is now on the top of the execution context stack as the running execution context.
-				1. Return _promiseCapability_.[[Promise]].
+				1. Let _steps_ be the steps of an ExportGetter function as described below.
+				1. Let _onFulfilled_ be ! CreateBuiltinFunction(_steps_, 1, "", « [[ExportNameString]] », _callerRealm_).
+				1. Set _onFulfilled_.[[ExportNameString]] to _exportNameString_.
+				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
+				1. Return ! PerformPromiseThen(_innerCapability_.[[Promise]], _onFulfilled_, _callerRealm_.[[Intrinsics]].[[%ThrowTypeError%]], _promiseCapability_).
+				1. Return _promiseCapability.[[Promise]].
 			</emu-alg>
 
-			<emu-note type=editor>
-				The Realm's Execution Context is passed as a parameter _evalContext_. An alternative phrasing would be to create an extra execution context around the call to HostImportModuleBindingDynamically in order to execute within the appropriate Realm--the host can reference the current Realm to figure out how the import should work, similar to PerformRealmEval, which could be revisited when merging into the main specification.
-			</emu-note>
+			<p>An ExportGetter function is an anonymous built-in function with a [[ExportNameString]] internal slot. When an ExportGetter function is called with argument _exports_, it performs the following steps:</p>
+			<emu-alg>
+				1. Let _f_ be the active function object.
+				1. Let _string_ be _f_.[[ExportNameString]].
+				1. Let _realm_ be _f_.[[Realm]].
+				1. Let _value_ be ? Get(_exports_, _string_).
+				1. Return ? GetWrappedValue(_realm_, _value_).
+			</emu-alg>
 		</emu-clause>
 
 		<emu-clause id="sec-getwrappedvalue" aoid="GetWrappedValue">
@@ -375,30 +385,6 @@ location: https://tc39.es/proposal-realms/
 					including `HTMLElement`, `console`, `localStorage`, `fetch`, etc..
 				</p>
 			</emu-note>
-		</emu-clause>
-
-		<emu-clause id="sec-hostimportmodulebindingdynamically" aoid="HostImportModuleBindingDynamically">
-			<h1>HostImportModuleBindingDynamically (_callerRealm_, _evalRealm_, _specifier_, _exportName_, _promiseCapability_ )</h1>
-			<p>The host-defined abstract operation HostImportModuleBindingDynamically takes arguments _callerRealm_ (a Realm Record), _evalRealm_ (a Realm Record), _specifier_ (a |ModuleSpecifier| String), _exportName_ (a |IdentifierName| String) and _promiseCapability_ (a PromiseCapability Record). It performs any necessary setup work in order to make available the module corresponding to _specifier_ occurring within the context of the script or module represented by _referencingScriptOrModule_. _referencingScriptOrModule_ is *null*. It then performs FinishDynamicImport to finish the dynamic import process.</p>
-			<p>The implementation of HostImportModuleBindingDynamically must conform with the implementation of HostImportModuleDynamically. It must also conform to one of the two following sets of requirements:
-				<dl>
-				<dt>Success path</dt>
-
-				<dd>
-					<ul>
-						<li>The completion value must be the wrapped value exported value for the _exportName_ associated to the Module Namespace Object for the _callerRealm_.</li>
-					</ul>
-				</dd>
-
-				<dt>Failure path</dt>
-
-				<dd>
-					<ul>
-						<li>At some future time, the Module Namespace Object does not contain the _exportName_ as part of the ExportNames, with the abrupt completion representing the cause of failure for the _callerRealm_.</li>
-					</ul>
-				</dd>
-				</dl>
-			</li>
 		</emu-clause>
 	</emu-clause>
 
