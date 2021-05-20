@@ -137,17 +137,14 @@ location: https://tc39.es/proposal-realms/
 				1. Assert: _callerRealm_ is a Realm Record.
 				1. Assert: _evalRealm_ is a Realm Record.
 				1. Perform ? HostEnsureCanCompileStrings(_callerRealm_, _evalRealm_).
-				1. Let _inFunction_ be *false*.
-				1. Let _inMethod_ be *false*.
-				1. Let _inDerivedConstructor_ be *false*.
 				1. Perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
 					1. Let _script_ be ParseText(! StringToCodePoints(_sourceText_), |Script|).
 					1. If _script_ is a List of errors, throw a *SyntaxError* exception.
 					1. If _script_ Contains |ScriptBody| is *false*, return *undefined*.
 					1. Let _body_ be the |ScriptBody| of _script_.
-					1. If _inFunction_ is *false*, and _body_ Contains |NewTarget|, throw a *SyntaxError* exception.
-					1. If _inMethod_ is *false*, and _body_ Contains |SuperProperty|, throw a *SyntaxError* exception.
-					1. If _inDerivedConstructor_ is *false*, and _body_ Contains |SuperCall|, throw a *SyntaxError* exception.
+					1. If _body_ Contains |NewTarget|, throw a *SyntaxError* exception.
+					1. If _body_ Contains |SuperProperty|, throw a *SyntaxError* exception.
+					1. If _body_ Contains |SuperCall|, throw a *SyntaxError* exception.
 				1. Let _strictEval_ be IsStrict of _script_.
 				1. Let _runningContext_ be the running execution context.
 				1. Let _lexEnv_ be NewDeclarativeEnvironment(_evalRealm_.[[GlobalEnv]]).
