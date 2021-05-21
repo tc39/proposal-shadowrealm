@@ -201,10 +201,11 @@ location: https://tc39.es/proposal-realms/
 				1. Let _f_ be the active function object.
 				1. Let _string_ be _f_.[[ExportNameString]].
 				1. Assert: Type(_string_) is String.
-				1. Let _Desc_ be ? _exports_.[[GetOwnProperty]](_string_).
-				1. If _Desc_ is *undefined*, throw a *TypeError* exception.
+				1. Let _hasOwn_ be ? HasOwnProperty(_exports_, _string_).
+				1. If _hasOwn_ is *false*, throw a *TypeError* exception.
+				1. Let _value_ be ? Get(_exports_, _string_).
 				1. Let _realm_ be _f_.[[Realm]].
-				1. Return ? GetWrappedValue(_realm_, _Desc_.[[Value]]).
+				1. Return ? GetWrappedValue(_realm_, _value_).
 			</emu-alg>
 		</emu-clause>
 
