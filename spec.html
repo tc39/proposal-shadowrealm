@@ -193,7 +193,6 @@ location: https://tc39.es/proposal-realms/
 				1. Set _onFulfilled_.[[ExportNameString]] to _exportNameString_.
 				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
 				1. Return ! PerformPromiseThen(_innerCapability_.[[Promise]], _onFulfilled_, _callerRealm_.[[Intrinsics]].[[%ThrowTypeError%]], _promiseCapability_).
-				1. Return _promiseCapability.[[Promise]].
 			</emu-alg>
 
 			<p>An ExportGetter function is an anonymous built-in function with a [[ExportNameString]] internal slot. When an ExportGetter function is called with argument _exports_, it performs the following steps:</p>
