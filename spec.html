@@ -197,11 +197,14 @@ location: https://tc39.es/proposal-realms/
 
 			<p>An ExportGetter function is an anonymous built-in function with a [[ExportNameString]] internal slot. When an ExportGetter function is called with argument _exports_, it performs the following steps:</p>
 			<emu-alg>
+				1. Assert: _exports_ is a module namespace exotic object.
 				1. Let _f_ be the active function object.
 				1. Let _string_ be _f_.[[ExportNameString]].
+				1. Assert: Type(_string_) is String.
+				1. Let _Desc_ be ? _exports_.[[GetOwnProperty]](_string_).
+				1. If _Desc_ is *undefined*, throw a *TypeError* exception.
 				1. Let _realm_ be _f_.[[Realm]].
-				1. Let _value_ be ? Get(_exports_, _string_).
-				1. Return ? GetWrappedValue(_realm_, _value_).
+				1. Return ? GetWrappedValue(_realm_, _Desc_.[[Value]]).
 			</emu-alg>
 		</emu-clause>
 
