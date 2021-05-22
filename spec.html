@@ -369,10 +369,10 @@ location: https://tc39.es/proposal-realms/
 			</p>
 			<p>
 				The host may use this hook to add properties to the Realm's global
-				object. Those properties must each be configurable to provide
-				platform capabilities with no authority to cause side effects such
-				as I/O or mutation of values that are shared across different
-				realms within the same host environment.
+				object. Those properties must be configurable. Those properties must
+				have no authority to cause side effects such as I/O or mutation of
+				values (or internal state of the host) that are shared across different
+				realms or within the same realm.
 			</p>
 			<emu-note>
 				<p>
