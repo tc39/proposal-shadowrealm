@@ -24,7 +24,7 @@
     "url": "git+https://github.com/tc39/proposal-realms.git"
   },
   "scripts": {
-    "prebuild": "mkdirp dist",
+    "prebuild": "mkdir -p dist",
     "build": "ecmarkup --verbose spec.html dist/index.html --css dist/ecmarkup.css --js dist/ecmarkup.js",
     "watch": "npm run build -- --watch"
   },
