@@ -373,10 +373,7 @@ location: https://tc39.es/proposal-realms/
 			</p>
 			<p>
 				The host may use this hook to add properties to the Realm's global
-				object. Those properties must be configurable. Those properties must
-				have no authority to cause side effects such as I/O or mutation of
-				values (or internal state of the host) that are shared across different
-				realms or within the same realm.
+				object. Those properties must be configurable.
 			</p>
 			<emu-note>
 				<p>
@@ -386,6 +383,13 @@ location: https://tc39.es/proposal-realms/
 					environments may decide to include `EventTarget`,
 					`atob`, `TextEncoder`, `URL`, etc. while at the same time not
 					including `HTMLElement`, `console`, `localStorage`, `fetch`, etc..
+				</p>
+			</emu-note>
+			<emu-note type=editor>
+				<p>
+					The Realm constructor (<emu-xref href="#sec-realm"></emu-xref>
+					creates a new global object as an ordinary object. This
+					means all properties from the global object are deletable.
 				</p>
 			</emu-note>
 		</emu-clause>
