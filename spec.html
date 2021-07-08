@@ -67,7 +67,7 @@ location: https://tc39.es/proposal-realms/
 			Callable Object
 		</td>
 		<td>
-			Stores the callable object from the other Realm.
+			Stores the callable object.
 		</td>
 		</tr>
 		<tr>
@@ -158,12 +158,14 @@ location: https://tc39.es/proposal-realms/
 				1. Set _evalContext_'s VariableEnvironment to _varEnv_.
 				1. Set _evalContext_'s LexicalEnvironment to _lexEnv_.
 				1. Push _evalContext_ onto the execution context stack; _evalContext_ is now the running execution context.
-				1. Let _result_ be EvalDeclarationInstantiation(_body_, _varEnv_, _lexEnv_, _strictEval_).
+				1. Let _result_ be EvalDeclarationInstantiation(_body_, _varEnv_, _lexEnv_, *null*, _strictEval_).
 				1. If _result_.[[Type]] is ~normal~, then
 					1. Set _result_ to the result of evaluating _body_.
+				1. If _result_.[[Type]] is ~normal~ and _result_.[[Value]] is ~empty~, then
+					1. Set result to NormalCompletion(*undefined*).
 				1. Suspend _evalContext_ and remove it from the execution context stack.
 				1. Resume the context that is now on the top of the execution context stack as the running execution context.
-				1. If _result_.[[Type]] is not ~normal~, throw a newly created TypeError object associate to the _callerRealm_.
+				1. If _result_.[[Type]] is not ~normal~, throw a *TypeError* exception.
 				1. Return ? GetWrappedValue(_callerRealm_, _result_).
 			</emu-alg>
 			<emu-note type=editor>
@@ -172,6 +174,9 @@ location: https://tc39.es/proposal-realms/
 			<emu-note type=editor>
 				Some steps from PerformRealmEval are shared with |eval| and |Function| and should result into a shared abstraction when merged to ECMA-262.
 			</emu-note>
+			<emu-note>
+				This abstraction requires the performed evaluation to result into a normal completion. Otherwise, if the result is not a normal completion, the abstraction will throw a TypeError exception associated to its original running execution context.
+			</emu-note>>
 		</emu-clause>
 
 		<emu-clause id="sec-realmimportvalue" aoid="RealmImportValue">
@@ -181,6 +186,7 @@ location: https://tc39.es/proposal-realms/
 				1. Assert: Type(_exportNameString_) is String.
 				1. Assert: _callerRealm_ is a Realm Record.
 				1. Assert: _evalRealm_ is a Realm Record.
+				1. Assert: _evalContext_ is an execution context associated to a Realm instance's [[ExecutionContext]].
 				1. Let _innerCapability_ be ! NewPromiseCapability(%Promise%).
 				1. Let _runningContext_ be the running execution context.
 				1. If _runningContext_ is not already suspended, suspend _runningContext_.
@@ -189,7 +195,7 @@ location: https://tc39.es/proposal-realms/
 				1. Suspend _evalContext_ and remove it from the execution context stack.
 				1. Resume the context that is now on the top of the execution context stack as the running execution context.
 				1. Let _steps_ be the steps of an ExportGetter function as described below.
-				1. Let _onFulfilled_ be ! CreateBuiltinFunction(_steps_, 1, "", « [[ExportNameString]] », _callerRealm_).
+				1. Let _onFulfilled_ be ! CreateBuiltinFunction(_steps_, 1, *""*, « [[ExportNameString]] », _callerRealm_).
 				1. Set _onFulfilled_.[[ExportNameString]] to _exportNameString_.
 				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
 				1. Return ! PerformPromiseThen(_innerCapability_.[[Promise]], _onFulfilled_, _callerRealm_.[[Intrinsics]].[[%ThrowTypeError%]], _promiseCapability_).
@@ -233,11 +239,11 @@ location: https://tc39.es/proposal-realms/
 		</ul>
 
 		<emu-clause id="sec-realm">
-			<h1>Realm ()</h1>
+			<h1>Realm ( )</h1>
 			<p>When the `Realm` function is called, the following steps are taken:</p>
 			<emu-alg>
 				1. If NewTarget is *undefined*, throw a *TypeError* exception.
-				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, "%Realm.prototype%", « [[Realm]], [[ExecutionContext]] »).
+				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, *"%Realm.prototype%"*, « [[Realm]], [[ExecutionContext]] »).
 				1. Let _realmRec_ be CreateRealm().
 				1. Set _O_.[[Realm]] to _realmRec_.
 				1. Let _context_ be a new execution context.
@@ -317,7 +323,7 @@ location: https://tc39.es/proposal-realms/
 		</emu-clause>
 
 		<emu-clause id="sec-validaterealmobject">
-			<h1>ValidateRealmObject( _argument_ )</h1>
+			<h1>ValidateRealmObject ( _argument_ )</h1>
 			<p>The abstract operation ValidateRealmObject takes argument _argument_. It performs the following steps when called:</p>
 
 			<emu-alg>
@@ -328,7 +334,7 @@ location: https://tc39.es/proposal-realms/
 
 		<emu-clause id="sec-realm.prototype-@@tostringtag">
 			<h1>Realm.prototype [ @@toStringTag ]</h1>
-			<p>The initial value of the @@toStringTag property is the String value "Realm".</p>
+			<p>The initial value of the @@toStringTag property is the String value *"Realm"*.</p>
 			<p>This property has the attributes { [[Writable]]: *false*, [[Enumerable]]: *false*, [[Configurable]]: *true* }.</p>
 		</emu-clause>
 	</emu-clause>
