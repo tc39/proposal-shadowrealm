@@ -322,17 +322,10 @@ location: https://tc39.es/proposal-shadowrealm/
 					1. If _body_ Contains |SuperCall| is *true*, throw a *SyntaxError* exception.
 				1. Let _strictEval_ be ScriptIsStrict of _script_.
 				1. Let _runningContext_ be the running execution context.
-				1. Let _lexEnv_ be NewDeclarativeEnvironment(_evalRealm_.[[GlobalEnv]]).
-				1. Let _varEnv_ be _evalRealm_.[[GlobalEnv]].
-				1. If _strictEval_ is *true*, set _varEnv_ to _lexEnv_.
 				1. If _runningContext_ is not already suspended, suspend _runningContext_.
-				1. Let _evalContext_ be a new ECMAScript code execution context.
-				1. Set _evalContext_'s Function to *null*.
-				1. Set _evalContext_'s Realm to _evalRealm_.
-				1. Set _evalContext_'s ScriptOrModule to *null*.
-				1. Set _evalContext_'s VariableEnvironment to _varEnv_.
-				1. Set _evalContext_'s LexicalEnvironment to _lexEnv_.
-				1. Set _evalContext_'s PrivateEnvironment to *null*.
+				1. Let _evalContext_ be GetShadowRealmContext(_evalRealm_, _strictEval_).
+				1. Let _lexEnv_ be _evalContext_'s LexicalEnvironment.
+				1. Let _varEnv_ be _evalContext_'s VariableEnvironment.
 				1. Push _evalContext_ onto the execution context stack; _evalContext_ is now the running execution context.
 				1. Let _result_ be Completion(EvalDeclarationInstantiation(_body_, _varEnv_, _lexEnv_, *null*, _strictEval_)).
 				1. If _result_.[[Type]] is ~normal~, then
@@ -363,7 +356,7 @@ location: https://tc39.es/proposal-shadowrealm/
 					_specifierString_: a String,
 					_exportNameString_: a String,
 					_callerRealm_: a Realm Record,
-					_evalContext_: an execution context,
+					_evalRealm_: a Realm Record,
 				): an ECMAScript language value
 			</h1>
 			<dl class="header">
@@ -371,7 +364,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				<dd>...</dd>
 			</dl>
 			<emu-alg>
-				1. Assert: _evalContext_ is an execution context associated to a ShadowRealm instance's [[ExecutionContext]].
+				1. Let _evalContext_ be GetShadowRealmContext(_evalRealm_, *true*).
 				1. Let _innerCapability_ be ! NewPromiseCapability(%Promise%).
 				1. Let _runningContext_ be the running execution context.
 				1. If _runningContext_ is not already suspended, suspend _runningContext_.
@@ -449,8 +442,33 @@ location: https://tc39.es/proposal-shadowrealm/
 			</dl>
 			<emu-alg>
 				1. Perform ? RequireInternalSlot(_O_, [[ShadowRealm]]).
-				1. Perform ? RequireInternalSlot(_O_, [[ExecutionContext]]).
 				1. Return ~unused~.
+			</emu-alg>
+		</emu-clause>
+
+		<emu-clause id="sec-getshadowrealmcontext" type="abstract operation">
+			<h1>
+				GetShadowRealmContext (
+					_shadowRealmRecord_: a Realm Record,
+					_strictEval_: a Boolean,
+				): an ECMAScript code execution context
+			</h1>
+			<dl class="header">
+				<dt>description</dt>
+				<dd></dd>
+			</dl>
+			<emu-alg>
+				1. Let _lexEnv_ be NewDeclarativeEnvironment(_shadowRealmRecord_.[[GlobalEnv]]).
+				1. Let _varEnv_ be _shadowRealmRecord_.[[GlobalEnv]].
+				1. If _strictEval_ is *true*, set _varEnv_ to _lexEnv_.
+				1. Let _context_ be a new ECMAScript code execution context.
+				1. Set _context_'s Function to *null*.
+				1. Set _context_'s Realm to _shadowRealmRecord_.
+				1. Set _context_'s ScriptOrModule to *null*.
+				1. Set _context_'s VariableEnvironment to _varEnv_.
+				1. Set _context_'s LexicalEnvironment to _lexEnv_.
+				1. Set _context_'s PrivateEnvironment to *null*.
+				1. Return _context_.
 			</emu-alg>
 		</emu-clause>
 	</emu-clause>
@@ -471,12 +489,11 @@ location: https://tc39.es/proposal-shadowrealm/
 			<p>This function performs the following steps when called:</p>
 			<emu-alg>
 				1. If NewTarget is *undefined*, throw a *TypeError* exception.
-				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, *"%ShadowRealm.prototype%"*, « [[ShadowRealm]], [[ExecutionContext]] »).
+				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, *"%ShadowRealm.prototype%"*, « [[ShadowRealm]] »).
 				1. Let _callerContext_ be the running execution context.
 				1. Perform ? InitializeHostDefinedRealm().
 				1. Let _innerContext_ be the running execution context.
 				1. Remove _innerContext_ from the execution context stack and restore _callerContext_ as the running execution context.
-				1. Set _O_.[[ExecutionContext]] to _innerContext_.
 				1. Let _realmRec_ be the Realm of _innerContext_.
 				1. Set _O_.[[ShadowRealm]] to _realmRec_.
 				1. Perform ? HostInitializeShadowRealm(_realmRec_).
@@ -538,8 +555,8 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Let _specifierString_ be ? ToString(_specifier_).
 				1. If _exportName_ is not a String, throw a *TypeError* exception.
 				1. Let _callerRealm_ be the current Realm Record.
-				1. Let _evalContext_ be _O_.[[ExecutionContext]].
-				1. Return ShadowRealmImportValue(_specifierString_, _exportName_, _callerRealm_, _evalContext_).
+				1. Let _evalRealm_ be _O_.[[ShadowRealm]].
+				1. Return ShadowRealmImportValue(_specifierString_, _exportName_, _callerRealm_, _evalRealm_).
 			</emu-alg>
 
 			<emu-note type=editor>
@@ -570,11 +587,6 @@ location: https://tc39.es/proposal-shadowrealm/
 						<td>[[ShadowRealm]]</td>
 						<td>Realm Record</td>
 						<td>The Realm Record for the initial execution context.</td>
-					</tr>
-					<tr>
-						<td>[[ExecutionContext]]</td>
-						<td>Execution context</td>
-						<td>An execution context wherein the current Realm is this [[ShadowRealm]].</td>
 					</tr>
 				</tbody>
 			</table>
