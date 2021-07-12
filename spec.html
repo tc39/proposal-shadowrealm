@@ -292,12 +292,15 @@ location: https://tc39.es/proposal-realms/
 			<emu-alg>
 				1. Let _O_ be *this* value.
 				1. Perform ? ValidateRealmObject(_O_).
-				1. If Type(_sourceText_) is not String, throw a *TypeError* exception.
+				1. Let _sourceStr_ be ? ToString(_sourceText_).
 				1. Let _callerRealm_ be the current Realm Record.
 				1. Let _evalRealm_ be _O_.[[Realm]].
-				1. Return ? PerformRealmEval(_sourceText_, _callerRealm_, _evalRealm_).
+				1. Return ? PerformRealmEval(_sourceStr_, _callerRealm_, _evalRealm_).
 			</emu-alg>
 
+			<emu-note type=editor>
+				The argument _sourceText_ is coerced to a string value and this behavior differs from <emu-xref href="#sec-eval-x"></emu-xref>, which has a different behavior for non-String arguments. `eval(x)` returns `x` - with no evaluation - if `x` is not a String.
+			</emu-note>
 			<emu-note type=editor>
 				Extensible web: This is the dynamic equivalent of a &lt;script&gt; in HTML.
 			</emu-note>
