@@ -8,7 +8,7 @@ Notes about why we need realms:
 * Same origin is seen as legacy from some implementers, but same origin iframes is available anyways.
   * It is also available in node via `vm` module.
 * Same origin is an atomic part of the web reality.
-* Varios examples of why ShadowRealms are needed:
+* Various examples of why ShadowRealms are needed:
   * Web-based IDEs or any kind of 3rd party code execution uses same origin evaluation.
   * Fiddler & Co.
   * JSPerf & Co.
