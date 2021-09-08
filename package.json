@@ -1,7 +1,7 @@
 {
-  "name": "ecma-proposal-realms",
+  "name": "ecma-proposal-shadowrealm",
   "version": "1.0.0",
-  "description": "ECMAScript spec proposal for Realms API",
+  "description": "ECMAScript spec proposal for ShadowRealm API",
   "license": "Apache-2.0",
   "author": {
     "name": "TC39 Open Source Contributors"
@@ -15,13 +15,13 @@
     "spec",
     "proposal"
   ],
-  "homepage": "https://github.com/tc39/proposal-realms#readme",
+  "homepage": "https://github.com/tc39/proposal-shadowrealm#readme",
   "bugs": {
-    "url": "https://github.com/tc39/proposal-realms/issues"
+    "url": "https://github.com/tc39/proposal-shadowrealm/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tc39/proposal-realms.git"
+    "url": "git+https://github.com/tc39/proposal-shadowrealm.git"
   },
   "scripts": {
     "prebuild": "mkdir -p dist",
