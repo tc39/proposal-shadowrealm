@@ -1,9 +1,9 @@
-# ECMAScript spec proposal for Realms API
+# ECMAScript spec proposal for ShadowRealm API
 
 ## <a name='Status'></a>Status
 
 - [Explainer](explainer.md).
-- [HTML Rendered Spec](https://tc39.es/proposal-realms/).
+- [HTML Rendered Spec](https://tc39.es/proposal-shadowrealm/).
 - Currently at [Stage 3](https://tc39.es/process-document/).
 - [Code of Conduct](https://tc39.es/code-of-conduct/)
 
@@ -16,23 +16,23 @@
 
 ## Index
 
-* [What are Realms?](#WhatareRealms)
+* [What are ShadowRealms?](#WhatareRealms)
 * [API (TypeScript Format)](#APITypeScriptFormat)
 * [Presentations](#Presentations)
 * [History](#History)
 * [Contributing](#Contributing)
 	* [Updating the spec text for this proposal](#Updatingthespectextforthisproposal)
 
-## <a name='WhatareRealms'></a>What are Realms?
+## <a name='WhatareRealms'></a>What are ShadowRealms?
 
-Realms are a distinct global environment, with its own global object containing its own intrinsics and built-ins (standard objects that are not bound to global variables, like the initial value of Object.prototype).
+ShadowRealms are a distinct global environment, with its own global object containing its own intrinsics and built-ins (standard objects that are not bound to global variables, like the initial value of Object.prototype).
 
 See more at the [explainer](explainer.md) document.
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
 ```ts
-declare class Realm {
+declare class ShadowRealm {
     constructor();
     importValue(specifier: string, bindingName: string): Promise<PrimitiveValueOrCallable>;
     evaluate(sourceText: string): PrimitiveValueOrCallable;
@@ -56,7 +56,7 @@ See some examples [in the Explainer file](explainer.md).
 ## <a name='History'></a>History
 
 * we moved on from the exposed globalThis model to a lean isolated realms API (see #289 and #291)
-* we worked on this during ES2015 time frame, so never went through stages process ([ES6 Realm Objects proto-spec.pdf](https://github.com/tc39/proposal-realms/files/717415/ES6.Realm.Objects.proto-spec.pdf))
+* we worked on this during ES2015 time frame, so never went through stages process ([ES6 Realm Objects proto-spec.pdf](https://github.com/tc39/proposal-shadowrealm/files/717415/ES6.Realm.Objects.proto-spec.pdf))
 * got punted to later (rightly so!)
 * goal of this proposal: resume work on this, reassert committee interest via advancing to stage 2
 * original idea from @dherman: [What are Realms?](https://gist.github.com/dherman/7568885)

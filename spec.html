@@ -9,12 +9,12 @@
 
 <body>
 <pre class="metadata">
-title: 'Realms API'
+title: 'ShadowRealm API'
 stage: 2
 contributors: Dave Herman, Caridy Patiño, Mark Miller, Leo Balter
 status: proposal
 copyright: false
-location: https://tc39.es/proposal-realms/
+location: https://tc39.es/proposal-shadowrealm/
 </pre>
 <emu-biblio href="./biblio.json"></emu-biblio>
 
@@ -29,9 +29,9 @@ location: https://tc39.es/proposal-realms/
 					<th>ECMAScript Language Association</th>
 				</tr>
 				<tr>
-					<td>%Realm%</td>
-					<td>`Realm`</td>
-					<td>The Realm constructor (<emu-xref href="#sec-realm-constructor"></emu-xref>)</td>
+					<td>%ShadowRealm%</td>
+					<td>`ShadowRealm`</td>
+					<td>The ShadowRealm constructor (<emu-xref href="#sec-shadowrealm-constructor"></emu-xref>)</td>
 				</tr>
 			</tbody>
 		</table>
@@ -125,10 +125,10 @@ location: https://tc39.es/proposal-realms/
 	</emu-clause>
 </emu-clause>
 
-<emu-clause id="sec-realm-objects">
-	<h1>Realm Objects</h1>
-	<emu-clause id="sec-realm-abstracts">
-		<h1>Realm Abstract Operations</h1>
+<emu-clause id="sec-shadowrealm-objects">
+	<h1>ShadowRealm Objects</h1>
+	<emu-clause id="sec-shadowrealm-abstracts">
+		<h1>ShadowRealm Abstract Operations</h1>
 
 		<emu-clause id="sec-performrealmeval" aoid="PerformRealmEval">
 			<h1>PerformRealmEval ( _sourceText_, _callerRealm_, _evalRealm_ )</h1>
@@ -179,14 +179,14 @@ location: https://tc39.es/proposal-realms/
 			</emu-note>
 		</emu-clause>
 
-		<emu-clause id="sec-realmimportvalue" aoid="RealmImportValue">
-			<h1>RealmImportValue ( _specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_ )</h1>
+		<emu-clause id="sec-shadowrealmimportvalue" aoid="ShadowRealmImportValue">
+			<h1>ShadowRealmImportValue ( _specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_ )</h1>
 			<emu-alg>
 				1. Assert: Type(_specifierString_) is String.
 				1. Assert: Type(_exportNameString_) is String.
 				1. Assert: _callerRealm_ is a Realm Record.
 				1. Assert: _evalRealm_ is a Realm Record.
-				1. Assert: _evalContext_ is an execution context associated to a Realm instance's [[ExecutionContext]].
+				1. Assert: _evalContext_ is an execution context associated to a ShadowRealm instance's [[ExecutionContext]].
 				1. Let _innerCapability_ be ! NewPromiseCapability(%Promise%).
 				1. Let _runningContext_ be the running execution context.
 				1. If _runningContext_ is not already suspended, suspend _runningContext_.
@@ -210,7 +210,7 @@ location: https://tc39.es/proposal-realms/
 				1. Let _hasOwn_ be ? HasOwnProperty(_exports_, _string_).
 				1. If _hasOwn_ is *false*, throw a *TypeError* exception.
 				1. Let _value_ be ? Get(_exports_, _string_).
-				1. Let _realm_ be _f_.[[Realm]].
+				1. Let _realm_ be _f_.[[ShadowRealm]].
 				1. Return ? GetWrappedValue(_realm_, _value_).
 			</emu-alg>
 		</emu-clause>
@@ -227,74 +227,74 @@ location: https://tc39.es/proposal-realms/
 		</emu-clause>
 	</emu-clause>
 
-	<emu-clause id="sec-realm-constructor">
-		<h1>The Realm Constructor</h1>
-		<p>The Realm constructor:</p>
+	<emu-clause id="sec-shadowrealm-constructor">
+		<h1>The ShadowRealm Constructor</h1>
+		<p>The ShadowRealm constructor:</p>
 		<ul>
-			<li>is the intrinsic object <dfn>%Realm%</dfn>.</li>
-			<li>is the initial value of the *"Realm"* property of the global object.</li>
+			<li>is the intrinsic object <dfn>%ShadowRealm%</dfn>.</li>
+			<li>is the initial value of the *"ShadowRealm"* property of the global object.</li>
 			<li>is not intended to be called as a function and will throw an exception when called in that manner.</li>
-			<li>creates and initializes a new Realm object when called as a constructor.</li>
-			<li>is designed to be subclassable. It may be used as the value in an `extends` clause of a class definition. Subclass constructors that intend to inherit the specified `Realm` behaviour must include a `super` call to the `Realm` constructor to create and initialize the subclass instance with the internal state necessary to support the `Realm.prototype` built-in methods.</li>
+			<li>creates and initializes a new ShadowRealm object when called as a constructor.</li>
+			<li>is designed to be subclassable. It may be used as the value in an `extends` clause of a class definition. Subclass constructors that intend to inherit the specified `ShadowRealm` behaviour must include a `super` call to the `ShadowRealm` constructor to create and initialize the subclass instance with the internal state necessary to support the `ShadowRealm.prototype` built-in methods.</li>
 		</ul>
 
-		<emu-clause id="sec-realm">
-			<h1>Realm ( )</h1>
-			<p>When the `Realm` function is called, the following steps are taken:</p>
+		<emu-clause id="sec-shadowrealm">
+			<h1>ShadowRealm ( )</h1>
+			<p>When the `ShadowRealm` function is called, the following steps are taken:</p>
 			<emu-alg>
 				1. If NewTarget is *undefined*, throw a *TypeError* exception.
-				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, *"%Realm.prototype%"*, « [[Realm]], [[ExecutionContext]] »).
+				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, *"%ShadowRealm.prototype%"*, « [[ShadowRealm]], [[ExecutionContext]] »).
 				1. Let _realmRec_ be CreateRealm().
-				1. Set _O_.[[Realm]] to _realmRec_.
+				1. Set _O_.[[ShadowRealm]] to _realmRec_.
 				1. Let _context_ be a new execution context.
 				1. Set the Function of _context_ to *null*.
 				1. Set the Realm of _context_ to _realmRec_.
 				1. Set the ScriptOrModule of _context_ to *null*.
 				1. Set _O_.[[ExecutionContext]] to _context_.
 				1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, *undefined*).
-				1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
-				1. Perform ? HostInitializeSyntheticRealm(_O_.[[Realm]]).
+				1. Perform ? SetDefaultGlobalBindings(_O_.[[ShadowRealm]]).
+				1. Perform ? HostInitializeShadowRealm(_O_.[[ShadowRealm]]).
 				1. Return _O_.
 			</emu-alg>
 		</emu-clause>
 	</emu-clause>
 
-	<emu-clause id="sec-properties-of-the-realm-constructor">
-		<h1>Properties of the Realm Constructor</h1>
-		<p>The Realm constructor:</p>
+	<emu-clause id="sec-properties-of-the-shadowRealm-constructor">
+		<h1>Properties of the ShadowRealm Constructor</h1>
+		<p>The ShadowRealm constructor:</p>
 		<ul>
 			<li>has a [[Prototype]] internal slot whose value is %Function.prototype%.</li>
 			<li>has the following properties:</li>
 		</ul>
 
-		<emu-clause id="sec-realm.prototype">
-			<h1>Realm.prototype</h1>
-			<p>The initial value of *Realm.prototype* is %Realm.prototype%.</p>
+		<emu-clause id="sec-shadowrealm.prototype">
+			<h1>ShadowRealm.prototype</h1>
+			<p>The initial value of *ShadowRealm.prototype* is %ShadowRealm.prototype%.</p>
 			<p>This property has the attributes { [[Writable]]: *false*, [[Enumerable]]: *false*, [[Configurable]]: *false* }.</p>
 		</emu-clause>
 	</emu-clause>
 
-	<emu-clause id="sec-properties-of-the-realm-prototype-object">
-		<h1>Properties of the Realm Prototype Object</h1>
-		<p>The Realm prototype object:</p>
+	<emu-clause id="sec-properties-of-the-shadowrealm-prototype-object">
+		<h1>Properties of the ShadowRealm Prototype Object</h1>
+		<p>The ShadowRealm prototype object:</p>
 		<ul>
 			<li>has a [[Prototype]] internal slot whose value is <dfn>%Object.prototype%</dfn>.</li>
-			<li>is %Realm.prototype%.</li>
+			<li>is %ShadowRealm.prototype%.</li>
 			<li>is an ordinary object.</li>
-			<li>does not have a [[Realm]] or any other of the internal slots that are specific to _Realm_ instance objects.</li>
+			<li>does not have a [[ShadowRealm]] or any other of the internal slots that are specific to _Realm_ instance objects.</li>
 		</ul>
 
-		<emu-clause id="sec-realm.prototype.eval">
-			<h1>Realm.prototype.evaluate ( _sourceText_ )</h1>
+		<emu-clause id="sec-shadowrealm.prototype.evaluate">
+			<h1>ShadowRealm.prototype.evaluate ( _sourceText_ )</h1>
 
-			<p>Synchronously execute a top-level script. The _sourceText_ is interpreted as a Script and evaluated with this bound to the realm's global object.</p>
+			<p>Synchronously execute a top-level script. The _sourceText_ is interpreted as a Script and evaluated with this bound to the shadowrealm's global object.</p>
 
 			<emu-alg>
 				1. Let _O_ be *this* value.
 				1. Perform ? ValidateRealmObject(_O_).
 				1. If Type(_sourceText_) is not String, throw a *TypeError* exception.
 				1. Let _callerRealm_ be the current Realm Record.
-				1. Let _evalRealm_ be _O_.[[Realm]].
+				1. Let _evalRealm_ be _O_.[[ShadowRealm]].
 				1. Return ? PerformRealmEval(_sourceText_, _callerRealm_, _evalRealm_).
 			</emu-alg>
 
@@ -303,8 +303,8 @@ location: https://tc39.es/proposal-realms/
 			</emu-note>
 		</emu-clause>
 
-		<emu-clause id="sec-realm.prototype.importValue">
-			<h1>Realm.prototype.importValue ( _specifier_, _exportName_ )</h1>
+		<emu-clause id="sec-shadowrealm.prototype.importvalue">
+			<h1>ShadowRealm.prototype.importValue ( _specifier_, _exportName_ )</h1>
 			<p>The following steps are performed:</p>
 			<emu-alg>
 				1. Let _O_ be *this* value.
@@ -312,9 +312,9 @@ location: https://tc39.es/proposal-realms/
 				1. Let _specifierString_ be ? ToString(_specifier_).
 				1. Let _exportNameString_ be ? ToString(_exportName_).
 				1. Let _callerRealm_ be the current Realm Record.
-				1. Let _evalRealm_ be _O_.[[Realm]].
+				1. Let _evalRealm_ be _O_.[[ShadowRealm]].
 				1. Let _evalContext_ be _O_.[[ExecutionContext]].
-				1. Return ? RealmImportValue(_specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_).
+				1. Return ? ShadowRealmImportValue(_specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_).
 			</emu-alg>
 
 			<emu-note type=editor>
@@ -327,23 +327,23 @@ location: https://tc39.es/proposal-realms/
 			<p>The abstract operation ValidateRealmObject takes argument _argument_. It performs the following steps when called:</p>
 
 			<emu-alg>
-				1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
+				1. Perform ? RequireInternalSlot(_O_, [[ShadowRealm]]).
 				1. Perform ? RequireInternalSlot(_O_, [[ExecutionContext]]).
 			</emu-alg>
 		</emu-clause>
 
-		<emu-clause id="sec-realm.prototype-@@tostringtag">
-			<h1>Realm.prototype [ @@toStringTag ]</h1>
-			<p>The initial value of the @@toStringTag property is the String value *"Realm"*.</p>
+		<emu-clause id="sec-shadowrealm.prototype-@@tostringtag">
+			<h1>ShadowRealm.prototype [ @@toStringTag ]</h1>
+			<p>The initial value of the @@toStringTag property is the String value *"ShadowRealm"*.</p>
 			<p>This property has the attributes { [[Writable]]: *false*, [[Enumerable]]: *false*, [[Configurable]]: *true* }.</p>
 		</emu-clause>
 	</emu-clause>
 
-	<emu-clause id="sec-properties-of-realm-instances">
-		<h1>Properties of Realm Instances</h1>
-		<p>Realm instances are ordinary objects that inherit properties from the Realm prototype object (the intrinsic, %Realm.prototype%). Realm instances are initially created with the internal slots described in <emu-xref href="#table-internal-slots-of-realm-instances"></emu-xref>.</p>
+	<emu-clause id="sec-properties-of-shadowrealm-instances">
+		<h1>Properties of ShadowRealm Instances</h1>
+		<p>ShadowRealm instances are ordinary objects that inherit properties from the ShadowRealm prototype object (the intrinsic, %ShadowRealm.prototype%). ShadowRealm instances are initially created with the internal slots described in <emu-xref href="#table-internal-slots-of-shadowrealm-instances"></emu-xref>.</p>
 
-		<emu-table id="table-internal-slots-of-realm-instances" caption="Internal Slots of Realm Instances">
+		<emu-table id="table-internal-slots-of-shadowrealm-instances" caption="Internal Slots of ShadowRealm Instances">
 			<table>
 				<tbody>
 					<tr>
@@ -352,33 +352,33 @@ location: https://tc39.es/proposal-realms/
 						<th>Description</th>
 					</tr>
 					<tr>
-						<td>[[Realm]]</td>
+						<td>[[ShadowRealm]]</td>
 						<td>Realm Record</td>
 						<td>The Realm Record for the initial execution context.</td>
 					</tr>
 					<tr>
 						<td>[[ExecutionContext]]</td>
 						<td>Execution context</td>
-						<td>An execution context wherein the current Realm is this [[Realm]].</td>
+						<td>An execution context wherein the current Realm is this [[ShadowRealm]].</td>
 					</tr>
 				</tbody>
 			</table>
 		</emu-table>
 	</emu-clause>
 
-	<emu-clause id="sec-realm-host-operations">
+	<emu-clause id="sec-shadowrealm-host-operations">
 		<h1>Host operations</h1>
-		<emu-clause id="sec-host-initialize-synthetic-realm" aoid="HostInitializeSyntheticRealm">
-			<h1>Runtime Semantics: HostInitializeSyntheticRealm ( _realm_ )</h1>
+		<emu-clause id="sec-host-initialize-shadow-shadowrealm" aoid="HostInitializeShadowRealm">
+			<h1>Runtime Semantics: HostInitializeShadowRealm ( _realm_ )</h1>
 			<p>
-				HostInitializeSyntheticRealm is an implementation-defined abstract
+				HostInitializeShadowRealm is an implementation-defined abstract
 				operation used to inform the host of any newly created realms from
-				the Realm constructor. Its return value is not used, though it may
+				the ShadowRealm constructor. Its return value is not used, though it may
 				throw an exception. The idea of this hook is to initialize host
-				data structures related to the Realm, e.g., for module loading.
+				data structures related to the ShadowRealm, e.g., for module loading.
 			</p>
 			<p>
-				The host may use this hook to add properties to the Realm's global
+				The host may use this hook to add properties to the ShadowRealm's global
 				object. Those properties must be configurable.
 			</p>
 			<emu-note>
@@ -393,7 +393,7 @@ location: https://tc39.es/proposal-realms/
 			</emu-note>
 			<emu-note type=editor>
 				<p>
-					The Realm constructor (<emu-xref href="#sec-realm"></emu-xref>
+					The ShadowRealm constructor (<emu-xref href="#sec-shadowrealm"></emu-xref>
 					creates a new global object as an ordinary object. This
 					means all properties from the global object are deletable.
 				</p>
