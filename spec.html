@@ -10,7 +10,7 @@
 <body>
 <pre class="metadata">
 title: 'ShadowRealm API'
-stage: 2
+stage: 3
 contributors: Dave Herman, Caridy Patiño, Mark Miller, Leo Balter
 status: proposal
 copyright: false
@@ -130,8 +130,8 @@ location: https://tc39.es/proposal-shadowrealm/
 	<emu-clause id="sec-shadowrealm-abstracts">
 		<h1>ShadowRealm Abstract Operations</h1>
 
-		<emu-clause id="sec-performrealmeval" aoid="PerformRealmEval">
-			<h1>PerformRealmEval ( _sourceText_, _callerRealm_, _evalRealm_ )</h1>
+		<emu-clause id="sec-performshadowrealmeval" aoid="PerformShadowRealmEval">
+			<h1>PerformShadowRealmEval ( _sourceText_, _callerRealm_, _evalRealm_ )</h1>
 			<emu-alg>
 				1. Assert: Type(_sourceText_) is String.
 				1. Assert: _callerRealm_ is a Realm Record.
@@ -172,7 +172,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				In the case of an abrupt ~throw~ completion, the type of error to be created should match the type of the abrupt throw completion record. This could be revisited when merging into the main specification. Additionally, in the case of a ~break~ or ~continue~ completion, since those are not supported, a TypeError is expected. There should be no ~return~ completion because this is a top level script evaluation, in which case a return |Statement| must result in a parsing error.
 			</emu-note>
 			<emu-note type=editor>
-				Some steps from PerformRealmEval are shared with |eval| and |Function| and should result into a shared abstraction when merged to ECMA-262.
+				Some steps from PerformShadowRealmEval are shared with |eval| and |Function| and should result into a shared abstraction when merged to ECMA-262.
 			</emu-note>
 			<emu-note>
 				This abstraction requires the performed evaluation to result into a normal completion. Otherwise, if the result is not a normal completion, the abstraction will throw a TypeError exception associated to its original running execution context.
@@ -210,7 +210,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Let _hasOwn_ be ? HasOwnProperty(_exports_, _string_).
 				1. If _hasOwn_ is *false*, throw a *TypeError* exception.
 				1. Let _value_ be ? Get(_exports_, _string_).
-				1. Let _realm_ be _f_.[[ShadowRealm]].
+				1. Let _realm_ be _f_.[[Realm]].
 				1. Return ? GetWrappedValue(_realm_, _value_).
 			</emu-alg>
 		</emu-clause>
@@ -243,17 +243,17 @@ location: https://tc39.es/proposal-shadowrealm/
 			<p>When the `ShadowRealm` function is called, the following steps are taken:</p>
 			<emu-alg>
 				1. If NewTarget is *undefined*, throw a *TypeError* exception.
-				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, *"%ShadowRealm.prototype%"*, « [[ShadowRealm]], [[ExecutionContext]] »).
+				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, *"%ShadowRealm.prototype%"*, « [[Realm]], [[ExecutionContext]] »).
 				1. Let _realmRec_ be CreateRealm().
-				1. Set _O_.[[ShadowRealm]] to _realmRec_.
+				1. Set _O_.[[Realm]] to _realmRec_.
 				1. Let _context_ be a new execution context.
 				1. Set the Function of _context_ to *null*.
 				1. Set the Realm of _context_ to _realmRec_.
 				1. Set the ScriptOrModule of _context_ to *null*.
 				1. Set _O_.[[ExecutionContext]] to _context_.
 				1. Perform ? SetRealmGlobalObject(_realmRec_, *undefined*, *undefined*).
-				1. Perform ? SetDefaultGlobalBindings(_O_.[[ShadowRealm]]).
-				1. Perform ? HostInitializeShadowRealm(_O_.[[ShadowRealm]]).
+				1. Perform ? SetDefaultGlobalBindings(_O_.[[Realm]]).
+				1. Perform ? HostInitializeShadowRealm(_O_.[[Realm]]).
 				1. Return _O_.
 			</emu-alg>
 		</emu-clause>
@@ -281,7 +281,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<li>has a [[Prototype]] internal slot whose value is <dfn>%Object.prototype%</dfn>.</li>
 			<li>is %ShadowRealm.prototype%.</li>
 			<li>is an ordinary object.</li>
-			<li>does not have a [[ShadowRealm]] or any other of the internal slots that are specific to _Realm_ instance objects.</li>
+			<li>does not have a [[Realm]] or any other of the internal slots that are specific to _Realm_ instance objects.</li>
 		</ul>
 
 		<emu-clause id="sec-shadowrealm.prototype.evaluate">
@@ -291,11 +291,11 @@ location: https://tc39.es/proposal-shadowrealm/
 
 			<emu-alg>
 				1. Let _O_ be *this* value.
-				1. Perform ? ValidateRealmObject(_O_).
+				1. Perform ? ValidateShadowRealmObject(_O_).
 				1. If Type(_sourceText_) is not String, throw a *TypeError* exception.
 				1. Let _callerRealm_ be the current Realm Record.
-				1. Let _evalRealm_ be _O_.[[ShadowRealm]].
-				1. Return ? PerformRealmEval(_sourceText_, _callerRealm_, _evalRealm_).
+				1. Let _evalRealm_ be _O_.[[Realm]].
+				1. Return ? PerformShadowRealmEval(_sourceText_, _callerRealm_, _evalRealm_).
 			</emu-alg>
 
 			<emu-note type=editor>
@@ -308,11 +308,11 @@ location: https://tc39.es/proposal-shadowrealm/
 			<p>The following steps are performed:</p>
 			<emu-alg>
 				1. Let _O_ be *this* value.
-				1. Perform ? ValidateRealmObject(_O_).
+				1. Perform ? ValidateShadowRealmObject(_O_).
 				1. Let _specifierString_ be ? ToString(_specifier_).
 				1. Let _exportNameString_ be ? ToString(_exportName_).
 				1. Let _callerRealm_ be the current Realm Record.
-				1. Let _evalRealm_ be _O_.[[ShadowRealm]].
+				1. Let _evalRealm_ be _O_.[[Realm]].
 				1. Let _evalContext_ be _O_.[[ExecutionContext]].
 				1. Return ? ShadowRealmImportValue(_specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_).
 			</emu-alg>
@@ -322,12 +322,12 @@ location: https://tc39.es/proposal-shadowrealm/
 			</emu-note>
 		</emu-clause>
 
-		<emu-clause id="sec-validaterealmobject" aoid="ValidateRealmObject">
-			<h1>ValidateRealmObject ( _O_ )</h1>
-			<p>The abstract operation ValidateRealmObject takes argument _O_. It performs the following steps when called:</p>
+		<emu-clause id="sec-validateshadowrealmobject" aoid="ValidateShadowRealmObject">
+			<h1>ValidateShadowRealmObject ( _O_ )</h1>
+			<p>The abstract operation ValidateShadowRealmObject takes argument _O_. It performs the following steps when called:</p>
 
 			<emu-alg>
-				1. Perform ? RequireInternalSlot(_O_, [[ShadowRealm]]).
+				1. Perform ? RequireInternalSlot(_O_, [[Realm]]).
 				1. Perform ? RequireInternalSlot(_O_, [[ExecutionContext]]).
 			</emu-alg>
 		</emu-clause>
@@ -352,14 +352,14 @@ location: https://tc39.es/proposal-shadowrealm/
 						<th>Description</th>
 					</tr>
 					<tr>
-						<td>[[ShadowRealm]]</td>
+						<td>[[Realm]]</td>
 						<td>Realm Record</td>
 						<td>The Realm Record for the initial execution context.</td>
 					</tr>
 					<tr>
 						<td>[[ExecutionContext]]</td>
 						<td>Execution context</td>
-						<td>An execution context wherein the current Realm is this [[ShadowRealm]].</td>
+						<td>An execution context wherein the current Realm is this [[Realm]].</td>
 					</tr>
 				</tbody>
 			</table>
