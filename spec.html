@@ -225,6 +225,16 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Return _value_.
 			</emu-alg>
 		</emu-clause>
+
+		<emu-clause id="sec-validateshadowrealmobject" aoid="ValidateShadowRealmObject">
+			<h1>ValidateShadowRealmObject ( _O_ )</h1>
+			<p>The abstract operation ValidateShadowRealmObject takes argument _O_. It performs the following steps when called:</p>
+
+			<emu-alg>
+				1. Perform ? RequireInternalSlot(_O_, [[ShadowRealm]]).
+				1. Perform ? RequireInternalSlot(_O_, [[ExecutionContext]]).
+			</emu-alg>
+		</emu-clause>
 	</emu-clause>
 
 	<emu-clause id="sec-shadowrealm-constructor">
@@ -320,16 +330,6 @@ location: https://tc39.es/proposal-shadowrealm/
 			<emu-note type=editor>
 				Extensible web: This is equivalent to dynamic import without having to evaluate a script source, which might not be available (e.g.: when CSP is blocking source evaluation).
 			</emu-note>
-		</emu-clause>
-
-		<emu-clause id="sec-validateshadowrealmobject" aoid="ValidateShadowRealmObject">
-			<h1>ValidateShadowRealmObject ( _O_ )</h1>
-			<p>The abstract operation ValidateShadowRealmObject takes argument _O_. It performs the following steps when called:</p>
-
-			<emu-alg>
-				1. Perform ? RequireInternalSlot(_O_, [[ShadowRealm]]).
-				1. Perform ? RequireInternalSlot(_O_, [[ExecutionContext]]).
-			</emu-alg>
 		</emu-clause>
 
 		<emu-clause id="sec-shadowrealm.prototype-@@tostringtag">
