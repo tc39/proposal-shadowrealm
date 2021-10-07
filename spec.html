@@ -104,6 +104,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			1. Assert: IsCallable(_target_) is *true*.
 			1. Let _targetRealm_ be ? GetFunctionRealm(_target_).
 			1. Let _callerRealm_ be ? GetFunctionRealm(_F_).
+			1. NOTE: Any exception objects produced after this point are associated with _callerRealm_.
 			1. Let _wrappedArgs_ be a new empty List.
 			1. For each element _arg_ of _argumentsList_, do
 				1. Let _wrappedValue_ be ? GetWrappedValue(_targetRealm_, _arg_).
@@ -113,7 +114,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			1. If _result_.[[Type]] is ~normal~ or _result_.[[Type]] is ~return~, then
 				1. Return ? GetWrappedValue(_callerRealm_, _result_).
 			1. Else,
-				1. Throw a newly created TypeError object associated with the _callerRealm_.
+				1. Throw a *TypeError* exception.
 		</emu-alg>
 		<emu-note type=editor>
 			In the case of an abrupt ~throw~ completion, the type of error to be created should match the type of the abrupt throw completion record. This could be revisited when merging into the main specification. Additionally, in the case of a ~break~ or ~continue~ completion, since those are not supported, a TypeError is expected.
