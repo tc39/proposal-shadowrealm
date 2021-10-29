@@ -236,22 +236,15 @@ location: https://tc39.es/proposal-shadowrealm/
 					1. If IsCallable(_value_) is *true*,
 						1. Return ! WrappedFunctionCreate(_receiverRealm_, _value_).
 					1. If _value_ has an [[ArrayBufferData]] internal slot, then
-						1. If IsSharedArrayBuffer(_value_) if *true*, return ? CloneSharedArrayBuffer(_value_, _receiverRealm_.[[Intrinsics]].%SharedArrayBuffer%).
-					1. throw a TypeError exception.
+						1. If IsSharedArrayBuffer(_value_) is *true*, then
+							1. Let _clone_ be ! OrdinaryObjectCreate(_receiverRealm_.[[Intrinsics]].%SharedArrayBuffer.prototype%, « [[ArrayBufferData]], [[ArrayBufferByteLength]] »).
+							1. Assert: _value_ and _clone_ are instances of SharedArrayBuffer of different Realms each.
+							1. Set _clone_.[[ArrayBufferData]] to _value_.[[ArrayBufferData]].
+							1. Set _clone_.[[ArrayBufferByteLength]] to _value_.[[ArrayBufferByteLength]].
+							1. Return _clone_.
+					1. Throw a TypeError exception.
 				1. Return _value_.
 			</emu-alg>
-		</emu-clause>
-
-		<emu-clause id="sec-clonesharedarraybuffer" aoid="CloneSharedArrayBuffer">
-			<h1>CloneSharedArrayBuffer ( _buffer_, _constructor_ )</h1>
-			<emu-alg>
-				1. Assert: _buffer_ is an Object with a [[SharedArrayBuffer]] internal.
-				1. Let _clone_ be ? OrdinaryCreateFromConstructor(_constructor_, "%SharedArrayBuffer.prototype%", « [[ArrayBufferData]], [[ArrayBufferByteLength]] »).
-				1. Assert: _value_ and _clone_ are instances of SharedArrayBuffer of different Realms each.
-				1. Set _clone_.[[ArrayBufferData]] to _value_.[[ArrayBufferData]].
-				1. Set _clone_.[[ArrayBufferByteLength]] to _value_.[[ArrayBufferByteLength]].
-				1. Return _clone_.
-			</emu-alg>>
 		</emu-clause>
 
 		<emu-clause id="sec-validateshadowrealmobject" aoid="ValidateShadowRealmObject">
