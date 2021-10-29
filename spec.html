@@ -232,18 +232,16 @@ location: https://tc39.es/proposal-shadowrealm/
 			<h1>GetTransferrableValue ( _receiverRealm_, _value_ )</h1>
 			<emu-alg>
 				1. Assert: _receiverRealm_ is a Realm Record.
-				1. If Type(_value_) is Object, then
-					1. If IsCallable(_value_) is *true*,
-						1. Return ! WrappedFunctionCreate(_receiverRealm_, _value_).
-					1. If _value_ has an [[ArrayBufferData]] internal slot, then
-						1. If IsSharedArrayBuffer(_value_) is *true*, then
-							1. Let _clone_ be ! OrdinaryObjectCreate(_receiverRealm_.[[Intrinsics]].%SharedArrayBuffer.prototype%, « [[ArrayBufferData]], [[ArrayBufferByteLength]] »).
-							1. Assert: _value_ and _clone_ are instances of SharedArrayBuffer of different Realms each.
-							1. Set _clone_.[[ArrayBufferData]] to _value_.[[ArrayBufferData]].
-							1. Set _clone_.[[ArrayBufferByteLength]] to _value_.[[ArrayBufferByteLength]].
-							1. Return _clone_.
-					1. Throw a TypeError exception.
-				1. Return _value_.
+				1. If Type(_value_) is not Object, return _value_.
+				1. If IsCallable(_value_) is *true*,
+					1. Return ! WrappedFunctionCreate(_receiverRealm_, _value_).
+				1. If _value_ has an [[ArrayBufferData]] internal slot, and if IsSharedArrayBuffer(_value_) is *true*, then
+					1. Let _clone_ be ! OrdinaryObjectCreate(_receiverRealm_.[[Intrinsics]].%SharedArrayBuffer.prototype%, « [[ArrayBufferData]], [[ArrayBufferByteLength]] »).
+					1. Assert: _value_ and _clone_ are instances of SharedArrayBuffer of different Realms each.
+					1. Set _clone_.[[ArrayBufferData]] to _value_.[[ArrayBufferData]].
+					1. Set _clone_.[[ArrayBufferByteLength]] to _value_.[[ArrayBufferByteLength]].
+					1. Return _clone_.
+				1. Throw a TypeError exception.
 			</emu-alg>
 		</emu-clause>
 
