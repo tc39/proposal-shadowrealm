@@ -229,14 +229,14 @@ location: https://tc39.es/proposal-shadowrealm/
 		</emu-clause>
 
 		<emu-clause id="sec-getwrappedvalue" aoid="GetWrappedValue">
-			<h1>GetWrappedValue ( _callerRealm_, _value_ )</h1>
+			<h1>GetWrappedValue ( _receiverRealm_, _value_ )</h1>
 			<emu-alg>
-				1. Assert: _callerRealm_ is a Realm Record.
+				1. Assert: _receiverRealm_ is a Realm Record.
 				1. If Type(_value_) is Object, then
 					1. If IsCallable(_value_) is *true*,
-						1. Return ! WrappedFunctionCreate(_callerRealm_, _value_).
+						1. Return ! WrappedFunctionCreate(_receiverRealm_, _value_).
 					1. If _value_ has an [[ArrayBufferData]] internal slot, then
-						1. If IsSharedArrayBuffer(_value_) if *true*, return ? CloneSharedArrayBuffer(_value_, _callerRealm_.[[Intrinsics]].%SharedArrayBuffer%).
+						1. If IsSharedArrayBuffer(_value_) if *true*, return ? CloneSharedArrayBuffer(_value_, _receiverRealm_.[[Intrinsics]].%SharedArrayBuffer%).
 					1. throw a TypeError exception.
 				1. Return _value_.
 			</emu-alg>
