@@ -128,12 +128,12 @@ location: https://tc39.es/proposal-shadowrealm/
 			1. Assert: _callerRealm_ is a Realm Record.
 			1. Assert: IsCallable(_Target_) is *true*.
 			1. Let _internalSlotsList_ be the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, plus [[Prototype]] and [[Extensible]].
-			1. Let _obj_ be ! MakeBasicObject(_internalSlotsList_).
-			1. Set _obj_.[[Prototype]] to _callerRealm_.[[Intrinsics]].[[%Function.prototype%]].
-			1. Set _obj_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
-			1. Set _obj_.[[WrappedTargetFunction]] to _Target_.
-			1. Set _obj_.[[Realm]] to _callerRealm_.
-			1. Return _obj_.
+			1. Let _wrapped_ be ! MakeBasicObject(_internalSlotsList_).
+			1. Set _wrapped_.[[Prototype]] to _callerRealm_.[[Intrinsics]].[[%Function.prototype%]].
+			1. Set _wrapped_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
+			1. Set _wrapped_.[[WrappedTargetFunction]] to _Target_.
+			1. Set _wrapped_.[[Realm]] to _callerRealm_.
+			1. Return _wrapped_.
 		</emu-alg>
 	</emu-clause>
 </emu-clause>
