@@ -145,8 +145,9 @@ location: https://tc39.es/proposal-shadowrealm/
 						1. Assert: _targetLenAsInt_ is finite.
 						1. Set _L_ to max(_targetLenAsInt_, 0).
 			1. Perform ! SetFunctionLength(_wrapped_, _L_).
-			1. Let _name_ be ? Get(_Target_, *"name"*).
-			1. Perform ! SetFunctionName(_wrapped_, _name_, *"wrapped"*).
+			1. Let _targetName_ be ? Get(_Target_, *"name"*).
+			1. If Type(_targetName_) is not String, set _targetName_ to the empty String.
+			1. Perform ! SetFunctionName(_wrapped_, _targetName_, *"wrapped"*).
 			1. Return _wrapped_.
 		</emu-alg>
 	</emu-clause>
