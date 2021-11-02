@@ -122,21 +122,21 @@ location: https://tc39.es/proposal-shadowrealm/
 	</emu-clause>
 
 	<emu-clause id="sec-wrappedfunctioncreate" aoid="WrappedFunctionCreate">
-		<h1>WrappedFunctionCreate ( _callerRealm_, _targetFunction_ )</h1>
-		<p>The abstract operation WrappedFunctionCreate takes arguments _callerRealm_ and _targetFunction_. It is used to specify the creation of new wrapped function exotic objects. It performs the following steps when called:</p>
+		<h1>WrappedFunctionCreate ( _callerRealm_, _Target_ )</h1>
+		<p>The abstract operation WrappedFunctionCreate takes arguments _callerRealm_ and _Target_. It is used to specify the creation of new wrapped function exotic objects. It performs the following steps when called:</p>
 		<emu-alg>
 			1. Assert: _callerRealm_ is a Realm Record.
-			1. Assert: IsCallable(_targetFunction_) is *true*.
+			1. Assert: IsCallable(_Target_) is *true*.
 			1. Let _internalSlotsList_ be the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, plus [[Prototype]] and [[Extensible]].
 			1. Let _wrapped_ be ! MakeBasicObject(_internalSlotsList_).
 			1. Set _wrapped_.[[Prototype]] to _callerRealm_.[[Intrinsics]].[[%Function.prototype%]].
 			1. Set _wrapped_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
-			1. Set _wrapped_.[[WrappedTargetFunction]] to _targetFunction_.
+			1. Set _wrapped_.[[WrappedTargetFunction]] to _Target_.
 			1. Set _wrapped_.[[Realm]] to _callerRealm_.
 			1. Let _L_ be 0.
-			1. Let targetHasLength be ? HasOwnProperty(_targetFunction_, *"length"*).
+			1. Let targetHasLength be ? HasOwnProperty(_Target_, *"length"*).
 			1. If _targetHasLength_ is *true*, then
-            1. Let _targetLen_ be ? Get(_targetFunction_, *"length"*).
+            1. Let _targetLen_ be ? Get(_Target_, *"length"*).
             1. If Type(_targetLen_) is Number, then
 				1. If _targetLen_ is *+&infin;*<sub>𝔽</sub>, set _L_ to +&infin;.
 				1. Else if _targetLen_ is *-&infin;*<sub>𝔽</sub>, set _L_ to 0.
@@ -145,7 +145,7 @@ location: https://tc39.es/proposal-shadowrealm/
 					1. Assert: _targetLenAsInt_ is finite.
 					1. Set _L_ to max(_targetLenAsInt_, 0).
 			1. Perform ! SetFunctionLength(_wrapped_, _L_).
-			1. Let _name_ be ? Get(_targetFunction_, *"name"*).
+			1. Let _name_ be ? Get(_Target_, *"name"*).
 			1. Perform ! SetFunctionName(_wrapped_, _name_, *"wrapped"*).
 			1. Return _wrapped_.
 		</emu-alg>
