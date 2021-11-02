@@ -122,16 +122,16 @@ location: https://tc39.es/proposal-shadowrealm/
 	</emu-clause>
 
 	<emu-clause id="sec-wrappedfunctioncreate" aoid="WrappedFunctionCreate">
-		<h1>WrappedFunctionCreate ( _callerRealm_, _targetFunction_ )</h1>
-		<p>The abstract operation WrappedFunctionCreate takes arguments _callerRealm_ and _targetFunction_. It is used to specify the creation of new wrapped function exotic objects. It performs the following steps when called:</p>
+		<h1>WrappedFunctionCreate ( _callerRealm_, _Target_ )</h1>
+		<p>The abstract operation WrappedFunctionCreate takes arguments _callerRealm_ and _Target_. It is used to specify the creation of new wrapped function exotic objects. It performs the following steps when called:</p>
 		<emu-alg>
 			1. Assert: _callerRealm_ is a Realm Record.
-			1. Assert: IsCallable(_targetFunction_) is *true*.
+			1. Assert: IsCallable(_Target_) is *true*.
 			1. Let _internalSlotsList_ be the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, plus [[Prototype]] and [[Extensible]].
 			1. Let _obj_ be ! MakeBasicObject(_internalSlotsList_).
 			1. Set _obj_.[[Prototype]] to _callerRealm_.[[Intrinsics]].[[%Function.prototype%]].
 			1. Set _obj_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
-			1. Set _obj_.[[WrappedTargetFunction]] to _targetFunction_.
+			1. Set _obj_.[[WrappedTargetFunction]] to _Target_.
 			1. Set _obj_.[[Realm]] to _callerRealm_.
 			1. Return _obj_.
 		</emu-alg>
