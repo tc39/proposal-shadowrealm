@@ -128,11 +128,14 @@ location: https://tc39.es/proposal-shadowrealm/
 		<h1>ShadowRealm Abstract Operations</h1>
 
 		<emu-clause id="sec-wrappedfunctioncreate" aoid="WrappedFunctionCreate">
-			<h1>WrappedFunctionCreate ( _callerRealm_, _Target_ )</h1>
+			<h1>
+				WrappedFunctionCreate (
+					_callerRealm_: a Realm Record,
+					_Target_: a function object,
+				)
+			</h1>
 			<p>The abstract operation WrappedFunctionCreate takes arguments _callerRealm_ and _Target_. It is used to specify the creation of new wrapped function exotic objects. It performs the following steps when called:</p>
 			<emu-alg>
-				1. Assert: _callerRealm_ is a Realm Record.
-				1. Assert: IsCallable(_Target_) is *true*.
 				1. Let _internalSlotsList_ be the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, plus [[Prototype]] and [[Extensible]].
 				1. Let _wrapped_ be ! MakeBasicObject(_internalSlotsList_).
 				1. Set _wrapped_.[[Prototype]] to _callerRealm_.[[Intrinsics]].[[%Function.prototype%]].
@@ -146,9 +149,15 @@ location: https://tc39.es/proposal-shadowrealm/
 		</emu-clause>
 
 		<emu-clause id="sec-copynameandlength" aoid="CopyNameAndLength">
-			<h1>CopyNameAndLength ( _F_, _Target_, _prefix_ [ , _argCount_ ] )</h1>
+			<h1>
+				CopyNameAndLength (
+					_F_: a function object,
+					_Target_: a function object,
+					_prefix_: a String,
+					optional _argCount_: a Number,
+				)
+			</h1>
 			<emu-alg>
-				1. Assert: Type(_prefix_) is String.
 				1. If _argCount_ is *undefined*, then set _argCount_ to 0.
 				1. Let _L_ be 0.
 				1. Let _targetHasLength_ be ? HasOwnProperty(_Target_, *"length"*).
