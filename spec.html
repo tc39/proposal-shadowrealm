@@ -292,7 +292,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Assert: _callerRealm_ is a Realm Record.
 				1. If Type(_value_) is Object, then
 				  1. If IsCallable(_value_) is *false*, throw a TypeError exception.
-				  1. Return ! WrappedFunctionCreate(_callerRealm_, _value_).
+				  1. Return ? WrappedFunctionCreate(_callerRealm_, _value_).
 				1. Return _value_.
 			</emu-alg>
 		</emu-clause>
