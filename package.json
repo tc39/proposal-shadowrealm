@@ -29,6 +29,6 @@
     "watch": "npm run build -- --watch"
   },
   "devDependencies": {
-    "ecmarkup": "^7.0.3"
+    "ecmarkup": "^9.7.1"
   }
 }

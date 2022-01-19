@@ -96,9 +96,17 @@ location: https://tc39.es/proposal-shadowrealm/
 	</table>
 	</emu-table>
 
-	<emu-clause id="sec-wrapped-function-exotic-objects-call-thisargument-argumentslist">
-		<h1>[[Call]] ( _thisArgument_, _argumentsList_ )</h1>
-		<p>The [[Call]] internal method of a wrapped function exotic object _F_ takes arguments _thisArgument_ (an ECMAScript language value) and _argumentsList_ (a List of ECMAScript language values). It performs the following steps when called:</p>
+	<emu-clause id="sec-wrapped-function-exotic-objects-call-thisargument-argumentslist" type="internal method">
+		<h1>
+			[[Call]] (
+				_thisArgument_: an ECMAScript language value,
+				_argumentsList_: a List of ECMAScript language values,
+			)
+		</h1>
+		<dl class="header">
+			<dt>for</dt>
+			<dd>a wrapped function exotic object _F_</dd>
+		</dl>
 		<emu-alg>
 			1. Let _target_ be _F_.[[WrappedTargetFunction]].
 			1. Assert: IsCallable(_target_) is *true*.
@@ -121,11 +129,18 @@ location: https://tc39.es/proposal-shadowrealm/
 		</emu-note>
 	</emu-clause>
 
-	<emu-clause id="sec-wrappedfunctioncreate" aoid="WrappedFunctionCreate">
-		<h1>WrappedFunctionCreate ( _callerRealm_, _targetFunction_ )</h1>
-		<p>The abstract operation WrappedFunctionCreate takes arguments _callerRealm_ and _targetFunction_. It is used to specify the creation of new wrapped function exotic objects. It performs the following steps when called:</p>
+	<emu-clause id="sec-wrappedfunctioncreate" type="abstract operation">
+		<h1>
+			WrappedFunctionCreate (
+				_callerRealm_: a Realm Record,
+				_targetFunction_: unknown,,
+			)
+		</h1>
+		<dl class="header">
+			<dt>description</dt>
+			<dd>It is used to specify the creation of new wrapped function exotic objects.</dd>
+		</dl>
 		<emu-alg>
-			1. Assert: _callerRealm_ is a Realm Record.
 			1. Assert: IsCallable(_targetFunction_) is *true*.
 			1. Let _internalSlotsList_ be the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, plus [[Prototype]] and [[Extensible]].
 			1. Let _obj_ be ! MakeBasicObject(_internalSlotsList_).
@@ -143,12 +158,15 @@ location: https://tc39.es/proposal-shadowrealm/
 	<emu-clause id="sec-shadowrealm-abstracts">
 		<h1>ShadowRealm Abstract Operations</h1>
 
-		<emu-clause id="sec-performshadowrealmeval" aoid="PerformShadowRealmEval">
-			<h1>PerformShadowRealmEval ( _sourceText_, _callerRealm_, _evalRealm_ )</h1>
+		<emu-clause id="sec-performshadowrealmeval" aoid="PerformShadowRealmEval" type="abstract operation">
+			<h1>
+				PerformShadowRealmEval (
+					_sourceText_: a String,
+					_callerRealm_: a Realm Record,
+					_evalRealm_: a Realm Record,
+				)
+			</h1>
 			<emu-alg>
-				1. Assert: Type(_sourceText_) is String.
-				1. Assert: _callerRealm_ is a Realm Record.
-				1. Assert: _evalRealm_ is a Realm Record.
 				1. Perform ? HostEnsureCanCompileStrings(_callerRealm_, _evalRealm_).
 				1. Perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
 					1. Let _script_ be ParseText(! StringToCodePoints(_sourceText_), |Script|).
@@ -192,13 +210,17 @@ location: https://tc39.es/proposal-shadowrealm/
 			</emu-note>
 		</emu-clause>
 
-		<emu-clause id="sec-shadowrealmimportvalue" aoid="ShadowRealmImportValue">
-			<h1>ShadowRealmImportValue ( _specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_ )</h1>
+		<emu-clause id="sec-shadowrealmimportvalue" aoid="ShadowRealmImportValue" type="abstract operation">
+			<h1>
+				ShadowRealmImportValue (
+					_specifierString_: a String,
+					_exportNameString_: a String,
+					_callerRealm_: a Realm Record,
+					_evalRealm_: a Realm Record,
+					_evalContext_: an execution context,
+				)
+			</h1>
 			<emu-alg>
-				1. Assert: Type(_specifierString_) is String.
-				1. Assert: Type(_exportNameString_) is String.
-				1. Assert: _callerRealm_ is a Realm Record.
-				1. Assert: _evalRealm_ is a Realm Record.
 				1. Assert: _evalContext_ is an execution context associated to a ShadowRealm instance's [[ExecutionContext]].
 				1. Let _innerCapability_ be ! NewPromiseCapability(%Promise%).
 				1. Let _runningContext_ be the running execution context.
@@ -228,10 +250,14 @@ location: https://tc39.es/proposal-shadowrealm/
 			</emu-alg>
 		</emu-clause>
 
-		<emu-clause id="sec-getwrappedvalue" aoid="GetWrappedValue">
-			<h1>GetWrappedValue ( _callerRealm_, _value_ )</h1>
+		<emu-clause id="sec-getwrappedvalue" aoid="GetWrappedValue" type="abstract operation">
+			<h1>
+				GetWrappedValue (
+					_callerRealm_: a Realm Record,
+					_value_: unknown,
+				)
+			</h1>
 			<emu-alg>
-				1. Assert: _callerRealm_ is a Realm Record.
 				1. If Type(_value_) is Object, then
 				  1. If IsCallable(_value_) is *false*, throw a TypeError exception.
 				  1. Return ! WrappedFunctionCreate(_callerRealm_, _value_).
@@ -239,10 +265,12 @@ location: https://tc39.es/proposal-shadowrealm/
 			</emu-alg>
 		</emu-clause>
 
-		<emu-clause id="sec-validateshadowrealmobject" aoid="ValidateShadowRealmObject">
-			<h1>ValidateShadowRealmObject ( _O_ )</h1>
-			<p>The abstract operation ValidateShadowRealmObject takes argument _O_. It performs the following steps when called:</p>
-
+		<emu-clause id="sec-validateshadowrealmobject" aoid="ValidateShadowRealmObject" type="abstract operation">
+			<h1>
+				ValidateShadowRealmObject (
+					_O_: unknown
+				)
+			</h1>
 			<emu-alg>
 				1. Perform ? RequireInternalSlot(_O_, [[ShadowRealm]]).
 				1. Perform ? RequireInternalSlot(_O_, [[ExecutionContext]]).
