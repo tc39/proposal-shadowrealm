@@ -120,28 +120,95 @@ location: https://tc39.es/proposal-shadowrealm/
 			In the case of an abrupt ~throw~ completion, the type of error to be created should match the type of the abrupt throw completion record. This could be revisited when merging into the main specification. Additionally, in the case of a ~break~ or ~continue~ completion, since those are not supported, a TypeError is expected.
 		</emu-note>
 	</emu-clause>
-
-	<emu-clause id="sec-wrappedfunctioncreate" aoid="WrappedFunctionCreate">
-		<h1>WrappedFunctionCreate ( _callerRealm_, _targetFunction_ )</h1>
-		<p>The abstract operation WrappedFunctionCreate takes arguments _callerRealm_ and _targetFunction_. It is used to specify the creation of new wrapped function exotic objects. It performs the following steps when called:</p>
-		<emu-alg>
-			1. Assert: _callerRealm_ is a Realm Record.
-			1. Assert: IsCallable(_targetFunction_) is *true*.
-			1. Let _internalSlotsList_ be the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, plus [[Prototype]] and [[Extensible]].
-			1. Let _obj_ be ! MakeBasicObject(_internalSlotsList_).
-			1. Set _obj_.[[Prototype]] to _callerRealm_.[[Intrinsics]].[[%Function.prototype%]].
-			1. Set _obj_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
-			1. Set _obj_.[[WrappedTargetFunction]] to _targetFunction_.
-			1. Set _obj_.[[Realm]] to _callerRealm_.
-			1. Return _obj_.
-		</emu-alg>
-	</emu-clause>
 </emu-clause>
 
 <emu-clause id="sec-shadowrealm-objects">
 	<h1>ShadowRealm Objects</h1>
 	<emu-clause id="sec-shadowrealm-abstracts">
 		<h1>ShadowRealm Abstract Operations</h1>
+
+		<emu-clause id="sec-wrappedfunctioncreate" aoid="WrappedFunctionCreate">
+			<h1>
+				WrappedFunctionCreate (
+					_callerRealm_: a Realm Record,
+					_Target_: a function object,
+				)
+			</h1>
+			<p>The abstract operation WrappedFunctionCreate takes arguments _callerRealm_ and _Target_. It is used to specify the creation of new wrapped function exotic objects. It performs the following steps when called:</p>
+			<emu-alg>
+				1. Let _internalSlotsList_ be the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, plus [[Prototype]] and [[Extensible]].
+				1. Let _wrapped_ be ! MakeBasicObject(_internalSlotsList_).
+				1. Set _wrapped_.[[Prototype]] to _callerRealm_.[[Intrinsics]].[[%Function.prototype%]].
+				1. Set _wrapped_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
+				1. Set _wrapped_.[[WrappedTargetFunction]] to _Target_.
+				1. Set _wrapped_.[[Realm]] to _callerRealm_.
+				1. Let _result_ be CopyNameAndLength(_wrapped_, _Target_, *"wrapped"*).
+				1. If _result_ is an Abrupt Completion, throw a TypeError exception.
+				1. Return _wrapped_.
+			</emu-alg>
+		</emu-clause>
+
+		<emu-clause id="sec-copynameandlength" aoid="CopyNameAndLength">
+			<h1>
+				CopyNameAndLength (
+					_F_: a function object,
+					_Target_: a function object,
+					_prefix_: a String,
+					optional _argCount_: a Number,
+				)
+			</h1>
+			<emu-alg>
+				1. If _argCount_ is *undefined*, then set _argCount_ to 0.
+				1. Let _L_ be 0.
+				1. Let _targetHasLength_ be ? HasOwnProperty(_Target_, *"length"*).
+				1. If _targetHasLength_ is *true*, then
+					1. Let _targetLen_ be ? Get(_Target_, *"length"*).
+					1. If Type(_targetLen_) is Number, then
+						1. If _targetLen_ is *+&infin;*<sub>𝔽</sub>, set _L_ to +&infin;.
+						1. Else if _targetLen_ is *-&infin;*<sub>𝔽</sub>, set _L_ to 0.
+						1. Else,
+							1. Let _targetLenAsInt_ be ! ToIntegerOrInfinity(_targetLen_).
+							1. Assert: _targetLenAsInt_ is finite.
+							1. Set _L_ to max(_targetLenAsInt_ - _argCount_, 0).
+				1. Perform ! SetFunctionLength(_F_, _L_).
+				1. Let _targetName_ be ? Get(_Target_, *"name"*).
+				1. If Type(_targetName_) is not String, set _targetName_ to the empty String.
+				1. Perform ! SetFunctionName(_F_, _targetName_, _prefix_).
+			</emu-alg>
+
+			<emu-note type=editor>
+				Function.prototype.bind can replace steps 4 to 10 with this abstraction.
+			</emu-note>
+
+			<emu-clause id="sec-function.prototype.bind">
+				<h1>Function.prototype.bind ( _thisArg_, ..._args_ )</h1>
+				<p>When the `bind` method is called with argument _thisArg_ and zero or more _args_, it performs the following steps:</p>
+				<emu-alg>
+					1. Let _Target_ be the *this* value.
+					1. If IsCallable(_Target_) is *false*, throw a *TypeError* exception.
+					1. Let _F_ be ? BoundFunctionCreate(_Target_, _thisArg_, _args_).
+					1. <ins>Let _argCount_ be the number of elements in _args_.
+					1. <ins>Perform ? CopyNameAndLength(_F_, _Target_, *"bound"*, _argCount_).
+					1. <del>Let _L_ be 0.
+					1. <del>Let _targetHasLength_ be ? HasOwnProperty(_Target_, *"length"*).
+					1. <del>If _targetHasLength_ is *true*, then
+						1. <del>Let _targetLen_ be ? Get(_Target_, *"length"*).
+						1. <del>If Type(_targetLen_) is Number, then
+						1. <del>If _targetLen_ is *+&infin;*<sub>𝔽</sub>, set _L_ to +&infin;.
+						1. <del>Else if _targetLen_ is *-&infin;*<sub>𝔽</sub>, set _L_ to 0.
+						1. <del>Else,
+							1. <del>Let _targetLenAsInt_ be ! ToIntegerOrInfinity(_targetLen_).
+							1. <del>Assert: _targetLenAsInt_ is finite.
+							1. <del>Let _argCount_ be the number of elements in _args_.
+							1. <del>Set _L_ to max(_targetLenAsInt_ - _argCount_, 0).
+					1. <del>Perform ! SetFunctionLength(_F_, _L_).
+					1. <del>Let _targetName_ be ? Get(_Target_, *"name"*).
+					1. <del>If Type(_targetName_) is not String, set _targetName_ to the empty String.
+					1. <del>Perform SetFunctionName(_F_, _targetName_, *"bound"*).</del>
+					1. Return _F_.
+				</emu-alg>
+			</emu-clause>
+		</emu-clause>
 
 		<emu-clause id="sec-performshadowrealmeval" aoid="PerformShadowRealmEval">
 			<h1>PerformShadowRealmEval ( _sourceText_, _callerRealm_, _evalRealm_ )</h1>
@@ -234,7 +301,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Assert: _callerRealm_ is a Realm Record.
 				1. If Type(_value_) is Object, then
 				  1. If IsCallable(_value_) is *false*, throw a TypeError exception.
-				  1. Return ! WrappedFunctionCreate(_callerRealm_, _value_).
+				  1. Return ? WrappedFunctionCreate(_callerRealm_, _value_).
 				1. Return _value_.
 			</emu-alg>
 		</emu-clause>
