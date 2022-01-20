@@ -130,7 +130,7 @@ Search.prototype.loadBiblio = function () {
 };
 
 Search.prototype.documentKeydown = function (e) {
-  if (e.keyCode === 191) {
+  if (e.key === '/') {
     e.preventDefault();
     e.stopPropagation();
     this.triggerSearch();
@@ -185,7 +185,7 @@ function relevance(result) {
     relevance += 2048;
   }
 
-  relevance += Math.max(0, 255 - result.entry.key.length);
+  relevance += Math.max(0, 255 - result.key.length);
 
   return relevance;
 }
@@ -215,14 +215,15 @@ Search.prototype.search = function (searchString) {
 
     for (let i = 0; i < this.biblio.entries.length; i++) {
       let entry = this.biblio.entries[i];
-      if (!entry.key) {
+      let key = getKey(entry);
+      if (!key) {
         // biblio entries without a key aren't searchable
         continue;
       }
 
-      let match = fuzzysearch(searchString, entry.key);
+      let match = fuzzysearch(searchString, key);
       if (match) {
-        results.push({ entry, match });
+        results.push({ key, entry, match });
       }
     }
 
@@ -271,6 +272,7 @@ Search.prototype.displayResults = function (results) {
     let html = '<ul>';
 
     results.forEach(result => {
+      let key = result.key;
       let entry = result.entry;
       let id = entry.id;
       let cssClass = '';
@@ -278,19 +280,19 @@ Search.prototype.displayResults = function (results) {
 
       if (entry.type === 'clause') {
         let number = entry.number ? entry.number + ' ' : '';
-        text = number + entry.key;
+        text = number + key;
         cssClass = 'clause';
         id = entry.id;
       } else if (entry.type === 'production') {
-        text = entry.key;
+        text = key;
         cssClass = 'prod';
         id = entry.id;
       } else if (entry.type === 'op') {
-        text = entry.key;
+        text = key;
         cssClass = 'op';
         id = entry.id || entry.refId;
       } else if (entry.type === 'term') {
-        text = entry.key;
+        text = key;
         cssClass = 'term';
         id = entry.id || entry.refId;
       }
@@ -309,6 +311,31 @@ Search.prototype.displayResults = function (results) {
     this.$searchResults.classList.add('no-results');
   }
 };
+
+function getKey(item) {
+  if (item.key) {
+    return item.key;
+  }
+  switch (item.type) {
+    case 'clause':
+      return item.title || item.titleHTML;
+    case 'production':
+      return item.name;
+    case 'op':
+      return item.aoid;
+    case 'term':
+      return item.term;
+    case 'table':
+    case 'figure':
+    case 'example':
+    case 'note':
+      return item.caption;
+    case 'step':
+      return item.id;
+    default:
+      throw new Error("Can't get key for " + item.type);
+  }
+}
 
 function Menu() {
   this.$toggle = document.getElementById('menu-toggle');
@@ -502,7 +529,7 @@ Menu.prototype.addPinEntry = function (id) {
     // prettier-ignore
     this.$pinList.innerHTML += `<li><a href="${makeLinkToId(entry.id)}">${prefix}${entry.titleHTML}</a></li>`;
   } else {
-    this.$pinList.innerHTML += `<li><a href="${makeLinkToId(entry.id)}">${entry.key}</a></li>`;
+    this.$pinList.innerHTML += `<li><a href="${makeLinkToId(entry.id)}">${getKey(entry)}</a></li>`;
   }
 
   if (Object.keys(this._pinnedIds).length === 0) {
@@ -565,24 +592,6 @@ Menu.prototype.selectPin = function (num) {
 };
 
 let menu;
-function init() {
-  menu = new Menu();
-  let $container = document.getElementById('spec-container');
-  $container.addEventListener(
-    'mouseover',
-    debounce(e => {
-      Toolbox.activateIfMouseOver(e);
-    })
-  );
-  document.addEventListener(
-    'keydown',
-    debounce(e => {
-      if (e.code === 'Escape' && Toolbox.active) {
-        Toolbox.deactivate();
-      }
-    })
-  );
-}
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -605,18 +614,17 @@ function debounce(fn, opts) {
 }
 
 let CLAUSE_NODES = ['EMU-CLAUSE', 'EMU-INTRO', 'EMU-ANNEX'];
-function findLocalReferences($elem) {
-  let name = $elem.innerHTML;
-  let references = [];
-
+function findContainer($elem) {
   let parentClause = $elem.parentNode;
   while (parentClause && CLAUSE_NODES.indexOf(parentClause.nodeName) === -1) {
     parentClause = parentClause.parentNode;
   }
+  return parentClause;
+}
 
-  if (!parentClause) return;
-
+function findLocalReferences(parentClause, name) {
   let vars = parentClause.querySelectorAll('var');
+  let references = [];
 
   for (let i = 0; i < vars.length; i++) {
     let $var = vars[i];
@@ -629,15 +637,32 @@ function findLocalReferences($elem) {
   return references;
 }
 
+let REFERENCED_CLASSES = Array.from({ length: 7 }, (x, i) => `referenced${i}`);
+function chooseHighlightIndex(parentClause) {
+  let counts = REFERENCED_CLASSES.map($class => parentClause.getElementsByClassName($class).length);
+  // Find the earliest index with the lowest count.
+  let minCount = Infinity;
+  let index = null;
+  for (let i = 0; i < counts.length; i++) {
+    if (counts[i] < minCount) {
+      minCount = counts[i];
+      index = i;
+    }
+  }
+  return index;
+}
+
 function toggleFindLocalReferences($elem) {
-  let references = findLocalReferences($elem);
+  let parentClause = findContainer($elem);
+  let references = findLocalReferences(parentClause, $elem.innerHTML);
   if ($elem.classList.contains('referenced')) {
     references.forEach($reference => {
-      $reference.classList.remove('referenced');
+      $reference.classList.remove('referenced', ...REFERENCED_CLASSES);
     });
   } else {
+    let index = chooseHighlightIndex(parentClause);
     references.forEach($reference => {
-      $reference.classList.add('referenced');
+      $reference.classList.add('referenced', `referenced${index}`);
     });
   }
 }
@@ -717,126 +742,6 @@ function fuzzysearch(searchString, haystack, caseInsensitive) {
   return { caseMatch: !caseInsensitive, chunks, prefix: j <= qlen };
 }
 
-let Toolbox = {
-  init() {
-    this.$outer = document.createElement('div');
-    this.$outer.classList.add('toolbox-container');
-    this.$container = document.createElement('div');
-    this.$container.classList.add('toolbox');
-    this.$outer.appendChild(this.$container);
-    this.$permalink = document.createElement('a');
-    this.$permalink.textContent = 'Permalink';
-    this.$pinLink = document.createElement('a');
-    this.$pinLink.textContent = 'Pin';
-    this.$pinLink.setAttribute('href', '#');
-    this.$pinLink.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      menu.togglePinEntry(this.entry.id);
-    });
-
-    this.$refsLink = document.createElement('a');
-    this.$refsLink.setAttribute('href', '#');
-    this.$refsLink.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      referencePane.showReferencesFor(this.entry);
-    });
-    this.$container.appendChild(this.$permalink);
-    this.$container.appendChild(this.$pinLink);
-    this.$container.appendChild(this.$refsLink);
-    document.body.appendChild(this.$outer);
-  },
-
-  activate(el, entry, target) {
-    if (el === this._activeEl) return;
-    sdoBox.deactivate();
-    this.active = true;
-    this.entry = entry;
-    this.$outer.classList.add('active');
-    this.top = el.offsetTop - this.$outer.offsetHeight;
-    this.left = el.offsetLeft - 10;
-    this.$outer.setAttribute('style', 'left: ' + this.left + 'px; top: ' + this.top + 'px');
-    this.updatePermalink();
-    this.updateReferences();
-    this._activeEl = el;
-    if (this.top < document.body.scrollTop && el === target) {
-      // don't scroll unless it's a small thing (< 200px)
-      this.$outer.scrollIntoView();
-    }
-  },
-
-  updatePermalink() {
-    this.$permalink.setAttribute('href', makeLinkToId(this.entry.id));
-  },
-
-  updateReferences() {
-    this.$refsLink.textContent = `References (${this.entry.referencingIds.length})`;
-  },
-
-  activateIfMouseOver(e) {
-    let ref = this.findReferenceUnder(e.target);
-    if (ref && (!this.active || e.pageY > this._activeEl.offsetTop)) {
-      let entry = menu.search.biblio.byId[ref.id];
-      this.activate(ref.element, entry, e.target);
-    } else if (
-      this.active &&
-      (e.pageY < this.top || e.pageY > this._activeEl.offsetTop + this._activeEl.offsetHeight)
-    ) {
-      this.deactivate();
-    }
-  },
-
-  findReferenceUnder(el) {
-    while (el) {
-      let parent = el.parentNode;
-      if (el.nodeName === 'EMU-RHS' || el.nodeName === 'EMU-PRODUCTION') {
-        return null;
-      }
-      if (
-        el.nodeName === 'H1' &&
-        parent.nodeName.match(/EMU-CLAUSE|EMU-ANNEX|EMU-INTRO/) &&
-        parent.id
-      ) {
-        return { element: el, id: parent.id };
-      } else if (el.nodeName === 'EMU-NT') {
-        if (
-          parent.nodeName === 'EMU-PRODUCTION' &&
-          parent.id &&
-          parent.id[0] !== '_' &&
-          parent.firstElementChild === el
-        ) {
-          // return the LHS non-terminal element
-          return { element: el, id: parent.id };
-        }
-        return null;
-      } else if (
-        el.nodeName.match(/EMU-(?!CLAUSE|XREF|ANNEX|INTRO)|DFN/) &&
-        el.id &&
-        el.id[0] !== '_'
-      ) {
-        if (
-          el.nodeName === 'EMU-FIGURE' ||
-          el.nodeName === 'EMU-TABLE' ||
-          el.nodeName === 'EMU-EXAMPLE'
-        ) {
-          // return the figcaption element
-          return { element: el.children[0].children[0], id: el.id };
-        } else {
-          return { element: el, id: el.id };
-        }
-      }
-      el = parent;
-    }
-  },
-
-  deactivate() {
-    this.$outer.classList.remove('active');
-    this._activeEl = null;
-    this.active = false;
-  },
-};
-
 let referencePane = {
   init() {
     this.$container = document.createElement('div');
@@ -899,7 +804,7 @@ let referencePane = {
     this.$headerRefId.textContent = '#' + entry.id;
     this.$headerRefId.setAttribute('href', makeLinkToId(entry.id));
     this.$headerRefId.style.display = 'inline';
-    entry.referencingIds
+    (entry.referencingIds || [])
       .map(id => {
         let cid = menu.search.biblio.refParentClause[id];
         let clause = menu.search.biblio.byId[cid];
@@ -976,6 +881,126 @@ let referencePane = {
   },
 };
 
+let Toolbox = {
+  init() {
+    this.$outer = document.createElement('div');
+    this.$outer.classList.add('toolbox-container');
+    this.$container = document.createElement('div');
+    this.$container.classList.add('toolbox');
+    this.$outer.appendChild(this.$container);
+    this.$permalink = document.createElement('a');
+    this.$permalink.textContent = 'Permalink';
+    this.$pinLink = document.createElement('a');
+    this.$pinLink.textContent = 'Pin';
+    this.$pinLink.setAttribute('href', '#');
+    this.$pinLink.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      menu.togglePinEntry(this.entry.id);
+    });
+
+    this.$refsLink = document.createElement('a');
+    this.$refsLink.setAttribute('href', '#');
+    this.$refsLink.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      referencePane.showReferencesFor(this.entry);
+    });
+    this.$container.appendChild(this.$permalink);
+    this.$container.appendChild(this.$pinLink);
+    this.$container.appendChild(this.$refsLink);
+    document.body.appendChild(this.$outer);
+  },
+
+  activate(el, entry, target) {
+    if (el === this._activeEl) return;
+    sdoBox.deactivate();
+    this.active = true;
+    this.entry = entry;
+    this.$outer.classList.add('active');
+    this.top = el.offsetTop - this.$outer.offsetHeight;
+    this.left = el.offsetLeft - 10;
+    this.$outer.setAttribute('style', 'left: ' + this.left + 'px; top: ' + this.top + 'px');
+    this.updatePermalink();
+    this.updateReferences();
+    this._activeEl = el;
+    if (this.top < document.body.scrollTop && el === target) {
+      // don't scroll unless it's a small thing (< 200px)
+      this.$outer.scrollIntoView();
+    }
+  },
+
+  updatePermalink() {
+    this.$permalink.setAttribute('href', makeLinkToId(this.entry.id));
+  },
+
+  updateReferences() {
+    this.$refsLink.textContent = `References (${(this.entry.referencingIds || []).length})`;
+  },
+
+  activateIfMouseOver(e) {
+    let ref = this.findReferenceUnder(e.target);
+    if (ref && (!this.active || e.pageY > this._activeEl.offsetTop)) {
+      let entry = menu.search.biblio.byId[ref.id];
+      this.activate(ref.element, entry, e.target);
+    } else if (
+      this.active &&
+      (e.pageY < this.top || e.pageY > this._activeEl.offsetTop + this._activeEl.offsetHeight)
+    ) {
+      this.deactivate();
+    }
+  },
+
+  findReferenceUnder(el) {
+    while (el) {
+      let parent = el.parentNode;
+      if (el.nodeName === 'EMU-RHS' || el.nodeName === 'EMU-PRODUCTION') {
+        return null;
+      }
+      if (
+        el.nodeName === 'H1' &&
+        parent.nodeName.match(/EMU-CLAUSE|EMU-ANNEX|EMU-INTRO/) &&
+        parent.id
+      ) {
+        return { element: el, id: parent.id };
+      } else if (el.nodeName === 'EMU-NT') {
+        if (
+          parent.nodeName === 'EMU-PRODUCTION' &&
+          parent.id &&
+          parent.id[0] !== '_' &&
+          parent.firstElementChild === el
+        ) {
+          // return the LHS non-terminal element
+          return { element: el, id: parent.id };
+        }
+        return null;
+      } else if (
+        el.nodeName.match(/EMU-(?!CLAUSE|XREF|ANNEX|INTRO)|DFN/) &&
+        el.id &&
+        el.id[0] !== '_'
+      ) {
+        if (
+          el.nodeName === 'EMU-FIGURE' ||
+          el.nodeName === 'EMU-TABLE' ||
+          el.nodeName === 'EMU-EXAMPLE'
+        ) {
+          // return the figcaption element
+          return { element: el.children[0].children[0], id: el.id };
+        } else {
+          return { element: el, id: el.id };
+        }
+      }
+      el = parent;
+    }
+  },
+
+  deactivate() {
+    this.$outer.classList.remove('active');
+    this._activeEl = null;
+    this.active = false;
+  },
+};
+
 function sortByClauseNumber(clause1, clause2) {
   let c1c = clause1.number.split('.');
   let c2c = clause2.number.split('.');
@@ -1031,7 +1056,10 @@ function doShortcut(e) {
   if (name === 'textarea' || name === 'input' || name === 'select' || target.isContentEditable) {
     return;
   }
-  if (e.key === 'm' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && usesMultipage) {
+  if (e.altKey || e.ctrlKey || e.metaKey) {
+    return;
+  }
+  if (e.key === 'm' && usesMultipage) {
     let pathParts = location.pathname.split('/');
     let hash = location.hash;
     if (pathParts[pathParts.length - 2] === 'multipage') {
@@ -1048,7 +1076,33 @@ function doShortcut(e) {
     } else {
       location = 'multipage/' + hash;
     }
+  } else if (e.key === 'u') {
+    document.documentElement.classList.toggle('show-ao-annotations');
+  } else if (e.key === '?') {
+    document.getElementById('shortcuts-help').classList.toggle('active');
   }
+}
+
+function init() {
+  menu = new Menu();
+  let $container = document.getElementById('spec-container');
+  $container.addEventListener(
+    'mouseover',
+    debounce(e => {
+      Toolbox.activateIfMouseOver(e);
+    })
+  );
+  document.addEventListener(
+    'keydown',
+    debounce(e => {
+      if (e.code === 'Escape') {
+        if (Toolbox.active) {
+          Toolbox.deactivate();
+        }
+        document.getElementById('shortcuts-help').classList.remove('active');
+      }
+    })
+  );
 }
 
 document.addEventListener('keypress', doShortcut);
@@ -1090,5 +1144,5 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 let sdoMap = JSON.parse(`{}`);
-let biblio = JSON.parse(`{"refsByClause":{"sec-well-known-intrinsic-objects":["_ref_0","_ref_6"],"sec-wrapped-function-exotic-objects":["_ref_1","_ref_7","_ref_8","_ref_9","_ref_10"],"sec-wrappedfunctioncreate":["_ref_2","_ref_3","_ref_19","_ref_20"],"sec-properties-of-shadowrealm-instances":["_ref_4"],"sec-host-initialize-shadow-shadowrealm":["_ref_5"],"sec-wrapped-function-exotic-objects-call-thisargument-argumentslist":["_ref_11","_ref_12","_ref_13","_ref_14","_ref_15","_ref_16","_ref_17","_ref_18"],"sec-copynameandlength":["_ref_21","_ref_22","_ref_23","_ref_24","_ref_25","_ref_26","_ref_27"],"sec-function.prototype.bind":["_ref_28","_ref_29","_ref_30","_ref_31","_ref_32","_ref_33","_ref_34","_ref_35","_ref_36","_ref_37"],"sec-performshadowrealmeval":["_ref_38","_ref_39","_ref_40","_ref_41","_ref_42","_ref_43","_ref_44"],"sec-shadowrealmimportvalue":["_ref_45","_ref_46","_ref_47","_ref_48","_ref_49","_ref_50","_ref_51","_ref_52","_ref_53","_ref_54","_ref_55","_ref_56"],"sec-getwrappedvalue":["_ref_57","_ref_58","_ref_59"],"sec-validateshadowrealmobject":["_ref_60","_ref_61"],"sec-shadowrealm":["_ref_62","_ref_63","_ref_64","_ref_65","_ref_66"],"sec-shadowrealm.prototype.evaluate":["_ref_67","_ref_68","_ref_69"],"sec-shadowrealm.prototype.importvalue":["_ref_70","_ref_71","_ref_72","_ref_73"]},"entries":[{"type":"table","id":"table-7","node":{},"number":1,"caption":"Table 1: Well-known Intrinsic Objects","referencingIds":[],"key":"Table 1: Well-known Intrinsic Objects"},{"type":"clause","id":"sec-well-known-intrinsic-objects","aoid":null,"titleHTML":"Well-known intrinsic objects","number":"1","referencingIds":[],"key":"Well-known intrinsic objects"},{"type":"term","term":"wrapped function exotic object","refId":"sec-wrapped-function-exotic-objects","referencingIds":["_ref_7","_ref_8","_ref_9","_ref_11"],"id":"wrapped-function-exotic-object","key":"wrapped function exotic object"},{"type":"table","id":"table-internal-slots-of-wrapped-function-exotic-objects","node":{},"number":2,"caption":"Table 2: Internal Slots of Wrapped Function Exotic Objects","referencingIds":["_ref_1","_ref_2"],"key":"Table 2: Internal Slots of Wrapped Function Exotic Objects"},{"type":"clause","id":"sec-wrapped-function-exotic-objects-call-thisargument-argumentslist","aoid":null,"titleHTML":"[[Call]] ( <var>thisArgument</var>, <var>argumentsList</var> )","number":"2.1","referencingIds":["_ref_3"],"key":"[[Call]] ( thisArgument, argumentsList )"},{"type":"clause","id":"sec-wrapped-function-exotic-objects","aoid":null,"titleHTML":"Wrapped Function Exotic Objects","number":"2","referencingIds":[],"key":"Wrapped Function Exotic Objects"},{"type":"op","aoid":"WrappedFunctionCreate","refId":"sec-wrappedfunctioncreate","referencingIds":[],"key":"WrappedFunctionCreate"},{"type":"clause","id":"sec-wrappedfunctioncreate","aoid":"WrappedFunctionCreate","titleHTML":"\\n\\t\\t\\t\\tWrappedFunctionCreate (\\n\\t\\t\\t\\t\\t<var>callerRealm</var>: a Realm Record,\\n\\t\\t\\t\\t\\t<var>Target</var>: a function object,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","number":"3.1.1","referencingIds":["_ref_10","_ref_59"],"key":"\\n\\t\\t\\t\\tWrappedFunctionCreate (\\n\\t\\t\\t\\t\\tcallerRealm: a Realm Record,\\n\\t\\t\\t\\t\\tTarget: a function object,\\n\\t\\t\\t\\t)\\n\\t\\t\\t"},{"type":"clause","id":"sec-function.prototype.bind","aoid":null,"titleHTML":"Function.prototype.bind ( <var>thisArg</var>, ...<var>args</var> )","number":"3.1.2.1","referencingIds":[],"key":"Function.prototype.bind ( thisArg, ...args )"},{"type":"op","aoid":"CopyNameAndLength","refId":"sec-copynameandlength","referencingIds":[],"key":"CopyNameAndLength"},{"type":"clause","id":"sec-copynameandlength","aoid":"CopyNameAndLength","titleHTML":"\\n\\t\\t\\t\\tCopyNameAndLength (\\n\\t\\t\\t\\t\\t<var>F</var>: a function object,\\n\\t\\t\\t\\t\\t<var>Target</var>: a function object,\\n\\t\\t\\t\\t\\t<var>prefix</var>: a String,\\n\\t\\t\\t\\t\\toptional <var>argCount</var>: a Number,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","number":"3.1.2","referencingIds":["_ref_19","_ref_30"],"key":"\\n\\t\\t\\t\\tCopyNameAndLength (\\n\\t\\t\\t\\t\\tF: a function object,\\n\\t\\t\\t\\t\\tTarget: a function object,\\n\\t\\t\\t\\t\\tprefix: a String,\\n\\t\\t\\t\\t\\toptional argCount: a Number,\\n\\t\\t\\t\\t)\\n\\t\\t\\t"},{"type":"op","aoid":"PerformShadowRealmEval","refId":"sec-performshadowrealmeval","referencingIds":[],"key":"PerformShadowRealmEval"},{"type":"clause","id":"sec-performshadowrealmeval","aoid":"PerformShadowRealmEval","titleHTML":"PerformShadowRealmEval ( <var>sourceText</var>, <var>callerRealm</var>, <var>evalRealm</var> )","number":"3.1.3","referencingIds":["_ref_69"],"key":"PerformShadowRealmEval ( sourceText, callerRealm, evalRealm )"},{"type":"op","aoid":"ShadowRealmImportValue","refId":"sec-shadowrealmimportvalue","referencingIds":[],"key":"ShadowRealmImportValue"},{"type":"clause","id":"sec-shadowrealmimportvalue","aoid":"ShadowRealmImportValue","titleHTML":"ShadowRealmImportValue ( <var>specifierString</var>, <var>exportNameString</var>, <var>callerRealm</var>, <var>evalRealm</var>, <var>evalContext</var> )","number":"3.1.4","referencingIds":["_ref_73"],"key":"ShadowRealmImportValue ( specifierString, exportNameString, callerRealm, evalRealm, evalContext )"},{"type":"op","aoid":"GetWrappedValue","refId":"sec-getwrappedvalue","referencingIds":[],"key":"GetWrappedValue"},{"type":"clause","id":"sec-getwrappedvalue","aoid":"GetWrappedValue","titleHTML":"GetWrappedValue ( <var>callerRealm</var>, <var>value</var> )","number":"3.1.5","referencingIds":["_ref_15","_ref_16","_ref_18","_ref_44","_ref_56"],"key":"GetWrappedValue ( callerRealm, value )"},{"type":"op","aoid":"ValidateShadowRealmObject","refId":"sec-validateshadowrealmobject","referencingIds":[],"key":"ValidateShadowRealmObject"},{"type":"clause","id":"sec-validateshadowrealmobject","aoid":"ValidateShadowRealmObject","titleHTML":"ValidateShadowRealmObject ( <var>O</var> )","number":"3.1.6","referencingIds":["_ref_67","_ref_70"],"key":"ValidateShadowRealmObject ( O )"},{"type":"clause","id":"sec-shadowrealm-abstracts","aoid":null,"titleHTML":"ShadowRealm Abstract Operations","number":"3.1","referencingIds":[],"key":"ShadowRealm Abstract Operations"},{"type":"term","term":"%ShadowRealm%","refId":"sec-shadowrealm-constructor","referencingIds":[],"key":"%ShadowRealm%"},{"type":"clause","id":"sec-shadowrealm","aoid":null,"titleHTML":"ShadowRealm ( )","number":"3.2.1","referencingIds":["_ref_5"],"key":"ShadowRealm ( )"},{"type":"clause","id":"sec-shadowrealm-constructor","aoid":null,"titleHTML":"The ShadowRealm Constructor","number":"3.2","referencingIds":["_ref_0","_ref_6"],"key":"The ShadowRealm Constructor"},{"type":"clause","id":"sec-shadowrealm.prototype","aoid":null,"titleHTML":"ShadowRealm.prototype","number":"3.3.1","referencingIds":[],"key":"ShadowRealm.prototype"},{"type":"clause","id":"sec-properties-of-the-shadowRealm-constructor","aoid":null,"titleHTML":"Properties of the ShadowRealm Constructor","number":"3.3","referencingIds":[],"key":"Properties of the ShadowRealm Constructor"},{"type":"term","term":"%Object.prototype%","refId":"sec-properties-of-the-shadowrealm-prototype-object","referencingIds":[],"key":"%Object.prototype%"},{"type":"clause","id":"sec-shadowrealm.prototype.evaluate","aoid":null,"titleHTML":"ShadowRealm.prototype.evaluate ( <var>sourceText</var> )","number":"3.4.1","referencingIds":[],"key":"ShadowRealm.prototype.evaluate ( sourceText )"},{"type":"clause","id":"sec-shadowrealm.prototype.importvalue","aoid":null,"titleHTML":"ShadowRealm.prototype.importValue ( <var>specifier</var>, <var>exportName</var> )","number":"3.4.2","referencingIds":[],"key":"ShadowRealm.prototype.importValue ( specifier, exportName )"},{"type":"clause","id":"sec-shadowrealm.prototype-@@tostringtag","aoid":null,"titleHTML":"ShadowRealm.prototype [ @@toStringTag ]","number":"3.4.3","referencingIds":[],"key":"ShadowRealm.prototype [ @@toStringTag ]"},{"type":"clause","id":"sec-properties-of-the-shadowrealm-prototype-object","aoid":null,"titleHTML":"Properties of the ShadowRealm Prototype Object","number":"3.4","referencingIds":[],"key":"Properties of the ShadowRealm Prototype Object"},{"type":"table","id":"table-internal-slots-of-shadowrealm-instances","node":{},"number":3,"caption":"Table 3: Internal Slots of ShadowRealm Instances","referencingIds":["_ref_4"],"key":"Table 3: Internal Slots of ShadowRealm Instances"},{"type":"clause","id":"sec-properties-of-shadowrealm-instances","aoid":null,"titleHTML":"Properties of ShadowRealm Instances","number":"3.5","referencingIds":[],"key":"Properties of ShadowRealm Instances"},{"type":"op","aoid":"HostInitializeShadowRealm","refId":"sec-host-initialize-shadow-shadowrealm","referencingIds":[],"key":"HostInitializeShadowRealm"},{"type":"clause","id":"sec-host-initialize-shadow-shadowrealm","aoid":"HostInitializeShadowRealm","titleHTML":"Runtime Semantics: HostInitializeShadowRealm ( <var>realm</var> )","number":"3.6.1","referencingIds":["_ref_66"],"key":"Runtime Semantics: HostInitializeShadowRealm ( realm )"},{"type":"clause","id":"sec-shadowrealm-host-operations","aoid":null,"titleHTML":"Host operations","number":"3.6","referencingIds":[],"key":"Host operations"},{"type":"clause","id":"sec-shadowrealm-objects","aoid":null,"titleHTML":"ShadowRealm Objects","number":"3","referencingIds":[],"key":"ShadowRealm Objects"}]}`);
+let biblio = JSON.parse(`{"refsByClause":{"sec-well-known-intrinsic-objects":["_ref_0","_ref_6"],"sec-wrapped-function-exotic-objects":["_ref_1","_ref_7","_ref_8","_ref_9","_ref_10"],"sec-wrappedfunctioncreate":["_ref_2","_ref_3","_ref_19","_ref_20"],"sec-properties-of-shadowrealm-instances":["_ref_4"],"sec-host-initialize-shadow-shadowrealm":["_ref_5"],"sec-wrapped-function-exotic-objects-call-thisargument-argumentslist":["_ref_11","_ref_12","_ref_13","_ref_14","_ref_15","_ref_16","_ref_17","_ref_18"],"sec-copynameandlength":["_ref_21","_ref_22","_ref_23","_ref_24","_ref_25","_ref_26","_ref_27"],"sec-function.prototype.bind":["_ref_28","_ref_29","_ref_30","_ref_31","_ref_32","_ref_33","_ref_34","_ref_35","_ref_36","_ref_37"],"sec-performshadowrealmeval":["_ref_38","_ref_39","_ref_40","_ref_41","_ref_42","_ref_43"],"sec-shadowrealmimportvalue":["_ref_44","_ref_45","_ref_46","_ref_47","_ref_48","_ref_49","_ref_50","_ref_51","_ref_52","_ref_53"],"sec-getwrappedvalue":["_ref_54","_ref_55","_ref_56"],"sec-validateshadowrealmobject":["_ref_57","_ref_58"],"sec-shadowrealm":["_ref_59","_ref_60","_ref_61","_ref_62","_ref_63"],"sec-shadowrealm.prototype.evaluate":["_ref_64","_ref_65","_ref_66"],"sec-shadowrealm.prototype.importvalue":["_ref_67","_ref_68","_ref_69","_ref_70"]},"entries":[{"type":"table","id":"table-7","number":1,"caption":"Table 1: Well-known Intrinsic Objects"},{"type":"clause","id":"sec-well-known-intrinsic-objects","titleHTML":"Well-known intrinsic objects","number":"1"},{"type":"term","term":"wrapped function exotic object","id":"wrapped-function-exotic-object","referencingIds":["_ref_7","_ref_8","_ref_9","_ref_11"]},{"type":"table","id":"table-internal-slots-of-wrapped-function-exotic-objects","number":2,"caption":"Table 2: Internal Slots of Wrapped Function Exotic Objects","referencingIds":["_ref_1","_ref_2"]},{"type":"clause","id":"sec-wrapped-function-exotic-objects-call-thisargument-argumentslist","title":"[[Call]] ( thisArgument, argumentsList )","titleHTML":"[[Call]] ( <var>thisArgument</var>, <var>argumentsList</var> )","number":"2.1","referencingIds":["_ref_3"]},{"type":"clause","id":"sec-wrapped-function-exotic-objects","titleHTML":"Wrapped Function Exotic Objects","number":"2"},{"type":"op","aoid":"WrappedFunctionCreate","refId":"sec-wrappedfunctioncreate"},{"type":"clause","id":"sec-wrappedfunctioncreate","title":"\\n\\t\\t\\t\\tWrappedFunctionCreate (\\n\\t\\t\\t\\t\\tcallerRealm: a Realm Record,\\n\\t\\t\\t\\t\\tTarget: a function object,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","titleHTML":"\\n\\t\\t\\t\\tWrappedFunctionCreate (\\n\\t\\t\\t\\t\\t<var>callerRealm</var>: a Realm Record,\\n\\t\\t\\t\\t\\t<var>Target</var>: a function object,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","number":"3.1.1","referencingIds":["_ref_10","_ref_56"]},{"type":"clause","id":"sec-function.prototype.bind","title":"Function.prototype.bind ( thisArg, ...args )","titleHTML":"Function.prototype.bind ( <var>thisArg</var>, ...<var>args</var> )","number":"3.1.2.1"},{"type":"op","aoid":"CopyNameAndLength","refId":"sec-copynameandlength"},{"type":"clause","id":"sec-copynameandlength","title":"\\n\\t\\t\\t\\tCopyNameAndLength (\\n\\t\\t\\t\\t\\tF: a function object,\\n\\t\\t\\t\\t\\tTarget: a function object,\\n\\t\\t\\t\\t\\tprefix: a String,\\n\\t\\t\\t\\t\\toptional argCount: a Number,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","titleHTML":"\\n\\t\\t\\t\\tCopyNameAndLength (\\n\\t\\t\\t\\t\\t<var>F</var>: a function object,\\n\\t\\t\\t\\t\\t<var>Target</var>: a function object,\\n\\t\\t\\t\\t\\t<var>prefix</var>: a String,\\n\\t\\t\\t\\t\\toptional <var>argCount</var>: a Number,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","number":"3.1.2","referencingIds":["_ref_19","_ref_30"]},{"type":"op","aoid":"PerformShadowRealmEval","refId":"sec-performshadowrealmeval"},{"type":"clause","id":"sec-performshadowrealmeval","title":"\\n\\t\\t\\t\\tPerformShadowRealmEval (\\n\\t\\t\\t\\t\\tsourceText: a String,\\n\\t\\t\\t\\t\\tcallerRealm: a Realm Record,\\n\\t\\t\\t\\t\\tevalRealm: a Realm Record,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","titleHTML":"\\n\\t\\t\\t\\tPerformShadowRealmEval (\\n\\t\\t\\t\\t\\t<var>sourceText</var>: a String,\\n\\t\\t\\t\\t\\t<var>callerRealm</var>: a Realm Record,\\n\\t\\t\\t\\t\\t<var>evalRealm</var>: a Realm Record,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","number":"3.1.3","referencingIds":["_ref_66"]},{"type":"op","aoid":"ShadowRealmImportValue","refId":"sec-shadowrealmimportvalue"},{"type":"clause","id":"sec-shadowrealmimportvalue","title":"\\n\\t\\t\\t\\tShadowRealmImportValue (\\n\\t\\t\\t\\t\\tspecifierString: a String,\\n\\t\\t\\t\\t\\texportNameString: a String,\\n\\t\\t\\t\\t\\tcallerRealm: a Realm Record,\\n\\t\\t\\t\\t\\tevalRealm: a Realm Record,\\n\\t\\t\\t\\t\\tevalContext: an execution context,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","titleHTML":"\\n\\t\\t\\t\\tShadowRealmImportValue (\\n\\t\\t\\t\\t\\t<var>specifierString</var>: a String,\\n\\t\\t\\t\\t\\t<var>exportNameString</var>: a String,\\n\\t\\t\\t\\t\\t<var>callerRealm</var>: a Realm Record,\\n\\t\\t\\t\\t\\t<var>evalRealm</var>: a Realm Record,\\n\\t\\t\\t\\t\\t<var>evalContext</var>: an execution context,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","number":"3.1.4","referencingIds":["_ref_70"]},{"type":"op","aoid":"GetWrappedValue","refId":"sec-getwrappedvalue"},{"type":"clause","id":"sec-getwrappedvalue","title":"\\n\\t\\t\\t\\tGetWrappedValue (\\n\\t\\t\\t\\t\\tcallerRealm: a Realm Record,\\n\\t\\t\\t\\t\\tvalue: unknown,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","titleHTML":"\\n\\t\\t\\t\\tGetWrappedValue (\\n\\t\\t\\t\\t\\t<var>callerRealm</var>: a Realm Record,\\n\\t\\t\\t\\t\\t<var>value</var>: unknown,\\n\\t\\t\\t\\t)\\n\\t\\t\\t","number":"3.1.5","referencingIds":["_ref_15","_ref_16","_ref_18","_ref_43","_ref_53"]},{"type":"op","aoid":"ValidateShadowRealmObject","refId":"sec-validateshadowrealmobject"},{"type":"clause","id":"sec-validateshadowrealmobject","title":"\\n\\t\\t\\t\\tValidateShadowRealmObject (\\n\\t\\t\\t\\t\\tO: unknown\\n\\t\\t\\t\\t)\\n\\t\\t\\t","titleHTML":"\\n\\t\\t\\t\\tValidateShadowRealmObject (\\n\\t\\t\\t\\t\\t<var>O</var>: unknown\\n\\t\\t\\t\\t)\\n\\t\\t\\t","number":"3.1.6","referencingIds":["_ref_64","_ref_67"]},{"type":"clause","id":"sec-shadowrealm-abstracts","titleHTML":"ShadowRealm Abstract Operations","number":"3.1"},{"type":"term","term":"%ShadowRealm%","refId":"sec-shadowrealm-constructor"},{"type":"clause","id":"sec-shadowrealm","titleHTML":"ShadowRealm ( )","number":"3.2.1","referencingIds":["_ref_5"]},{"type":"clause","id":"sec-shadowrealm-constructor","titleHTML":"The ShadowRealm Constructor","number":"3.2","referencingIds":["_ref_0","_ref_6"]},{"type":"clause","id":"sec-shadowrealm.prototype","titleHTML":"ShadowRealm.prototype","number":"3.3.1"},{"type":"clause","id":"sec-properties-of-the-shadowRealm-constructor","titleHTML":"Properties of the ShadowRealm Constructor","number":"3.3"},{"type":"term","term":"%Object.prototype%","refId":"sec-properties-of-the-shadowrealm-prototype-object"},{"type":"clause","id":"sec-shadowrealm.prototype.evaluate","title":"ShadowRealm.prototype.evaluate ( sourceText )","titleHTML":"ShadowRealm.prototype.evaluate ( <var>sourceText</var> )","number":"3.4.1"},{"type":"clause","id":"sec-shadowrealm.prototype.importvalue","title":"ShadowRealm.prototype.importValue ( specifier, exportName )","titleHTML":"ShadowRealm.prototype.importValue ( <var>specifier</var>, <var>exportName</var> )","number":"3.4.2"},{"type":"clause","id":"sec-shadowrealm.prototype-@@tostringtag","titleHTML":"ShadowRealm.prototype [ @@toStringTag ]","number":"3.4.3"},{"type":"clause","id":"sec-properties-of-the-shadowrealm-prototype-object","titleHTML":"Properties of the ShadowRealm Prototype Object","number":"3.4"},{"type":"table","id":"table-internal-slots-of-shadowrealm-instances","number":3,"caption":"Table 3: Internal Slots of ShadowRealm Instances","referencingIds":["_ref_4"]},{"type":"clause","id":"sec-properties-of-shadowrealm-instances","titleHTML":"Properties of ShadowRealm Instances","number":"3.5"},{"type":"op","aoid":"HostInitializeShadowRealm","refId":"sec-host-initialize-shadow-shadowrealm"},{"type":"clause","id":"sec-host-initialize-shadow-shadowrealm","title":"Runtime Semantics: HostInitializeShadowRealm ( realm )","titleHTML":"Runtime Semantics: HostInitializeShadowRealm ( <var>realm</var> )","number":"3.6.1","referencingIds":["_ref_63"]},{"type":"clause","id":"sec-shadowrealm-host-operations","titleHTML":"Host operations","number":"3.6"},{"type":"clause","id":"sec-shadowrealm-objects","titleHTML":"ShadowRealm Objects","number":"3"}]}`);
 ;let usesMultipage = false
