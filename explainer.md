@@ -97,7 +97,7 @@ console.assert(globalThis.someValue === 1);
 const setUniqueValue =
     await red.importValue('./inside-code.js', 'setUniqueValue');
 
-/* setUnitValue = (cb) => (cb(globalThis.someValue) * 2); */
+/* setUniqueValue = (cb) => (cb(globalThis.someValue) * 2); */
 
 result = setUniqueValue((x) => x ** 3);
 
