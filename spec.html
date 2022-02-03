@@ -150,7 +150,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Set _wrapped_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
 				1. Set _wrapped_.[[WrappedTargetFunction]] to _Target_.
 				1. Set _wrapped_.[[Realm]] to _callerRealm_.
-				1. Let _result_ be CopyNameAndLength(_wrapped_, _Target_, *"wrapped"*).
+				1. Let _result_ be CopyNameAndLength(_wrapped_, _Target_).
 				1. If _result_ is an Abrupt Completion, throw a TypeError exception.
 				1. Return _wrapped_.
 			</emu-alg>
@@ -161,7 +161,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				CopyNameAndLength (
 					_F_: a function object,
 					_Target_: a function object,
-					_prefix_: a String,
+					optional _prefix_: a String,
 					optional _argCount_: a Number,
 				)
 			</h1>
