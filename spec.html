@@ -110,9 +110,9 @@ location: https://tc39.es/proposal-shadowrealm/
 		<emu-alg>
 			1. Let _target_ be _F_.[[WrappedTargetFunction]].
 			1. Assert: IsCallable(_target_) is *true*.
-			1. Let _callerRealm_ be _F_.[[Realm]].
-			1. NOTE: Any exception objects produced after this point are associated with _callerRealm_.
 			1. Let _targetRealm_ be ? GetFunctionRealm(_target_).
+			1. Let _callerRealm_ be ? GetFunctionRealm(_F_).
+			1. NOTE: Any exception objects produced after this point are associated with _callerRealm_.
 			1. Let _wrappedArgs_ be a new empty List.
 			1. For each element _arg_ of _argumentsList_, do
 				1. Let _wrappedValue_ be ? GetWrappedValue(_targetRealm_, _arg_).
