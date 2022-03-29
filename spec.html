@@ -421,11 +421,11 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Let _O_ be *this* value.
 				1. Perform ? ValidateShadowRealmObject(_O_).
 				1. Let _specifierString_ be ? ToString(_specifier_).
-				1. Let _exportNameString_ be ? ToString(_exportName_).
+				1. If Type(_exportName_) is not String, throw a *TypeError* exception.
 				1. Let _callerRealm_ be the current Realm Record.
 				1. Let _evalRealm_ be _O_.[[ShadowRealm]].
 				1. Let _evalContext_ be _O_.[[ExecutionContext]].
-				1. Return ? ShadowRealmImportValue(_specifierString_, _exportNameString_, _callerRealm_, _evalRealm_, _evalContext_).
+				1. Return ? ShadowRealmImportValue(_specifierString_, _exportName_, _callerRealm_, _evalRealm_, _evalContext_).
 			</emu-alg>
 
 			<emu-note type=editor>
