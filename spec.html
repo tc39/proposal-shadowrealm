@@ -109,8 +109,6 @@ location: https://tc39.es/proposal-shadowrealm/
 		</dl>
 		<emu-alg>
 			1. Let _callerContext_ be the running execution context.
-			1. Let _target_ be _F_.[[WrappedTargetFunction]].
-			1. Assert: IsCallable(_target_) is *true*.
 			1. Let _calleeContext_ be PrepareForWrappedFunctionCall(_F_).
 			1. Assert: _calleeContext_ is now the running execution context.
 			1. Let result be OrdinaryWrappedFunctionCall(_F_, _thisArgument_, _argumentsList_).
@@ -133,6 +131,8 @@ location: https://tc39.es/proposal-shadowrealm/
 			)
 		</h1>
 		<emu-alg>
+			1. Let _target_ be _F_.[[WrappedTargetFunction]].
+			1. Assert: IsCallable(_target_) is *true*.
 			1. Let _callerRealm_ be _F_.[[Realm]].
 			1. NOTE: Any exception objects produced after this point are associated with _callerRealm_.
 			1. Let _targetRealm_ be ? GetFunctionRealm(_target_).
