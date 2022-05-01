@@ -145,7 +145,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<p>The abstract operation WrappedFunctionCreate takes arguments _callerRealm_ and _Target_. It is used to specify the creation of new wrapped function exotic objects. It performs the following steps when called:</p>
 			<emu-alg>
 				1. Let _internalSlotsList_ be the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-function-exotic-objects"></emu-xref>, plus [[Prototype]] and [[Extensible]].
-				1. Let _wrapped_ be ! MakeBasicObject(_internalSlotsList_).
+				1. Let _wrapped_ be MakeBasicObject(_internalSlotsList_).
 				1. Set _wrapped_.[[Prototype]] to _callerRealm_.[[Intrinsics]].[[%Function.prototype%]].
 				1. Set _wrapped_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
 				1. Set _wrapped_.[[WrappedTargetFunction]] to _Target_.
@@ -178,10 +178,10 @@ location: https://tc39.es/proposal-shadowrealm/
 							1. Let _targetLenAsInt_ be ! ToIntegerOrInfinity(_targetLen_).
 							1. Assert: _targetLenAsInt_ is finite.
 							1. Set _L_ to max(_targetLenAsInt_ - _argCount_, 0).
-				1. Perform ! SetFunctionLength(_F_, _L_).
+				1. Perform SetFunctionLength(_F_, _L_).
 				1. Let _targetName_ be ? Get(_Target_, *"name"*).
 				1. If Type(_targetName_) is not String, set _targetName_ to the empty String.
-				1. Perform ! SetFunctionName(_F_, _targetName_, _prefix_).
+				1. Perform SetFunctionName(_F_, _targetName_, _prefix_).
 			</emu-alg>
 
 			<emu-note type=editor>
@@ -209,7 +209,7 @@ location: https://tc39.es/proposal-shadowrealm/
 							1. <del>Assert: _targetLenAsInt_ is finite.
 							1. <del>Let _argCount_ be the number of elements in _args_.
 							1. <del>Set _L_ to max(_targetLenAsInt_ - _argCount_, 0).
-					1. <del>Perform ! SetFunctionLength(_F_, _L_).
+					1. <del>Perform SetFunctionLength(_F_, _L_).
 					1. <del>Let _targetName_ be ? Get(_Target_, *"name"*).
 					1. <del>If Type(_targetName_) is not String, set _targetName_ to the empty String.
 					1. <del>Perform SetFunctionName(_F_, _targetName_, *"bound"*).</del>
@@ -229,7 +229,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<emu-alg>
 				1. Perform ? HostEnsureCanCompileStrings(_callerRealm_, _evalRealm_).
 				1. Perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
-					1. Let _script_ be ParseText(! StringToCodePoints(_sourceText_), |Script|).
+					1. Let _script_ be ParseText(StringToCodePoints(_sourceText_), |Script|).
 					1. If _script_ is a List of errors, throw a *SyntaxError* exception.
 					1. If _script_ Contains |ScriptBody| is *false*, return *undefined*.
 					1. Let _body_ be the |ScriptBody| of _script_.
@@ -286,14 +286,14 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Let _runningContext_ be the running execution context.
 				1. If _runningContext_ is not already suspended, suspend _runningContext_.
 				1. Push _evalContext_ onto the execution context stack; _evalContext_ is now the running execution context.
-				1. Perform ! HostImportModuleDynamically(*null*, _specifierString_, _innerCapability_).
+				1. Perform HostImportModuleDynamically(*null*, _specifierString_, _innerCapability_).
 				1. Suspend _evalContext_ and remove it from the execution context stack.
 				1. Resume the context that is now on the top of the execution context stack as the running execution context.
 				1. Let _steps_ be the steps of an ExportGetter function as described below.
-				1. Let _onFulfilled_ be ! CreateBuiltinFunction(_steps_, 1, *""*, « [[ExportNameString]] », _callerRealm_).
+				1. Let _onFulfilled_ be CreateBuiltinFunction(_steps_, 1, *""*, « [[ExportNameString]] », _callerRealm_).
 				1. Set _onFulfilled_.[[ExportNameString]] to _exportNameString_.
 				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
-				1. Return ! PerformPromiseThen(_innerCapability_.[[Promise]], _onFulfilled_, _callerRealm_.[[Intrinsics]].[[%ThrowTypeError%]], _promiseCapability_).
+				1. Return PerformPromiseThen(_innerCapability_.[[Promise]], _onFulfilled_, _callerRealm_.[[Intrinsics]].[[%ThrowTypeError%]], _promiseCapability_).
 			</emu-alg>
 
 			<p>An ExportGetter function is an anonymous built-in function with a [[ExportNameString]] internal slot. When an ExportGetter function is called with argument _exports_, it performs the following steps:</p>
