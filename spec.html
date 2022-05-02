@@ -249,7 +249,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Set _evalContext_'s VariableEnvironment to _varEnv_.
 				1. Set _evalContext_'s LexicalEnvironment to _lexEnv_.
 				1. Push _evalContext_ onto the execution context stack; _evalContext_ is now the running execution context.
-				1. Let _result_ be EvalDeclarationInstantiation(_body_, _varEnv_, _lexEnv_, *null*, _strictEval_).
+				1. Let _result_ be Completion(EvalDeclarationInstantiation(_body_, _varEnv_, _lexEnv_, *null*, _strictEval_)).
 				1. If _result_.[[Type]] is ~normal~, then
 					1. Set _result_ to the result of evaluating _body_.
 				1. If _result_.[[Type]] is ~normal~ and _result_.[[Value]] is ~empty~, then
