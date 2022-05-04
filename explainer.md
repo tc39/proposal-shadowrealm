@@ -188,7 +188,7 @@ A new [Compartment](https://github.com/tc39/proposal-compartments) provides a ne
 const compartment = new Compartment(options);
 const VirtualizedRealm = compartment.globalThis.ShadowRealm;
 const shadowRealm = new VirtualizedRealm();
-const { doSomething } = await shadowRealm.importValue('./file.js');
+const doSomething = await shadowRealm.importValue('./file.js', 'redDoSomething');
 ```
 
 The Compartments proposal offers a more complex API that offers tailoring over aspects beyond the global APIs but with modifications to internal structure such as module graph. The ShadowRealm API just offers immediate access to what is already specified in ECMAScript as it's already structured to distinguish different references from realms.
