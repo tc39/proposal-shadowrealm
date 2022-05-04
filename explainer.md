@@ -66,7 +66,7 @@ declare class ShadowRealm {
 The proposed specification defines:
 
 - The [`constructor`](https://tc39.es/proposal-shadowrealm/#sec-shadowrealm).
-- The [`ShadowRealm#importValue()`](https://tc39.es/proposal-shadowrealm/#sec-shadowrealm.prototype.importValue) method, equivalent to the `import()` expression, but capturing a primitive or callable values.
+- The [`ShadowRealm#importValue()`](https://tc39.es/proposal-shadowrealm/#sec-shadowrealm.prototype.importvalue) method, equivalent to the `import()` expression, but capturing a primitive or callable values.
 - The [`get ShadowRealm#evaluate`](https://tc39.es/proposal-shadowrealm/#sec-shadowrealm.prototype.evaluate) method promotes an indirect eval in the shadowRealm but only allows the return of primitive or callable values.
 - A new wrapped function exotic object with a custom `[[Call]]` internal that has a shared identity of a connected function from another realm associated to it. This identity is not exposed and there is no way to trace back to connected functions cross-realms in user-land.
 
