@@ -108,11 +108,34 @@ location: https://tc39.es/proposal-shadowrealm/
 			<dd>a wrapped function exotic object _F_</dd>
 		</dl>
 		<emu-alg>
+			1. Let _callerContext_ be the running execution context.
+			1. Let _calleeContext_ be PrepareForWrappedFunctionCall(_F_).
+			1. Assert: _calleeContext_ is now the running execution context.
+			1. Let result be OrdinaryWrappedFunctionCall(_F_, _thisArgument_, _argumentsList_).
+			1. Remove _calleeContext_ from the execution context stack and restore _callerContext_ as the running execution context.
+			1. If result.[[Type]] is return, return result.[[Value]].
+			1. ReturnIfAbrupt(result).
+			1. Return *undefined*.
+		</emu-alg>
+		<emu-note type=editor>
+			In the case of an abrupt ~throw~ completion, the type of error to be created should match the type of the abrupt throw completion record. This could be revisited when merging into the main specification. Additionally, in the case of a ~break~ or ~continue~ completion, since those are not supported, a TypeError is expected.
+		</emu-note>
+	</emu-clause>
+
+	<emu-clause id="sec-ordinary-wrapped-function-call" type="abstract operation">
+		<h1>
+			OrdinaryWrappedFunctionCall (
+				_F_: a wrapped function exotic object,
+				_thisArgument_: an ECMAScript language value,
+				_argumentsList_: a List of ECMAScript language values,
+			)
+		</h1>
+		<emu-alg>
 			1. Let _target_ be _F_.[[WrappedTargetFunction]].
 			1. Assert: IsCallable(_target_) is *true*.
-			1. Let _targetRealm_ be ? GetFunctionRealm(_target_).
-			1. Let _callerRealm_ be ? GetFunctionRealm(_F_).
+			1. Let _callerRealm_ be _F_.[[Realm]].
 			1. NOTE: Any exception objects produced after this point are associated with _callerRealm_.
+			1. Let _targetRealm_ be ? GetFunctionRealm(_target_).
 			1. Let _wrappedArgs_ be a new empty List.
 			1. For each element _arg_ of _argumentsList_, do
 				1. Let _wrappedValue_ be ? GetWrappedValue(_targetRealm_, _arg_).
@@ -124,9 +147,26 @@ location: https://tc39.es/proposal-shadowrealm/
 			1. Else,
 				1. Throw a *TypeError* exception.
 		</emu-alg>
-		<emu-note type=editor>
-			In the case of an abrupt ~throw~ completion, the type of error to be created should match the type of the abrupt throw completion record. This could be revisited when merging into the main specification. Additionally, in the case of a ~break~ or ~continue~ completion, since those are not supported, a TypeError is expected.
-		</emu-note>
+	</emu-clause>
+
+	<emu-clause id="sec-prepare-for-wrapped-function-call" type="abstract operation">
+		<h1>
+			PrepareForWrappedFunctionCall (
+				_F_: a wrapped function exotic object,
+			)
+		</h1>
+		<emu-alg>
+			1. Let callerContext be the running execution context.
+			1. Let calleeContext be a new execution context.
+			1. Set the Function of calleeContext to F.
+			1. Let calleeRealm be F.[[Realm]].
+			1. Set the Realm of calleeContext to calleeRealm.
+			1. Set the ScriptOrModule of calleeContext to *null*.
+			1. If callerContext is not already suspended, suspend callerContext.
+			1. Push calleeContext onto the execution context stack; calleeContext is now the running execution context.
+			1. NOTE: Any exception objects produced after this point are associated with calleeRealm.
+			1. Return calleeContext.
+		</emu-alg>
 	</emu-clause>
 </emu-clause>
 
