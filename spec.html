@@ -224,7 +224,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<ul>
 				<li>At some future time, the host environment must perform FinishShadowRealmImport(_callerRealm__, _specifier_, _promiseCapability_, _promise_), where _promise_ is a Promise resolved with *undefined*.</li>
 
-				<li>???Any subsequent call to HostResolveImportedModule after FinishShadowRealmImport has completed, given the arguments *null* and _specifier_, must return a normal completion containing a module which has already been evaluated, i.e. whose Evaluate concrete method has already been called and returned a normal completion.</li>
+				<li>Any subsequent call to HostResolveImportedModule after FinishShadowRealmImport has completed, given the arguments *null* and _specifier_, must return a normal completion containing a module which has already been evaluated, i.e. whose Evaluate concrete method has already been called and returned a normal completion.</li>
 			</ul>
 			</dd>
 
