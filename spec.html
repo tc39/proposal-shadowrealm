@@ -38,6 +38,216 @@ location: https://tc39.es/proposal-shadowrealm/
 	</emu-table>
 </emu-clause>
 
+<emu-clause id="sec-wrapped-module-namespace-exotic-objects">
+	<h1>Wrapped Module Namespace Exotic Objects</h1>
+	<p>A wrapped module namespace exotic object is an exotic object that exposes the bindings exported from an ECMAScript |Module| (See <emu-xref href="#sec-exports"></emu-xref>). There is a one-to-one correspondence between the String-keyed own properties of a wrapped module namespace exotic object and the binding names exported by the |Module|. The exported bindings include any bindings that are indirectly exported using `export *` export items. Each String-valued own property key is the StringValue of the corresponding exported binding name. These are the only String-keyed properties of a wrapped module namespace exotic object. Each such property has the attributes { [[Writable]]: *true*, [[Enumerable]]: *true*, [[Configurable]]: *false* }. Module namespace exotic objects are not extensible.</p>
+	<p>An object is a <dfn id="wrapped-module-namespace-exotic-object" variants="wrapped module namespace exotic objects">wrapped module namespace exotic object</dfn> if its [[Get]] internal method use the definitions in this section, and its other essential internal methods use the definitions found in <emu-xref href="#sec-module-namespace-exotic-objects"></emu-xref>. These methods are installed by WrappedModuleNamespaceCreate.</p>
+	<p>Wrapped module namespace exotic objects have the internal slots defined in <emu-xref href="#table-internal-slots-of-wrapped-module-namespace-exotic-objects"></emu-xref>.</p>
+	<emu-table id="table-internal-slots-of-wrapped-module-namespace-exotic-objects" caption="Internal Slots of Wrapped Module Namespace Exotic Objects" oldids="table-29">
+		<table>
+			<tr>
+				<th>
+					Internal Slot
+				</th>
+				<th>
+					Type
+				</th>
+				<th>
+					Description
+				</th>
+			</tr>
+			<tr>
+				<td>
+					[[Module]]
+				</td>
+				<td>
+					a Module Record
+				</td>
+				<td>
+					The Module Record whose exports this namespace exposes.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					[[Exports]]
+				</td>
+				<td>
+					a List of Strings
+				</td>
+				<td>
+					A List whose elements are the String values of the exported names exposed as own properties of this object. The list is ordered as if an Array of those String values had been sorted using %Array.prototype.sort% using *undefined* as _comparefn_.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					[[Realm]]
+				</td>
+				<td>
+					a Realm Record
+				</td>
+				<td>
+					The Realm Record in which the Wrapped Module Namespace Exotic object was created.
+				</td>
+			</tr>
+		</table>
+	</emu-table>
+
+	<emu-clause id="sec-wrapped-module-namespace-exotic-objects-get-p-receiver" type="internal method">
+		<h1>
+			[[Get]] (
+				_P_: a property key,
+				_Receiver_: an ECMAScript language value,
+			): either a normal completion containing an ECMAScript language value or a throw completion
+		</h1>
+		<dl class="header">
+			<dt>for</dt>
+			<dd>a wrapped module namespace exotic object _O_</dd>
+		</dl>
+		<emu-alg>
+			1. If Type(_P_) is Symbol, then
+				1. Return ! OrdinaryGet(_O_, _P_, _Receiver_).
+			1. Let _exports_ be _O_.[[Exports]].
+			1. If _P_ is not an element of _exports_, return *undefined*.
+			1. Let _m_ be _O_.[[Module]].
+			1. Let _binding_ be ! _m_.ResolveExport(_P_).
+			1. Assert: _binding_ is a ResolvedBinding Record.
+			1. Let _targetModule_ be _binding_.[[Module]].
+			1. Assert: _targetModule_ is not *undefined*.
+			1. If _binding_.[[BindingName]] is ~namespace~, then
+				1. Return ? GetModuleNamespace(_targetModule_).
+			1. Let _targetEnv_ be _targetModule_.[[Environment]].
+			1. If _targetEnv_ is ~empty~, throw a *ReferenceError* exception.
+			1. Let _value_ be _targetEnv_.GetBindingValue(_binding_.[[BindingName]], *true*).
+			1. NOTE: To avoid dynamic scoping get the realm to wrap the value from the wrapped module namespace exotic object.
+			1. Let _realm_ be _O_.[[Realm]].
+			1. Return ? GetWrappedValue(_realm_, _value_).
+		</emu-alg>
+		<emu-note>
+			<p>ResolveExport is side-effect free. Each time this operation is called with a specific _exportName_, _resolveSet_ pair as arguments it must return the same result. An implementation might choose to pre-compute or cache the ResolveExport results for the [[Exports]] of each module namespace exotic object.</p>
+		</emu-note>
+	</emu-clause>
+
+	<emu-clause id="sec-wrappedmodulenamespacecreate" type="abstract operation">
+		<h1>
+			WrappedModuleNamespaceCreate (
+				_callerRealm_: a Realm Record,
+				_module_: a Module Record,
+				_exports_: a List of Strings,
+			): a wrapped module namespace exotic object
+		</h1>
+		<dl class="header">
+			<dt>description</dt>
+			<dd>It is used to specify the creation of new wrapped module namespace exotic objects.</dd>
+		</dl>
+		<emu-alg>
+			1. Let _internalSlotsList_ be the internal slots listed in <emu-xref href="#table-internal-slots-of-wrapped-module-namespace-exotic-objects"></emu-xref>.
+			1. Let _M_ be MakeBasicObject(_internalSlotsList_).
+			1. Set _M_'s essential internal methods to the definitions specified in <emu-xref href="#sec-wrapped-module-namespace-exotic-objects"></emu-xref>.
+			1. Set _M_.[[Module]] to _module_.
+			1. Let _sortedExports_ be a List whose elements are the elements of _exports_ ordered as if an Array of the same values had been sorted using %Array.prototype.sort% using *undefined* as _comparefn_.
+			1. Set _M_.[[Exports]] to _sortedExports_.
+			1. Set _M_.[[Realm]] to _callerRealm_.
+			1. Create own properties of _M_ corresponding to the definitions in <emu-xref href="#sec-wrapped-module-namespace-exotic-objects"></emu-xref>.
+			1. Return _M_.
+		</emu-alg>
+	</emu-clause>
+</emu-clause>
+
+<emu-clause id="sec-finishshadowrealmimport" type="abstract operation">
+	<h1>
+		FinishShadowRealmImport (
+			_callerRealm_: a Realm Record,
+			_specifier_: unknown,
+			_promiseCapability_: a PromiseCapability Record,
+			_innerPromise_: unknown,
+		): ~unused~
+	</h1>
+	<dl class="header">
+		<dt>description</dt>
+		<dd>FinishShadowRealmImport completes the process of importing a module into a ShadowRealm, resolving or rejecting the promise returned by that call as appropriate according to _innerPromise_'s resolution. It is performed by host environments as part of HostImportValueModuleDynamically.</dd>
+	</dl>
+	<emu-alg>
+		1. Let _fulfilledClosure_ be a new Abstract Closure in the context of _callerRealm_ with parameters (_result_) that captures _specifier_, and _promiseCapability_ and performs the following steps when called:
+			1. Assert: _result_ is *undefined*.
+			1. Let _runningContext_ be the running execution context.
+			1. If _runningContext_ is not already suspended, suspend _runningContext_.
+			1. Push _evalContext_ onto the execution context stack; _evalContext_ is now the running execution context.
+			1. Let _moduleRecord_ be ! HostResolveImportedModule(*null*, _specifier_).
+			1. Assert: Evaluate has already been invoked on _moduleRecord_ and successfully completed.
+			1. Let _namespace_ be Completion(GetModuleNamespace(_moduleRecord_)).
+			1. Suspend _evalContext_ and remove it from the execution context stack.
+			1. Resume the context that is now on the top of the execution context stack as the running execution context.
+			1. If _namespace_ is an abrupt completion, then
+				1. Let _error_ be an Error object from _callerRealm_ equivalent to _namespace_.[[Value]].
+				1. Perform ! Call(_promiseCapability_.[[Reject]], *undefined*, &laquo; _error_ &raquo;).
+			1. Else,
+				1. Let _wrappedNamespaceValue_ be WrappedModuleNamespaceCreate(_callerRealm_, _namespace_.[[Module]], _namespace_.[[Exports]]).
+				1. Perform ! Call(_promiseCapability_.[[Resolve]], *undefined*, &laquo; _wrappedNamespaceValue_ &raquo;).
+			1. Return ~unused~.
+		1. Let _onFulfilled_ be CreateBuiltinFunction(_fulfilledClosure_, 0, *""*, &laquo; &raquo;).
+		1. Let _rejectedClosure_ be a new Abstract Closure with parameters (_error_) that captures _promiseCapability_ and performs the following steps when called:
+			1. Assert: _error_ is an Error object from _callerRealm_.
+			1. Perform ! Call(_promiseCapability_.[[Reject]], *undefined*, &laquo; _error_ &raquo;).
+			1. Return ~unused~.
+		1. Let _onRejected_ be CreateBuiltinFunction(_rejectedClosure_, 0, *""*, &laquo; &raquo;).
+		1. Perform PerformPromiseThen(_innerPromise_, _onFulfilled_, _onRejected_).
+		1. Return ~unused~.
+	</emu-alg>
+</emu-clause>
+
+<emu-clause id="sec-hostimportvaluemoduledynamically" type="host-defined abstract operation">
+	<h1>
+		HostShadowRealmImportModuleDynamically(
+			_specifier_: a |ModuleSpecifier| String,
+			_promiseCapability_: a PromiseCapability Record,
+			_callerRealm_: a Realm Record,
+			_evalRealm_: a Realm Record,
+			_evalContext_: an execution context,
+		): ~unused~
+	</h1>
+	<dl class="header">
+		<dt>description</dt>
+		<dd>It performs any necessary setup work in order to make available the module corresponding to _specifier_ occurring in the context of _evalContext_ for the _evalRealm_ with no active script or module. It then performs FinishShadowRealmImport to finish the import process.</dd>
+	</dl>
+	<p>An implementation of HostImportValueModuleDynamically must conform to the following requirements:</p>
+
+	<ul>
+		<li>
+		It must return ~unused~. Success or failure must instead be signaled as discussed below.
+		</li>
+		<li>
+		The host environment must conform to one of the two following sets of requirements:
+		<dl>
+			<dt>Success path</dt>
+
+			<dd>
+			<ul>
+				<li>At some future time, the host environment must perform FinishShadowRealmImport(_callerRealm__, _specifier_, _promiseCapability_, _promise_), where _promise_ is a Promise resolved with *undefined*.</li>
+
+				<li>???Any subsequent call to HostResolveImportedModule after FinishShadowRealmImport has completed, given the arguments *null* and _specifier_, must return a normal completion containing a module which has already been evaluated, i.e. whose Evaluate concrete method has already been called and returned a normal completion.</li>
+			</ul>
+			</dd>
+
+			<dt>Failure path</dt>
+
+			<dd>
+			<ul>
+				<li>At some future time, the host environment must perform FinishShadowRealmImport(_callerRealm__, _specifier_, _promiseCapability_, _promise_), where _promise_ is a Promise rejected with an error object from _callerRealm_ representing the cause of failure.</li>
+			</ul>
+			</dd>
+		</dl>
+		</li>
+		<li>
+		If the host environment takes the success path once for a given _specifier_, it must always do so for subsequent calls.
+		</li>
+		<li>
+		The operation must not call _promiseCapability_.[[Resolve]] or _promiseCapability_.[[Reject]], but instead must treat _promiseCapability_ as an opaque identifying value to be passed through to FinishShadowRealmImport.
+		</li>
+	</ul>
+
+	<p>The actual process performed is host-defined, but typically consists of performing whatever I/O operations are necessary to allow HostResolveImportedModule to synchronously retrieve the appropriate Module Record, and then calling its Evaluate concrete method. This might require performing similar normalization as HostResolveImportedModule does.</p>
+</emu-clause>
+
 <emu-clause id="sec-wrapped-function-exotic-objects">
 	<h1>Wrapped Function Exotic Objects</h1>
 	<p>A wrapped function exotic object is an exotic object that wraps a callable object. A wrapped function exotic object is callable (it has a [[Call]] internal method). Calling a wrapped function exotic object generally results in a call of its wrapped function.</p>
@@ -310,46 +520,6 @@ location: https://tc39.es/proposal-shadowrealm/
 			</emu-note>
 		</emu-clause>
 
-		<emu-clause id="sec-shadowrealmimportvalue" aoid="ShadowRealmImportValue" type="abstract operation">
-			<h1>
-				ShadowRealmImportValue (
-					_specifierString_: a String,
-					_exportNameString_: a String,
-					_callerRealm_: a Realm Record,
-					_evalRealm_: a Realm Record,
-					_evalContext_: an execution context,
-				)
-			</h1>
-			<emu-alg>
-				1. Assert: _evalContext_ is an execution context associated to a ShadowRealm instance's [[ExecutionContext]].
-				1. Let _innerCapability_ be ! NewPromiseCapability(%Promise%).
-				1. Let _runningContext_ be the running execution context.
-				1. If _runningContext_ is not already suspended, suspend _runningContext_.
-				1. Push _evalContext_ onto the execution context stack; _evalContext_ is now the running execution context.
-				1. Perform HostImportModuleDynamically(*null*, _specifierString_, _innerCapability_).
-				1. Suspend _evalContext_ and remove it from the execution context stack.
-				1. Resume the context that is now on the top of the execution context stack as the running execution context.
-				1. Let _steps_ be the steps of an ExportGetter function as described below.
-				1. Let _onFulfilled_ be CreateBuiltinFunction(_steps_, 1, *""*, « [[ExportNameString]] », _callerRealm_).
-				1. Set _onFulfilled_.[[ExportNameString]] to _exportNameString_.
-				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
-				1. Return PerformPromiseThen(_innerCapability_.[[Promise]], _onFulfilled_, _callerRealm_.[[Intrinsics]].[[%ThrowTypeError%]], _promiseCapability_).
-			</emu-alg>
-
-			<p>An ExportGetter function is an anonymous built-in function with a [[ExportNameString]] internal slot. When an ExportGetter function is called with argument _exports_, it performs the following steps:</p>
-			<emu-alg>
-				1. Assert: _exports_ is a module namespace exotic object.
-				1. Let _f_ be the active function object.
-				1. Let _string_ be _f_.[[ExportNameString]].
-				1. Assert: Type(_string_) is String.
-				1. Let _hasOwn_ be ? HasOwnProperty(_exports_, _string_).
-				1. If _hasOwn_ is *false*, throw a *TypeError* exception.
-				1. Let _value_ be ? Get(_exports_, _string_).
-				1. Let _realm_ be _f_.[[Realm]].
-				1. Return ? GetWrappedValue(_realm_, _value_).
-			</emu-alg>
-		</emu-clause>
-
 		<emu-clause id="sec-getwrappedvalue" aoid="GetWrappedValue" type="abstract operation">
 			<h1>
 				GetWrappedValue (
@@ -359,8 +529,8 @@ location: https://tc39.es/proposal-shadowrealm/
 			</h1>
 			<emu-alg>
 				1. If Type(_value_) is Object, then
-				  1. If IsCallable(_value_) is *false*, throw a TypeError exception.
-				  1. Return ? WrappedFunctionCreate(_callerRealm_, _value_).
+					1. If IsCallable(_value_) is *false*, throw a TypeError exception.
+					1. Return ? WrappedFunctionCreate(_callerRealm_, _value_).
 				1. Return _value_.
 			</emu-alg>
 		</emu-clause>
@@ -454,18 +624,19 @@ location: https://tc39.es/proposal-shadowrealm/
 			</emu-note>
 		</emu-clause>
 
-		<emu-clause id="sec-shadowrealm.prototype.importvalue">
-			<h1>ShadowRealm.prototype.importValue ( _specifier_, _exportName_ )</h1>
+		<emu-clause id="sec-shadowrealm.prototype.import">
+			<h1>ShadowRealm.prototype.import ( _specifier_ )</h1>
 			<p>The following steps are performed:</p>
 			<emu-alg>
 				1. Let _O_ be *this* value.
 				1. Perform ? ValidateShadowRealmObject(_O_).
+				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
 				1. Let _specifierString_ be ? ToString(_specifier_).
-				1. If Type(_exportName_) is not String, throw a *TypeError* exception.
 				1. Let _callerRealm_ be the current Realm Record.
 				1. Let _evalRealm_ be _O_.[[ShadowRealm]].
 				1. Let _evalContext_ be _O_.[[ExecutionContext]].
-				1. Return ? ShadowRealmImportValue(_specifierString_, _exportName_, _callerRealm_, _evalRealm_, _evalContext_).
+				1. Perform HostShadowRealmImportModuleDynamically(_specifierString_, _promiseCapability_, _callerRealm_, _evalRealm_, _evalContext_).
+				1. Return _promiseCapability_.[[Promise]].
 			</emu-alg>
 
 			<emu-note type=editor>
