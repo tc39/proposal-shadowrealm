@@ -109,17 +109,18 @@ location: https://tc39.es/proposal-shadowrealm/
 			1. Let _exports_ be _O_.[[Exports]].
 			1. If _P_ is not an element of _exports_, return *undefined*.
 			1. Let _m_ be _O_.[[Module]].
+			1. Let _realm_ be _O_.[[Realm]].
 			1. Let _binding_ be ! _m_.ResolveExport(_P_).
 			1. Assert: _binding_ is a ResolvedBinding Record.
 			1. Let _targetModule_ be _binding_.[[Module]].
 			1. Assert: _targetModule_ is not *undefined*.
 			1. If _binding_.[[BindingName]] is ~namespace~, then
-				1. Return ? GetModuleNamespace(_targetModule_).
+				1. Let _namespace_ be ? GetModuleNamespace(_targetModule_).
+				1. Return WrappedModuleNamespaceCreate(_realm_, _namespace_.[[Module]], _namespace_.[[Exports]]).
 			1. Let _targetEnv_ be _targetModule_.[[Environment]].
 			1. If _targetEnv_ is ~empty~, throw a *ReferenceError* exception.
 			1. Let _value_ be _targetEnv_.GetBindingValue(_binding_.[[BindingName]], *true*).
 			1. NOTE: To avoid dynamic scoping get the realm to wrap the value from the wrapped module namespace exotic object.
-			1. Let _realm_ be _O_.[[Realm]].
 			1. Return ? GetWrappedValue(_realm_, _value_).
 		</emu-alg>
 		<emu-note>
