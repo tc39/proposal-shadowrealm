@@ -113,8 +113,8 @@ location: https://tc39.es/proposal-shadowrealm/
 			1. Assert: _calleeContext_ is now the running execution context.
 			1. Let _result_ be Completion(OrdinaryWrappedFunctionCall(_F_, _thisArgument_, _argumentsList_)).
 			1. Remove _calleeContext_ from the execution context stack and restore _callerContext_ as the running execution context.
-			1. ReturnIfAbrupt(_result_).
 			1. If _result_.[[Type]] is |return|, return _result_.[[Value]].
+			1. ReturnIfAbrupt(_result_).
 			1. Return *undefined*.
 		</emu-alg>
 		<emu-note type=editor>
