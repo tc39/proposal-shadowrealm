@@ -135,17 +135,14 @@ location: https://tc39.es/proposal-shadowrealm/
 			1. If Type(_originalError_) is Object, then
 				1. Let _message_ be Completion(Get(_originalError_, "message")).
 				1. If _message_ is not an abrupt completion, then
-					1. Let _msgString_ be Completion(ToString(_message_)).
-					1. If _msgString_ is not an abrupt completion, then
+					1. If Type(_message_) is String, then
 						1. NOTE: Copying the string message when possible.
-						1. Perform CreateNonEnumerableDataPropertyOrThrow(_newError_, "message", _msgString_).
-				1. Let _cause_ be Completion(Get(_originalError_, "cause")).
-				1. If _cause_ is not an abrupt completion, then
-					1. If Type(_cause_) is String, then
-						1. NOTE: Copying the cause if it a string.
-						1. Perform CreateNonEnumerableDataPropertyOrThrow(_newError_, "cause", _cause_).
+						1. Perform CreateNonEnumerableDataPropertyOrThrow(_newError_, "message", _message_).
 			1. Return _newError_.
 		</emu-alg>
+		<emu-note>
+			For implementations that provide implementation-specific stack for introspection APIs, the TypeError object can be augmented.
+		</emu-note>
 	</emu-clause>
 
 	<emu-clause id="sec-ordinary-wrapped-function-call" type="abstract operation">
