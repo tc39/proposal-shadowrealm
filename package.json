@@ -25,10 +25,11 @@
   },
   "scripts": {
     "prebuild": "mkdir -p dist",
-    "build": "ecmarkup --verbose spec.html dist/index.html --css dist/ecmarkup.css --js dist/ecmarkup.js",
+    "build": "ecmarkup --lint-spec --strict --verbose --load-biblio @tc39/ecma262-biblio spec.html dist/index.html",
     "watch": "npm run build -- --watch"
   },
   "devDependencies": {
-    "ecmarkup": "^9.7.1"
+    "@tc39/ecma262-biblio": "=2.1.2336",
+    "ecmarkup": "^15.0.0"
   }
 }
