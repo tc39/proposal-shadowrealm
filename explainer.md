@@ -158,7 +158,7 @@ Instances of ShadowRealm Objects and their Global Objects have their lifeline to
 
 ### <a name='Evaluation'></a>Evaluation
 
-Any code evaluation mechanism in this API is subject to the existing the [Content-Security-Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
+Any code evaluation mechanism in this API is subject to the existing [Content-Security-Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
 
 If the CSP directive from a page disallows `unsafe-eval`, it prevents synchronous evaluation in the ShadowRealm, i.e.: `ShadowRealm#evaluate`.
 
