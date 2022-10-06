@@ -6,6 +6,7 @@
 * [Motivations](#Motivations)
 * [Clarifications](#Clarifications)
 * [Why not separate processes?](#Whynotseparateprocesses)
+* [Security](#Security)
 * [Use Cases](#UseCases)
   * [_Trusted_ Third Party Scripts](#Trusted_ThirdPartyScripts)
   * [Code Testing](#CodeTesting)
@@ -20,7 +21,6 @@
     * [DOM mocking](#DOMmocking)
 * [Modules](#Modules)
 * [Integrity](#Integrity)
-  * [Security vs Integrity](#SecurityvsIntegrity)
 * [Status Quo](#StatusQuo)
 * [Iframes](#Iframes)
 * [FAQ](#FAQ)
@@ -43,13 +43,17 @@ There are various examples where ShadowRealms can be well applied to:
   * DOM Virtualization (e.g.: Google AMP)
   * Test frameworks and reporters (in-browser tests, but also in node using `vm`).
   * testing/mocking (e.g.: jsdom)
-  * Most plugin mechanism for the web (e.g., spreadsheet functions).
-  * Sandboxing (e.g.: Oasis Project)
   * Server side rendering (to avoid collision and data leakage)
   * in-browser code editors
   * in-browser transpilation
 
 This document expands a list of some of these [use cases with examples](#UseCases).
+
+Notably, ShadowRealms do *not* provide a security boundary. This makes them
+usually a bad choice for untrusted code execution, such as is the case for:
+
+  * Most plugin mechanisms for the web (e.g., spreadsheet functions).
+  * Sandboxing (e.g.: Oasis Project)
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
@@ -119,6 +123,10 @@ In addition to the motivations given above, another commonly-cited motivation is
 Finally, a distinct but related problem this proposal could solve is the current inability to completely virtualize the environment where the program should be executed. With this proposal, we are taking a giant step toward that missing feature of the language.
 
 ShadowRealms is an often-requested feature from developers, directly or indirectly. It was an original part of the ES6 spec, but it didn't make to the initial cut. This proposal attempts to resolve prior objections and get to a solution that all implementers can agree upon.
+
+## <a name='Nongoals'></a>Non-goals
+
+__ShadowRealms are *not* a security boundary, they do not provide cross-realm security.__ They are not designed to run untrusted code. See the [Security section](#Security) below.
 
 ### <a name='Operation'></a>How does ShadowRealms operate?
 
@@ -199,18 +207,26 @@ Creating a Realm that runs in a separate process is another alternative, while a
 
 This alternative was discarded for two main reasons:
 
-1. There are existing mechanism to achieve this today in both browsers, and nodejs. E.g.: cross domain iframes, workers, etc. They seem to be good enough when asynchronous communication is sufficient to implement the feature.
-2. Asynchronous communication is a deal-breaker for many use-cases, specially when security is __not__ an issue, and sometimes it just added complexity for cases where a same-process Realm is sufficient.
+1. There are existing mechanism to achieve this today in both browsers, and nodejs. E.g.: cross-origin iframes, workers, etc. They seem to be good enough when asynchronous communication is sufficient to implement the feature.
+2. Asynchronous communication is a deal-breaker for many use-cases, specifically when security is __not__ an issue, and sometimes it just added complexity for cases where a same-process Realm is sufficient.
 
-E.g. Google AMP run in a cross domain iframe, and just want more control about what code they executed in that cross domain application.
+E.g. Google AMP run in a cross-origin iframe, and just want more control about what code they executed in that cross-origin application.
 
 There are some identified challenges explained within the current use cases for ShadowRealms such as the [WorkerDOM Virtualization challenge for Google AMP](#DOMVirtualization) and the current use of [JSDOM and Node VM modules](#JSDOMvmModules) that would be better placed using an interoperable ShadowRealm API as presented by this proposal.
+
+## <a name='Security'></a>Security
+
+__ShadowRealms, by design, cannot securely run *untrusted* code.__ While claims to the contrary have been made in the past, we *strongly discourage* using ShadowRealms for this purpose.
+
+While direct cross-realm object access is disabled, ShadowRealms by design share a heap and thus a process. Attackers can read cross-realm memory using timing attacks (e.g. [Spectre](https://leaky.page/)) without relying on any exploits in the JavaScript engine. Attackers leveraging exploits can go further and freely write cross-realm memory. The design goals of ShadowRealms make it fundamentally impossible for JavaScript engines to improve on this situation.
+
+In some exotic cases where security is already compromised for other reasons, this might be acceptable. For example in IOT, where many devices might not have process boundaries at all. In such cases, running untrusted code in *any* fashion would be insecure and using ShadowRealms would not worsen the situation.
 
 ## <a name='UseCases'></a>Use Cases
 
 These are some of the key use cases where The ShadowRealm API becomes very useful and important:
 
-- Third Party Scripts
+- Trusted Third Party Scripts
 - Code Testing
 - Codebase segmentation
 - Template libraries
@@ -218,7 +234,7 @@ These are some of the key use cases where The ShadowRealm API becomes very usefu
 
 ### <a name='Trusted_ThirdPartyScripts'></a>_Trusted_ Third Party Scripts
 
-We acknowledge that applications need a quick and simple execution of Third Party Scripts. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent. This is also not aiming for prevention over non-Trusted Third Party Scripts like malicious code or xss injections. Our focus is on multi libraries and building blocks from different authors.
+We acknowledge that applications need a quick and simple execution of *trusted* Third Party Scripts. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent. This is also not aiming to defend against *untrusted* Third Party Scripts like malicious code or xss injections. Our focus is on multi libraries and building blocks from different authors.
 
 The ShadowRealm API provides integrity preserving semantics - including built-ins - of root and incubator Realms, setting specific boundaries for the Environment Records.
 
@@ -396,17 +412,13 @@ However, the [Compartments](https://github.com/tc39/proposal-compartments) propo
 
 ## <a name='Integrity'></a>Integrity
 
-We believe that realms can be a good complement to integrity mechanisms by providing ways to evaluate code across different object graphs (different global objects) while maintaining the integrity of both realms. A concrete example of this is the Google's AMP current mechanism:
+We believe that realms can be a good complement to integrity mechanisms by providing ways to evaluate *trusted* code across different object graphs (different global objects) while maintaining the integrity of both realms. The integrity guarantee of ShadowRealms only extends to *trusted* code that might inadvertently step on each other's feet (e.g. writing to the same global variable).
+
+A concrete example of this is the Google's AMP current mechanism:
 
 * Google News App creates multiples sub-apps that can be presented to the user.
-* Each sub-app runs in a cross-domain iframe (communicating with the main app via post-message).
+* Each sub-app runs in a cross-origin iframe (communicating with the main app via post-message).
 * Each vendor (one per app) can attempt to enhance their sub-app that display their content by executing their code in a shadowRealm that provide access to a well defined set of APIs to preserve the integrity of the sub-app.
-
-There are many examples like this for the web: Google Sheets, Figma's plugins, or Salesforce's Locker Service for Web Components.
-
-### <a name='SecurityvsIntegrity'></a>Security vs Integrity
-
-There are also other more exotic cases in which measuring of time ("security") is not a concern, especially in IOT where many devices might not have process boundaries at all. Or examples where security is not a concern, e.g.: test runners like jest (from facebook) that relies on nodejs, JSDOM and VM contexts to execute individual tests while sharing a segment of the object graph to achieve the desired performance budget. No doubts that this type of tools are extremely popular these days, e.g.: JSDOM has 10M installs per week according to NPM's registry.
 
 ### <a name='Example:VirtualizedContexts'></a>Example: Virtualized Contexts
 
@@ -440,7 +452,7 @@ export function test(property) {
 }
 ```
 
-### <a name='Example:iframesvsRealms'></a>Example: iframes vs ShadowRealms
+## <a name='Example:iframesvsRealms'></a>Example: iframes vs ShadowRealms
 
 If you're using anonymous iframes today to "evaluate" javascript code in a different realm, you can replace it with a new ShadowRealm, as a more performant option, without identity discontinuity, e.g.:
 
@@ -534,6 +546,10 @@ iframeWindow.top;
 ### So do ShadowRealms only have the ECMAScript APIs available?
 
 Yes! It only creates a new copy of the built-ins from ECMAScript. Although, we have open discussions about additional [HTML properties](https://github.com/tc39/proposal-shadowrealm/issues/284) or [some intrinsics subset](https://github.com/tc39/proposal-shadowrealm/issues/288).
+
+### Can I use ShadowRealms to run untrusted code securely?
+
+No! See the [Security](#Security) section for details.
 
 ### Most libraries won't work unless they add dependencies manually
 
