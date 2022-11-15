@@ -33,11 +33,11 @@
 
 ## <a name='Introduction'></a>Introduction
 
-The ShadowRealms proposal provides a new mechanism to execute JavaScript code within the context of a new global object and set of JavaScript built-ins.
+The ShadowRealm proposal provides a new mechanism to execute JavaScript code within the context of a new global object and set of JavaScript built-ins.
 
 The API enables control over the execution of different programs within a Realm, providing a proper mechanism for virtualization. This is not possible in the Web Platform today and the proposed API is aimed to a seamless solution for all JS enviroments.
 
-There are various examples where ShadowRealms can be well applied to:
+There are various examples where the ShadowRealm API can be well applied to:
 
   * Web-based IDEs or any kind of 3rd party code execution using same origin evaluation policies.
   * DOM Virtualization (e.g.: Google AMP)
@@ -49,11 +49,7 @@ There are various examples where ShadowRealms can be well applied to:
 
 This document expands a list of some of these [use cases with examples](#UseCases).
 
-Notably, ShadowRealms do *not* provide a security boundary. This makes them
-usually a bad choice for untrusted code execution, such as is the case for:
-
-  * Most plugin mechanisms for the web (e.g., spreadsheet functions).
-  * Sandboxing (e.g.: Oasis Project)
+Notably, the ShadowRealm API do provide integrity protection and partial confidentiality protection as described in [Security](#Security) section, but it does not provide [availability](https://agoric.com/blog/all/taxonomy-of-security-issues/#integrity) protection, this makes it a bad choice for some plugin mechanisms for the web (e.g., spreadsheet functions blocking the main UI thread).
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
@@ -122,31 +118,35 @@ In addition to the motivations given above, another commonly-cited motivation is
 
 Finally, a distinct but related problem this proposal could solve is the current inability to completely virtualize the environment where the program should be executed. With this proposal, we are taking a giant step toward that missing feature of the language.
 
-ShadowRealms is an often-requested feature from developers, directly or indirectly. It was an original part of the ES6 spec, but it didn't make to the initial cut. This proposal attempts to resolve prior objections and get to a solution that all implementers can agree upon.
+A ShadowRealm-like API is an often-requested feature from developers, directly or indirectly. It was an original part of the ES6 spec, but it didn't make to the initial cut. This proposal attempts to resolve prior objections and get to a solution that all implementers can agree upon.
 
 ## <a name='Nongoals'></a>Non-goals
 
-__ShadowRealms are *not* a security boundary, they do not provide cross-realm security.__ They are not designed to run untrusted code. See the [Security section](#Security) below.
+This proposal does not aim to provide host hooks, or any other mechanism to control or prevent IO operations from within the ShadowRealm instance.
 
-### <a name='Operation'></a>How does ShadowRealms operate?
+The ShadowRealm proposal does not aim to provide availability protection as it is designed to share the same thread to allow synchronous communication between Realms.
 
-ShadowRealms execute code with the same JavaScript heap as the surrounding context where the ShadowRealm is created. Code runs synchronously in the same thread. Note: The surrounding context is often referenced as the _incubator realm_ within this proposal.
+It does not provide full protection for confidentiality, as such, a ShadowRealm instance provides access to host operations that can be used to infer information from the environment in various ways, and sense the timing via the standard APIs provided by the host.
 
-Same-origin iframes also create a new global object which is synchronously accessible. ShadowRealms differ from same-origin iframes by omitting Web APIs such as the DOM, and async config for code injected through dynamic imports. Problems related to identity discontinuity exist in iframes but are not a possibility in ShadowRealms as object values are not transferred cross-realms in user land. The only connection exists internally through wrapped functions.
+### <a name='Operation'></a>How does a ShadowRealm operate?
+
+A ShadowRealm execute code with the same JavaScript heap as the surrounding context where the ShadowRealm instance is created. Code runs synchronously in the same thread. Note: The surrounding context is often referenced as the _incubator realm_ within this proposal.
+
+Same-origin iframes also create a new global object which is synchronously accessible. A ShadowRealm differ from same-origin iframes by omitting Web APIs such as the DOM, and async config for code injected through dynamic imports. Problems related to identity discontinuity exist in iframes but are not a possibility in a ShadowRealm as object values are not transferred cross-realms in user land. The only connection exists internally through wrapped functions.
 
 Sites like Salesforce.com make extensive use of same-origin iframes to create such global objects. Our experience with same-origin iframes motivated us to steer this proposal forward, which has the following advantages:
 
 - Frameworks would be able to better craft the available API within the global object of the ShadowRealm, aiming for what is necessary to evaluate the program.
 - Tailoring up [the exposed set of APIs into the code](#VirtualizedEnvironment) within the ShadowRealm provides a better developer experience for a less expensive work compared to tailoring down a full set of exposed APIs - e.g. iframes - that includes handling presence of `[LegacyUnforgeable]` attributes like `window.top`.
-- We hope the usage of ShadowRealms will be somewhat lighter weight (both in terms of memory and CPU) for the browser if compared to iframes, especially when frameworks rely on several Realms in the same application.
-- ShadowRealms are not accessible from by traversing the DOM of the incubator realm. This will be an ideal and/or better approach compared to attaching iframes elements and their contentWindow to the DOM. [Detaching iframes](#Iframes) would also add new set of problems.
+- We hope the usage of a ShadowRealm will be somewhat lighter weight (both in terms of memory and CPU) for the browser if compared to iframes, especially when frameworks rely on several Realms in the same application.
+- A ShadowRealm is not accessible from by traversing the DOM of the incubator realm. This will be an ideal and/or better approach compared to attaching iframes elements and their contentWindow to the DOM. [Detaching iframes](#Iframes) would also add new set of problems.
 - A newly created shadowRealm does not have immediate access to any object from the incubator realm - and vice-versa - and won't have access to `window.top` as iframes would.
 
-ShadowRealms are complementary to stronger isolation mechanisms such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. ShadowRealms avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
+The ShadowRealm API is complementary to stronger isolation APIs such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. A ShadowRealm instance can avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
 
 The ShadowRealm API does __not__ introduce a new evaluation mechanism. The code evaluation is subject to the [same restrictions of the incubator realm via CSP](#Evaluation), or any other restriction in Node.
 
-JavaScript modules are associated with a global object and set of built-ins. ShadowRealms contain their own separate module graph which runs in the context of that ShadowRealm, so that a full JavaScript development experience is available.
+JavaScript modules are associated with a global object and set of built-ins. Each ShadowRealm instance contains its own separate module graph which runs in the context of that ShadowRealm, so that a full JavaScript development experience is available.
 
 ## <a name='Clarifications'></a>Clarifications
 
@@ -174,7 +174,7 @@ The CSP of a page can also set directives like the `default-src` to prevent a Sh
 
 ### <a name='ModuleGraph'></a>Module Graph
 
-Each instance of ShadowRealms must have its own Module Graph.
+Each instance of a ShadowRealm must have its own Module Graph.
 
 ```javascript
 const shadowRealm = new ShadowRealm();
@@ -212,29 +212,56 @@ This alternative was discarded for two main reasons:
 
 E.g. Google AMP run in a cross-origin iframe, and just want more control about what code they executed in that cross-origin application.
 
-There are some identified challenges explained within the current use cases for ShadowRealms such as the [WorkerDOM Virtualization challenge for Google AMP](#DOMVirtualization) and the current use of [JSDOM and Node VM modules](#JSDOMvmModules) that would be better placed using an interoperable ShadowRealm API as presented by this proposal.
+There are some identified challenges explained within the current use cases for a ShadowRealm such as the [WorkerDOM Virtualization challenge for Google AMP](#DOMVirtualization) and the current use of [JSDOM and Node VM modules](#JSDOMvmModules) that would be better placed using an interoperable ShadowRealm API as presented by this proposal.
 
 ## <a name='Security'></a>Security
 
-__ShadowRealms, by design, cannot securely run *untrusted* code.__ While claims to the contrary have been made in the past, we *strongly discourage* using ShadowRealms for this purpose.
+It is useful to look at this from the lenses of [the taxonomy of security essay](https://agoric.com/blog/all/taxonomy-of-security-issues/), which formalizes a framework to explain security and modularity issues in various systems.
 
-While direct cross-realm object access is disabled, ShadowRealms by design share a heap and thus a process. Attackers can read cross-realm memory using timing attacks (e.g. [Spectre](https://leaky.page/)) without relying on any exploits in the JavaScript engine. Attackers leveraging exploits can go further and freely write cross-realm memory. The design goals of ShadowRealms make it fundamentally impossible for JavaScript engines to improve on this situation.
+Based on the essay linked above, we can say that the ShadowRealm proposal provides a very limited protection:
 
-In some exotic cases where security is already compromised for other reasons, this might be acceptable. For example in IOT, where many devices might not have process boundaries at all. In such cases, running untrusted code in *any* fashion would be insecure and using ShadowRealms would not worsen the situation.
+> ✅ integrity ⛔️ availability ⚠️ confidentiality
+
+### ✅ <a name='Integrity'></a>Integrity
+
+This proposal can be a good complement to integrity mechanisms by providing ways to evaluate code across different object graphs (different global objects) while maintaining the integrity of both realms. The integrity guarantee of the ShadowRealm API only extends to code that might inadvertently step on each other's feet (e.g. writing to the same global variable).
+
+A concrete example of this is the Google's AMP current mechanism:
+
+* Google News App creates multiples sub-apps that can be presented to the user.
+* Each sub-app runs in a cross-origin iframe (communicating with the main app via post-message).
+* Each vendor (one per app) can attempt to enhance their sub-app that display their content by executing their code in a ShadowRealm that provide access to a well defined set of APIs to preserve the integrity of the sub-app.
+
+### ⛔️ <a name='Availability'></a>Availability Protection
+
+A ShadowRealm shares the same process with its incubator Realm. While direct cross-realm object access is prevented via the callable boundary, the ShadowRealm API was design to share a heap and thus a process. This is what allows the synchronous communication between the incubator realm and the ShadowRealm instance. This means all those resources are shared, preventing the ShadowRealm or the incubator realm to provide any guarantees in terms of liveness or progress. In other words, code running in a ShadowRealm can produce resource exhaustion, or excessive allocation of memory that can prevent the incubator realm to proceed.
+
+A concrete example of this is plugin system to implement heavy matrix computations:
+
+* Each plugin can receive that, and carry on computation task.
+* The task to compute can be implemented in an asynchronous manner due to the nature of the computation.
+* The main UI thread will remain block during the heavy computation even though the result is expected to be produced asynchronously.
+
+
+### ⚠️ <a name='Confidentiality'></a>Confidentiality Protection
+
+Confidentiality, also known as Information Hiding or Secrecy, cannot be fully guarantee by the ShadowRealm API. On the Web, two good examples of confidentiality violations are fingerprinting, and privacy violations.
+
+To provide Confidentiality, no one can infer information they are not supposed to know. The most pernicious threats to confidentiality are side channels like Meltdown and [Spectre](https://leaky.page/), where code running inside a ShadowRealm can infer incubator realm’s secrets from timing differences. The ShadowRealm API by itself cannot protect confidentially, unless that it is combined with mechanisms to prevent the measurement of duration.
 
 ## <a name='UseCases'></a>Use Cases
 
 These are some of the key use cases where The ShadowRealm API becomes very useful and important:
 
-- Trusted Third Party Scripts
+- Third Party Scripts
 - Code Testing
 - Codebase segmentation
 - Template libraries
 - DOM Virtualization
 
-### <a name='Trusted_ThirdPartyScripts'></a>_Trusted_ Third Party Scripts
+### <a name='ThirdPartyScripts'></a>Third Party Scripts
 
-We acknowledge that applications need a quick and simple execution of *trusted* Third Party Scripts. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent. This is also not aiming to defend against *untrusted* Third Party Scripts like malicious code or xss injections. Our focus is on multi libraries and building blocks from different authors.
+We acknowledge that applications need a quick and simple execution of code. There are cases where **many** scripts are executed for the same application. There isn't a need for a new host or agent. This is also not aiming to defend against malicious code or xss injections. Our focus is on multi-libraries and building blocks from different authors that can conflict with each other.
 
 The ShadowRealm API provides integrity preserving semantics - including built-ins - of root and incubator Realms, setting specific boundaries for the Environment Records.
 
@@ -257,7 +284,7 @@ init(ready);
 
 ### <a name='CodeTesting'></a>Code Testing
 
-While multi-threading is useful for testing, the layering enabled from ShadowRealms is also great. Test frameworks can use ShadowRealms to inject code and also control the order of the injections if necessary.
+While multi-threading is useful for testing, the layering enabled from the ShadowRealm API is also great. Test frameworks can use a ShadowRealm to inject code and also control the order of the injections if necessary.
 
 Testing code can run autonomously within the boundaries set from the ShadowRealm object without immediately conflicting with other tests.
 
@@ -410,15 +437,6 @@ In principle, the ShadowRealm proposal does not provide the controls for the mod
 
 However, the [Compartments](https://github.com/tc39/proposal-compartments) proposal plans to provide the low level hooks to control the module graph per ShadowRealm. This is one of the intersection semantics between the two proposals.
 
-## <a name='Integrity'></a>Integrity
-
-We believe that realms can be a good complement to integrity mechanisms by providing ways to evaluate *trusted* code across different object graphs (different global objects) while maintaining the integrity of both realms. The integrity guarantee of ShadowRealms only extends to *trusted* code that might inadvertently step on each other's feet (e.g. writing to the same global variable).
-
-A concrete example of this is the Google's AMP current mechanism:
-
-* Google News App creates multiples sub-apps that can be presented to the user.
-* Each sub-app runs in a cross-origin iframe (communicating with the main app via post-message).
-* Each vendor (one per app) can attempt to enhance their sub-app that display their content by executing their code in a shadowRealm that provide access to a well defined set of APIs to preserve the integrity of the sub-app.
 
 ### <a name='Example:VirtualizedContexts'></a>Example: Virtualized Contexts
 
@@ -452,9 +470,9 @@ export function test(property) {
 }
 ```
 
-## <a name='Example:iframesvsRealms'></a>Example: iframes vs ShadowRealms
+## <a name='Example:iframesvsRealms'></a>Example: iframe vs ShadowRealm
 
-If you're using anonymous iframes today to "evaluate" javascript code in a different realm, you can replace it with a new ShadowRealm, as a more performant option, without identity discontinuity, e.g.:
+If you're using anonymous iframe today to "evaluate" javascript code in a different realm, you can replace it with a new ShadowRealm, as a more performant option, without identity discontinuity, e.g.:
 
 ```javascript
 const globalOne = window;
@@ -543,13 +561,13 @@ iframeWindow.top;
 
 ## <a name='FAQ'></a>FAQ
 
-### So do ShadowRealms only have the ECMAScript APIs available?
+### So do the ShadowRealm API only have the ECMAScript APIs available?
 
-Yes! It only creates a new copy of the built-ins from ECMAScript. Although, we have open discussions about additional [HTML properties](https://github.com/tc39/proposal-shadowrealm/issues/284) or [some intrinsics subset](https://github.com/tc39/proposal-shadowrealm/issues/288).
+It creates a new copy of the built-ins from ECMAScript. Additionally, the host can add other APIs. We have open discussions about additional [HTML properties](https://github.com/tc39/proposal-shadowrealm/issues/284) or [some intrinsics subset](https://github.com/tc39/proposal-shadowrealm/issues/288).
 
-### Can I use ShadowRealms to run untrusted code securely?
+### Can I use the ShadowRealm API to run code securely?
 
-No! See the [Security](#Security) section for details.
+See the [Security](#Security) section for details.
 
 ### Most libraries won't work unless they add dependencies manually
 
@@ -563,4 +581,4 @@ Considering all the trade offs, the clean state seems the best option, in our op
 
 ### Exploration ahead
 
-There is more to explore ahead for ShadowRealms, but not yet for this current proposal. The current API is good enough to enable synchronous execution of code and membranes implementation, even if setup might require async import for code injection.
+There is more to explore ahead for the ShadowRealm proposal, but not yet for this current proposal. The current API is good enough to enable synchronous execution of code and membranes implementation, even if setup might require async import for code injection.
