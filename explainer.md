@@ -8,7 +8,7 @@
 * [Why not separate processes?](#Whynotseparateprocesses)
 * [Security](#Security)
 * [Use Cases](#UseCases)
-  * [_Trusted_ Third Party Scripts](#Trusted_ThirdPartyScripts)
+  * [Third Party Scripts](#ThirdPartyScripts)
   * [Code Testing](#CodeTesting)
     * [Running tests in a ShadowRealm](#RunningtestsinaRealm)
     * [Test FWs + Tooling to run tests in a shadowRealm](#TestFWsToolingtoruntestsinarealm)
@@ -49,7 +49,7 @@ There are various examples where the ShadowRealm API can be well applied to:
 
 This document expands a list of some of these [use cases with examples](#UseCases).
 
-Notably, the ShadowRealm API do provide integrity protection and partial confidentiality protection as described in [Security](#Security) section, but it does not provide [availability](https://agoric.com/blog/all/taxonomy-of-security-issues/#integrity) protection, this makes it a bad choice for some plugin mechanisms for the web (e.g., spreadsheet functions blocking the main UI thread).
+As detailed in the [Security](#Security) section, the ShadowRealm API is not a full spectrum mechanism against security issues when evaluating code. As such, it makes it a bad choice for some code execution use cases (e.g., spreadsheet functions blocking the main UI thread).
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
@@ -126,7 +126,7 @@ This proposal does not aim to provide host hooks, or any other mechanism to cont
 
 The ShadowRealm proposal does not aim to provide availability protection as it is designed to share the same thread to allow synchronous communication between Realms.
 
-It does not provide full protection for confidentiality, as such, a ShadowRealm instance provides access to host operations that can be used to infer information from the environment in various ways, and sense the timing via the standard APIs provided by the host.
+It does not provide full protection for confidentiality, as such, a ShadowRealm instance provides access to APIs that can be used to infer information and sense the timing from the environment in various ways.
 
 ### <a name='Operation'></a>How does a ShadowRealm operate?
 
@@ -247,7 +247,7 @@ A concrete example of this is plugin system to implement heavy matrix computatio
 
 Confidentiality, also known as Information Hiding or Secrecy, cannot be fully guarantee by the ShadowRealm API. On the Web, two good examples of confidentiality violations are fingerprinting, and privacy violations.
 
-To provide Confidentiality, no one can infer information they are not supposed to know. The most pernicious threats to confidentiality are side channels like Meltdown and [Spectre](https://leaky.page/), where code running inside a ShadowRealm can infer incubator realm’s secrets from timing differences. The ShadowRealm API by itself cannot protect confidentially, unless that it is combined with mechanisms to prevent the measurement of duration.
+To provide Confidentiality, no one can infer information they are not supposed to know. The most pernicious threats to confidentiality are side channels like Meltdown and [Spectre](https://leaky.page/), where code running inside a ShadowRealm can infer incubator realm’s secrets from timing differences. The ShadowRealm API by itself cannot protect confidentially, unless that it is combined with mechanisms to prevent the measurement of duration and fingerprinting.
 
 ## <a name='UseCases'></a>Use Cases
 
