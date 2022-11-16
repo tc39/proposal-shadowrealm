@@ -141,7 +141,10 @@ location: https://tc39.es/proposal-shadowrealm/
 			1. Return _newError_.
 		</emu-alg>
 		<emu-note>
-			For implementations that provide implementation-specific stack for introspection APIs, the TypeError object can be augmented without revealing any information about the stack from within the ShadowRealm, and without providing direct access to any object reference from withtin the ShadowRealm.
+			Host environments may provide implementation-specific stack information for introspection APIs, if so, the _newError_ object can be augmented without providing direct access to any object reference from _originalError_ or its associated Realm. The specific steps are implementation-defined.
+		</emu-note>
+		<emu-note type="editor">
+			For implementations can store all the information needed to create the full stack in a way that can be used by CreateTypeErrorCopy abstract operation to stitch together a censored version of the stack for _newError_ if _realmRecord_ is associated to a ShadowRealm instance. If the information exposed as part of _newError_'s stack must be censored, it must contain only the inclusion of the stack-frames associated to _realmRecord_.
 		</emu-note>
 	</emu-clause>
 
