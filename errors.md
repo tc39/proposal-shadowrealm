@@ -1,8 +1,32 @@
-## Errors Propagation in ShadowRealm
+# Errors Propagation in ShadowRealm
 
-This document describes the various mechanism that different browsers must implement when exposing stack information via Error objects. The objective is to provide guidance for implements on what to do when censoring the error's stack.
+This document describes the various mechanism that different browsers must implement when exposing message and stack information via Error objects. The objective is to provide guidance for implementers.
 
-## Censoring Stacks
+## Errors Crossing Callable Boundary
+
+Errors thrown across the ShadowRealm's callable boundary in either direction are replaced by a fresh `TypeError` as described by the spec. Additionally, the new `TypeError` instance can be augmented with a message, and stack to help developers.
+
+### Copying Error.message
+
+The new `TypeError` object copies the `message` property if it is a string value on the original error. Additionally, the host may augment the `message` with more details, including the name of the original object. E.g.:
+
+Original `Error.message`:
+
+```
+TypeError: null has no properties
+```
+
+New `Error.message` after crossing a boundary:
+
+```
+Uncaught TypeError: wrapped function threw, error was TypeError: null has no properties
+```
+
+This error allows developers to clearly understand that the error is thrown on another Realm. If the error crosses multiple nested ShadowRealms, the second time the error is created when crossing the boundary, the message should still be formed from scratch rather than providing nesting wrapping of the message.
+
+The message is sometimes not enough. We encourage engines to enable their engine-specific stack introspection mechanisms to work on TypeErrors, subject to the following censorship constraints.
+
+### Censoring Error.Stacks
 
 Some of the use-cases for ShadowRealm, e.g., the virtualization, require a mechanism to control the error's stack, so those accessing it should not observe that the program is running inside a ShadowRealm. Early versions of the spec were simply nulling out the stack when an error crosses the callable boundary, but that was not sufficient, in fact, it was faulty for two main reasons:
 
@@ -11,7 +35,7 @@ Some of the use-cases for ShadowRealm, e.g., the virtualization, require a mecha
 
 This document describes how to solve both of these problems by applying a censoring process for all errors.
 
-### Censoring Error objects accessible within ShadowRealms
+#### Censoring Error objects accessible within ShadowRealms
 
 The first step is to make sure that when an error of any kind is observed (by reference) inside a ShadowRealm instance, the host is censoring all stack frames that are not associated to the ShadowRealm instance itself. This allows the following example to work properly:
 
@@ -86,7 +110,7 @@ function runInSandbox() {
 runInSandbox();
 ```
 
-### When not to censor Errors?
+#### When not to censor Errors?
 
 Since ShadowRealm provides integrity guarantees, errors instances belonging to a ShadowRealm are only accessible inside the ShadowRealm (thanks to the callable boundary), this censoring process only affect errors inside a ShadowRealm, developers, and dev-tools observing errors at the top level (main window), should still be able to observe the full stack information. This covers tools to collect metrics about errors, and any other mechanism running on the main program.
 
