@@ -120,9 +120,9 @@ location: https://tc39.es/proposal-shadowrealm/
 		<emu-note type=editor>
 			In the case of an abrupt ~throw~ completion, the type of error to be created should match the type of the abrupt throw completion record. This could be revisited when merging into the main specification. Additionally, in the case of a ~break~ or ~continue~ completion, since those are not supported, a TypeError is expected.
 		</emu-note>
-		<emu-note>
+		<p>
 			Host environments may provide implementation-specific stack information for introspection APIs. If so, all Error objects originating from code executed inside a ShadowRealm must be subject to censorship. The specific steps are implementation-defined but must respect the following: The information exposed as part of Error's stack must contain only the details of the stack-frames associated to the ShadowRealm, and not reveal any details of frames associated with other realms, including the number of any such frames. Implementations can store information of the full stack if the error can cross into another Realm, however the implementation cannot use that information to reveal more information than allowed above.
-		</emu-note>
+		</p>
 	</emu-clause>
 
 	<emu-clause id="sec-create-type-error-copy" type="abstract operation">
@@ -143,9 +143,9 @@ location: https://tc39.es/proposal-shadowrealm/
 						1. Perform CreateNonEnumerableDataPropertyOrThrow(_newError_, "message", _message_).
 			1. Return _newError_.
 		</emu-alg>
-		<emu-note>
+		<p>
 			Host environments may provide implementation-specific stack information for introspection APIs. The implementation may augment the exposed stack information of _newError_ with information it has stored on _originalError_. If _realmRecord_ corresponds to a ShadowRealm, _newError_ object must be subject to censorship in the same way Errors originated from _realmRecord_ are censored. Regardless of the _realmRecord_, the implementation must not include object references to _originalError_ or its associated realm in the stack information exposed to the program.
-		</emu-note>
+		</p>
 	</emu-clause>
 
 	<emu-clause id="sec-ordinary-wrapped-function-call" type="abstract operation">
