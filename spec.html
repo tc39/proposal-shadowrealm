@@ -135,16 +135,10 @@ location: https://tc39.es/proposal-shadowrealm/
 		<emu-alg>
 			1. Let _newError_ be a newly created *TypeError* object.
 			1. NOTE: _newError_ is created in _realmRecord_.
-			1. If Type(_originalError_) is Object, then
-				1. Let _message_ be Completion(Get(_originalError_, "message")).
-				1. If _message_ is not an abrupt completion, then
-					1. If Type(_message_) is String, then
-						1. NOTE: Copying the string message when possible.
-						1. Perform CreateNonEnumerableDataPropertyOrThrow(_newError_, "message", _message_).
 			1. Return _newError_.
 		</emu-alg>
 		<p>
-			Host environments may provide implementation-specific stack information for introspection APIs. The implementation may augment the exposed stack information of _newError_ with information it has stored on _originalError_. If _realmRecord_ corresponds to a ShadowRealm, _newError_ object must be subject to censorship in the same way Errors originated from _realmRecord_ are censored. Regardless of the _realmRecord_, the implementation must not include object references to _originalError_ or its associated realm in the stack information exposed to the program.
+			Host environments may provide implementation-specific message value and stack information for introspection APIs. The implementation may use information it has stored on _originalError_ to produce the _newError_'s message and stack information on _newError_. If _realmRecord_ corresponds to a ShadowRealm, _newError_ object must be subject to censorship in the same way Errors originated from _realmRecord_ are censored. Regardless of the _realmRecord_, the implementation must not include object references to _originalError_ or its associated realm in the stack information exposed to the program.
 		</p>
 	</emu-clause>
 
