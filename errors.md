@@ -10,16 +10,16 @@ Errors thrown across the ShadowRealm's callable boundary in either direction are
 
 The new `TypeError` object created to propagate an error across the callable boundary can be augmented with a `message` property. The value of such property can be a combination of `name` and `message` from the original error. E.g.:
 
-Original `Error.message`:
+Original `error.message`:
 
 ```
 TypeError: null has no properties
 ```
 
-New `Error.message` after crossing a boundary:
+New `error.message` after crossing a boundary:
 
 ```
-Uncaught TypeError: wrapped function threw, error was TypeError: null has no properties
+TypeError: wrapped function threw, error was TypeError: null has no properties
 ```
 
 This error allows developers to clearly understand that the error was thrown from another Realm. If the error crosses multiple nested ShadowRealms, the second time the error is created when crossing another boundary, the message should still be formed from scratch rather than providing nesting of the message. The same applies to re-entrancing as well since the error re-entring the ShadowRealm where it was originated, will come as a brand new TypeError object, with no connection to the original Error object.
@@ -28,7 +28,7 @@ Accessing the `name` and `message` of the original Error object must not be obse
 
 If _originalError_ has an `[[ErrorData]]` internal slot, then use the data values of `name` and `message` of the data properties. In case of accesor properties, use the cached values stored during the creation of the original error by the host.
 
-_Note: It is possiable to only cache the `name` and `message` if the error could cross a boundary (based on the stack frames)._
+_Note: It is possible to only cache the `name` and `message` if the error could cross a boundary (based on the stack frames)._
 
 If _originalError_ does not have an `[[ErrorData]]` internal slot, then produce a generic message. E.g.:
 
@@ -46,7 +46,7 @@ wrapped function threw, error was uncaught exception: Object
 
 _Note: FF implementation follows the logic described above._
 
-### New Error.Stacks
+### error.stack
 
 A good error message is sometimes not enough. We encourage engines to enable their engine-specific stack introspection mechanisms for errors in ShadowRealms. In this case, the Error's stack is subject to censorship constraints.
 
@@ -70,7 +70,7 @@ try { null.foo } catch (e) {
 
 In the example above, `e` never crossed a callable boundary, but regardless, it should not contain a stack frame associated to another realm. Assuming that this error is observed (accessed) in two different places, a try/catch from above when running inside the ShadowRealm instances, and another try/catch in the incubator realm, which happens to be the main page (top level window), we should see two different error's stack for the two different errors:
 
-1. ShadowRoot's `Error.stack`:
+1. ShadowRealm's `error.stack`:
 ```
 foo@http://127.0.0.1:8081/y.js:2:5
 bar@http://127.0.0.1:8081/y.js:6:12
@@ -88,7 +88,7 @@ runInSandbox@http://127.0.0.1:8081/demo.html:6:17
 @http://127.0.0.1:8081/demo.html:8:1
 ```
 
-_Note: All 5 stack frames must be exposed on this error regardless of their location and associated Realms, this is analogous to what happen with same domain iframes today._
+_Note: All 5 stack frames should be exposed on this error regardless of their location and associated Realms, this is analogous to what happen with same domain iframes today._
 
 In the example above, we have 2 modules, `x.js` and `y.js`:
 

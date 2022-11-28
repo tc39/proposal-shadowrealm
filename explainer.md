@@ -390,7 +390,7 @@ function extractIntrinsicsFromGlobal(customGlobalThis) {
 
 ## <a name='Errors'></a>Errors
 
-Errors originated from a ShadowRoot are subject to stack censoring. Similarely, those errors must be copied when crossing the callable boundary, while doing so, the host must produce a TypeError, and may provide a message and stack properties without violating the stack censoring principle. For more details about errors, refer to the [errors explainer](./errors.md).
+Errors originated from a ShadowRealm are subject to stack censoring. Similarly, those errors must be copied when crossing the callable boundary, while doing so, the host must produce a TypeError, and may provide a message and stack properties without violating the stack censoring principle. For more details about errors, refer to the [errors explainer](./errors.md).
 
 ## <a name='Modules'></a>Modules
 
