@@ -388,6 +388,10 @@ function extractIntrinsicsFromGlobal(customGlobalThis) {
 }
 ```
 
+## <a name='Errors'></a>Errors
+
+Errors originated from a ShadowRealm are subject to stack censoring. Similarly, those errors must be copied when crossing the callable boundary, while doing so, the host must produce a TypeError, and may provide a message and stack properties without violating the stack censoring principle. For more details about errors, refer to the [errors explainer](./errors.md).
+
 ## <a name='Modules'></a>Modules
 
 In principle, the ShadowRealm proposal does not provide the controls for the module graphs. Every new ShadowRealm initializes its own module graph, while any invocation to `ShadowRealm.prototype.importValue()` method, or by using `import()` when evaluating code inside the shadowRealm through wrapped functions, will populate this module graph. This is analogous to same-domain iframes, and VM in nodejs.
