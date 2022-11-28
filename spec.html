@@ -138,7 +138,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			1. Return _newError_.
 		</emu-alg>
 		<p>
-			Host environments may provide implementation-specific message value and stack information for introspection APIs. The implementation may store additional information on _originalError_ to produce the _newError_'s message and stack information on _newError_ to prevent CreateTypeErrorCopy to be observed from ECMAScript code. If _realmRecord_ corresponds to a ShadowRealm, _newError_ object must be subject to censorship in the same way Errors originated from _realmRecord_ are censored. Regardless of the _realmRecord_, the implementation must not include object references to _originalError_ or its associated realm in the stack information exposed to the program.
+			Host environments may provide implementation-specific message value and stack information for introspection APIs. CreateTypeErrorCopy abstract operation must not cause any ECMAScript code execution. The implementation may store additional information on _originalError_ to produce the _newError_'s message and stack information. If _realmRecord_ corresponds to a ShadowRealm, _newError_ object must be subject to censorship in the same way Errors originated from _realmRecord_ are censored. Regardless of the _realmRecord_, the implementation must not include object references to _originalError_ or its associated realm in the stack information exposed to the program.
 		</p>
 	</emu-clause>
 
