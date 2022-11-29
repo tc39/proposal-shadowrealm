@@ -126,11 +126,11 @@ This proposal does not aim to provide host hooks, or any other mechanism to cont
 
 The ShadowRealm proposal does not aim to provide availability protection as it is designed to share the same thread to allow synchronous communication between Realms.
 
-It does not provide full protection for confidentiality, as such, a ShadowRealm instance provides access to APIs that can be used to infer information and sense the timing from the environment in various ways.
+It does not provide full protection for confidentiality, as such, a ShadowRealm instance initially provides access to APIs that can be used to infer information and sense the timing from the environment in various ways.
 
 ### <a name='Operation'></a>How does a ShadowRealm operate?
 
-A ShadowRealm execute code with the same JavaScript heap as the surrounding context where the ShadowRealm instance is created. Code runs synchronously in the same thread. Note: The surrounding context is often referenced as the _incubator realm_ within this proposal.
+A ShadowRealm executes code with the same JavaScript heap as the surrounding context where the ShadowRealm instance is created. Code runs synchronously in the same thread. Note: The surrounding context is often referenced as the _incubator realm_ within this proposal.
 
 Same-origin iframes also create a new global object which is synchronously accessible. A ShadowRealm differ from same-origin iframes by omitting Web APIs such as the DOM, and async config for code injected through dynamic imports. Problems related to identity discontinuity exist in iframes but are not a possibility in a ShadowRealm as object values are not transferred cross-realms in user land. The only connection exists internally through wrapped functions.
 
@@ -138,7 +138,7 @@ Sites like Salesforce.com make extensive use of same-origin iframes to create su
 
 - Frameworks would be able to better craft the available API within the global object of the ShadowRealm, aiming for what is necessary to evaluate the program.
 - Tailoring up [the exposed set of APIs into the code](#VirtualizedEnvironment) within the ShadowRealm provides a better developer experience for a less expensive work compared to tailoring down a full set of exposed APIs - e.g. iframes - that includes handling presence of `[LegacyUnforgeable]` attributes like `window.top`.
-- We hope the usage of a ShadowRealm will be somewhat lighter weight (both in terms of memory and CPU) for the browser if compared to iframes, especially when frameworks rely on several Realms in the same application.
+- We hope the resources used for a ShadowRealm will be somewhat lighter weight (both in terms of memory and CPU) for the browser when compared to an iframe, especially when frameworks rely on several Realms in the same application.
 - A ShadowRealm is not accessible from by traversing the DOM of the incubator realm. This will be an ideal and/or better approach compared to attaching iframes elements and their contentWindow to the DOM. [Detaching iframes](#Iframes) would also add new set of problems.
 - A newly created shadowRealm does not have immediate access to any object from the incubator realm - and vice-versa - and won't have access to `window.top` as iframes would.
 
@@ -245,9 +245,11 @@ A concrete example of this is plugin system to implement heavy matrix computatio
 
 ### ⚠️ <a name='Confidentiality'></a>Confidentiality Protection
 
-Confidentiality, also known as Information Hiding or Secrecy, cannot be fully guarantee by the ShadowRealm API. On the Web, two good examples of confidentiality violations are fingerprinting, and privacy violations.
+Confidentiality, also known as Information Hiding or Secrecy, cannot be fully guaranteed by the ShadowRealm API. On the Web, two good examples of confidentiality violations are fingerprinting, and privacy violations.
 
-To provide Confidentiality, no one can infer information they are not supposed to know. The most pernicious threats to confidentiality are side channels like Meltdown and [Spectre](https://leaky.page/), where code running inside a ShadowRealm can infer incubator realm’s secrets from timing differences. The ShadowRealm API by itself cannot protect confidentially, unless that it is combined with mechanisms to prevent the measurement of duration and fingerprinting.
+To provide Confidentiality, no one can infer information they are not supposed to know. The most pernicious threats to confidentiality are side channels like Meltdown and [Spectre](https://leaky.page/), where code running inside a ShadowRealm can infer another realm’s secrets from timing differences. The APIs available in a ShadowRealm may also be used to infer information about the environment of the user, which is commonly known as fingerprinting.
+
+The ShadowRealm API can however be used as a building block towards providing confidentiality protections, for example when combined with inescapable mechanisms that prevent the measurement of duration, and remove fingerprinting surfaces.
 
 ## <a name='UseCases'></a>Use Cases
 
@@ -561,13 +563,13 @@ iframeWindow.top;
 
 ## <a name='FAQ'></a>FAQ
 
-### So do the ShadowRealm API only have the ECMAScript APIs available?
+### So does the ShadowRealm API only have the ECMAScript APIs available?
 
 It creates a new copy of the built-ins from ECMAScript. Additionally, the host can add other APIs. We have open discussions about additional [HTML properties](https://github.com/tc39/proposal-shadowrealm/issues/284) or [some intrinsics subset](https://github.com/tc39/proposal-shadowrealm/issues/288).
 
 ### Can I use the ShadowRealm API to run code securely?
 
-See the [Security](#Security) section for details.
+It depends on what kind of security protections are required. See the [Security](#Security) section for details.
 
 ### Most libraries won't work unless they add dependencies manually
 
