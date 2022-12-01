@@ -116,6 +116,13 @@ location: https://tc39.es/proposal-shadowrealm/
 		<emu-note type=editor>
 			In the case of an abrupt ~throw~ completion, the type of error to be created should match the type of the abrupt throw completion record. This could be revisited when merging into the main specification. Additionally, in the case of a ~break~ or ~continue~ completion, since those are not supported, a TypeError is expected.
 		</emu-note>
+		<p>
+			If an execution in a ShadowRealm _R1_ oblivious of host or implementation-defined APIs can observe the identity of an object _O1_, a host or implementation-defined API must not allow an execution in any other realm than _R1_ to also observe the identity of _O1_. Similarly if an execution in a realm _R2_ can observe the identity of an object _O2_, a host or implementation-defined API must not allow execution in any other realm than _R2_ that is a ShadowRealm to also observe the identity of _O2_.
+		</p>
+		<emu-note>
+			The text above imposes the callable boundary semantics only when at least one of the two realms involved is a ShadowRealm. Other realms can continue sharing objects whose identities can be observed.
+			Colloquially, the environment must not allow ECMAScript code running in a ShadowRealm to observe the identity of an object from any other realm. Similarly, the environment must not allow ECMAScript code running in a realm to observe the identity of an object from a ShadowRealm.
+		</emu-note>
 	</emu-clause>
 
 	<emu-clause id="sec-create-type-error-copy" type="abstract operation">
