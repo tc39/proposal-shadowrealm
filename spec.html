@@ -121,6 +121,23 @@ location: https://tc39.es/proposal-shadowrealm/
 		</emu-note>
 	</emu-clause>
 
+	<emu-clause id="sec-create-type-error-copy" type="abstract operation">
+		<h1>
+			CreateTypeErrorCopy (
+				_realmRecord_: a Realm Record,
+				_originalError_: an ECMAScript language value
+			): A TypeError object
+		</h1>
+		<emu-alg>
+			1. Let _newError_ be a newly created *TypeError* object.
+			1. NOTE: _newError_ is created in _realmRecord_.
+			1. Return _newError_.
+		</emu-alg>
+		<p>
+			Host environments may provide implementation-specific message value. CreateTypeErrorCopy abstract operation must not cause any ECMAScript code execution. The implementation may store additional information on _originalError_ to produce the _newError_'s message.
+		</p>
+	</emu-clause>
+
 	<emu-clause id="sec-ordinary-wrapped-function-call" type="abstract operation">
 		<h1>
 			OrdinaryWrappedFunctionCall (
@@ -148,7 +165,8 @@ location: https://tc39.es/proposal-shadowrealm/
 			1. If _result_.[[Type]] is ~normal~ or _result_.[[Type]] is ~return~, then
 				1. Return ? GetWrappedValue(_callerRealm_, _result_.[[Value]]).
 			1. Else,
-				1. Throw a *TypeError* exception.
+				1. Let _copiedError_ be CreateTypeErrorCopy(_callerRealm_, _result_.[[Value]]).
+				1. Return ThrowCompletion(_copiedError_).
 		</emu-alg>
 	</emu-clause>
 
@@ -314,7 +332,9 @@ location: https://tc39.es/proposal-shadowrealm/
 					1. Set _result_ to NormalCompletion(*undefined*).
 				1. Suspend _evalContext_ and remove it from the execution context stack.
 				1. Resume the context that is now on the top of the execution context stack as the running execution context.
-				1. If _result_.[[Type]] is not ~normal~, throw a *TypeError* exception.
+				1. If _result_.[[Type]] is not ~normal~, then
+					1. Let _copiedError_ be CreateTypeErrorCopy(_callerRealm_, _result_.[[Value]]).
+					1. Return ThrowCompletion(_copiedError_).
 				1. Return ? GetWrappedValue(_callerRealm_, _result_.[[Value]]).
 			</emu-alg>
 			<emu-note type=editor>
@@ -353,8 +373,10 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Let _steps_ be the steps of an ExportGetter function as described below.
 				1. Let _onFulfilled_ be CreateBuiltinFunction(_steps_, 1, *""*, « [[ExportNameString]] », _callerRealm_).
 				1. Set _onFulfilled_.[[ExportNameString]] to _exportNameString_.
+				1. Let _errorSteps_ be the steps of an ImportValueError function as described below.
+				1. Let _onRejected_ be CreateBuiltinFunction(_errorSteps_, 1, *""*, «», _callerRealm_).
 				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
-				1. Return PerformPromiseThen(_innerCapability_.[[Promise]], _onFulfilled_, _callerRealm_.[[Intrinsics]].[[%ThrowTypeError%]], _promiseCapability_).
+				1. Return PerformPromiseThen(_innerCapability_.[[Promise]], _onFulfilled_, _onRejected_, _promiseCapability_).
 			</emu-alg>
 
 			<p>An ExportGetter function is an anonymous built-in function with a [[ExportNameString]] internal slot. When an ExportGetter function is called with argument _exports_, it performs the following steps:</p>
@@ -368,6 +390,13 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Let _value_ be ? Get(_exports_, _string_).
 				1. Let _realm_ be _f_.[[Realm]].
 				1. Return ? GetWrappedValue(_realm_, _value_).
+			</emu-alg>
+
+			<p>An ImportValueError function is an anonymous built-in function. When an ImportValueError function is called with argument _error_, it performs the following steps:</p>
+			<emu-alg>
+				1. Let _realmRecord_ be the function's associated Realm Record.
+				1. Let _copiedError_ be CreateTypeErrorCopy(_realmRecord_, _error_).
+				1. Return ThrowCompletion(_copiedError_).
 			</emu-alg>
 		</emu-clause>
 
