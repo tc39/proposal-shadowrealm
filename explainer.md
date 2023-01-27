@@ -132,17 +132,17 @@ It does not provide full protection for confidentiality, as such, a ShadowRealm 
 
 A ShadowRealm executes code with the same JavaScript heap as the surrounding context where the ShadowRealm instance is created. Code runs synchronously in the same thread. Note: The surrounding context is often referenced as the _incubator realm_ within this proposal.
 
-Same-origin iframes also create a new global object which is synchronously accessible. A ShadowRealm differ from same-origin iframes by omitting Web APIs such as the DOM, and async config for code injected through dynamic imports. Problems related to identity discontinuity exist in iframes but are not a possibility in a ShadowRealm as object values are not transferred cross-realms in user land. The only connection exists internally through wrapped functions.
+Same-origin iframes also create a new global object which is synchronously accessible. A ShadowRealm differs from same-origin iframes by omitting Web APIs such as the DOM, and async config for code injected through dynamic imports. Problems related to identity discontinuity exist in iframes but are not a possibility in a ShadowRealm as object values are not transferred cross-realms in user land. The only connection exists internally through wrapped functions.
 
 Sites like Salesforce.com make extensive use of same-origin iframes to create such global objects. Our experience with same-origin iframes motivated us to steer this proposal forward, which has the following advantages:
 
 - Frameworks would be able to better craft the available API within the global object of the ShadowRealm, aiming for what is necessary to evaluate the program.
 - Tailoring up [the exposed set of APIs into the code](#VirtualizedEnvironment) within the ShadowRealm provides a better developer experience for a less expensive work compared to tailoring down a full set of exposed APIs - e.g. iframes - that includes handling presence of `[LegacyUnforgeable]` attributes like `window.top`.
 - We hope the resources used for a ShadowRealm will be somewhat lighter weight (both in terms of memory and CPU) for the browser when compared to an iframe, especially when frameworks rely on several Realms in the same application.
-- A ShadowRealm is not accessible from by traversing the DOM of the incubator realm. This will be an ideal and/or better approach compared to attaching iframes elements and their contentWindow to the DOM. [Detaching iframes](#Iframes) would also add new set of problems.
+- A ShadowRealm is not accessible by traversing the DOM of the incubator realm. This will be an ideal and/or better approach compared to attaching iframes elements and their contentWindow to the DOM. [Detaching iframes](#Iframes) would also add new set of problems.
 - A newly created shadowRealm does not have immediate access to any object from the incubator realm - and vice-versa - and won't have access to `window.top` as iframes would.
 
-The ShadowRealm API is complementary to stronger isolation APIs such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. A ShadowRealm instance can avoid often-prohibitive serialization overhead by using a common heap to the surrounding context.
+The ShadowRealm API is complementary to stronger isolation APIs such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. A ShadowRealm instance can avoid often-prohibitive serialization overhead by using a common heap as the surrounding context.
 
 The ShadowRealm API does __not__ introduce a new evaluation mechanism. The code evaluation is subject to the [same restrictions of the incubator realm via CSP](#Evaluation), or any other restriction in Node.
 
@@ -234,7 +234,7 @@ A concrete example of this is the Google's AMP current mechanism:
 
 ### ⛔️ <a name='Availability'></a>Availability Protection
 
-A ShadowRealm shares the same process with its incubator Realm. While direct cross-realm object access is prevented via the callable boundary, the ShadowRealm API was design to share a heap and thus a process. This is what allows the synchronous communication between the incubator realm and the ShadowRealm instance. This means all those resources are shared, preventing the ShadowRealm or the incubator realm to provide any guarantees in terms of liveness or progress. In other words, code running in a ShadowRealm can produce resource exhaustion, or excessive allocation of memory that can prevent the incubator realm to proceed.
+A ShadowRealm shares the same process with its incubator Realm. While direct cross-realm object access is prevented via the callable boundary, the ShadowRealm API was design to share a heap and thus a process. This is what allows the synchronous communication between the incubator realm and the ShadowRealm instance. This means all those resources are shared, preventing the ShadowRealm or the incubator realm from providing any guarantees in terms of liveness or progress. In other words, code running in a ShadowRealm can produce resource exhaustion, or excessive allocation of memory that can prevent the incubator realm from proceeding.
 
 A concrete example of this is plugin system to implement heavy matrix computations:
 
