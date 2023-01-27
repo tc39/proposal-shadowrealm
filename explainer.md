@@ -142,7 +142,7 @@ Sites like Salesforce.com make extensive use of same-origin iframes to create su
 - A ShadowRealm is not accessible by traversing the DOM of the incubator realm. This will be an ideal and/or better approach compared to attaching iframes elements and their contentWindow to the DOM. [Detaching iframes](#Iframes) would also add new set of problems.
 - A newly created shadowRealm does not have immediate access to any object from the incubator realm - and vice-versa - and won't have access to `window.top` as iframes would.
 
-The ShadowRealm API is complementary to stronger isolation APIs such as Workers and cross-origin iframes. They are useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. A ShadowRealm instance can avoid often-prohibitive serialization overhead by using a common heap as the surrounding context.
+The ShadowRealm API is complementary to stronger isolation APIs such as Workers and cross-origin iframes. The API is useful for contexts where synchronous execution is an essential requirement, e.g., emulating the DOM for integration with third-party code. A ShadowRealm instance can avoid often-prohibitive serialization overhead by using a common heap as the surrounding context.
 
 The ShadowRealm API does __not__ introduce a new evaluation mechanism. The code evaluation is subject to the [same restrictions of the incubator realm via CSP](#Evaluation), or any other restriction in Node.
 
