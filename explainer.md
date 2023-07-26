@@ -35,7 +35,7 @@
 
 The ShadowRealm proposal provides a new mechanism to execute JavaScript code within the context of a new global object and set of JavaScript built-ins.
 
-The API enables control over the execution of different programs within a Realm, providing a proper mechanism for virtualization. This is not possible in the Web Platform today and the proposed API is aimed to a seamless solution for all JS enviroments.
+The API enables control over the execution of different programs within a Realm, providing a proper mechanism for virtualization. This is not possible in the Web Platform today and the proposed API is aimed to a seamless solution for all JS environments.
 
 There are various examples where the ShadowRealm API can be well applied to:
 
@@ -53,7 +53,7 @@ As detailed in the [Security](#Security) section, the ShadowRealm API is not a f
 
 ## <a name='APITypeScriptFormat'></a>API (TypeScript Format)
 
-This is The ShadowRealm API description in TypeScript format:
+This is the ShadowRealm API description in TypeScript format:
 
 ```ts
 declare class ShadowRealm {
@@ -75,12 +75,12 @@ The proposed specification defines:
 ```javascript
 const red = new ShadowRealm();
 
-// realms can import modules that will execute within it's own environment.
+// realms can import modules that will execute within its own environment.
 // When the module is resolved, it captured the binding value, or creates a new
 // wrapped function that is connected to the callable binding.
 const redAdd = await red.importValue('./inside-code.js', 'add');
 
-// redAdd is a wrapped function exotic object that chains it's call to the
+// redAdd is a wrapped function exotic object that chains its call to the
 // respective imported binding.
 let result = redAdd(2, 3);
 
@@ -106,11 +106,11 @@ console.assert(result === 16); // yields true
 
 ## <a name='Motivations'></a>Motivations
 
-It's quite common for applications to contain programs from multiple sources, whether from different teams, vendors, package managers, etc, or just programs with different set of requirements from the environment.
+It's quite common for applications to contain programs from multiple sources, whether from different teams, vendors, package managers, etc., or just programs with different set of requirements from the environment.
 
 These programs must currently contend for the global shared resources, specifically, the shared global object, and the side effect of executing those programs are often hard to observe, causing conflicts between the different programs, and potentially affecting the integrity of the app itself.
 
-Attempting to solve these problems with existing DOM APIs will require to implement an asynchronous communication protocol, which is often a deal-breaker for many use cases. It usually just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be serialized before it's sent back and forth.
+Attempting to solve these problems with existing DOM APIs will require implementing an asynchronous communication protocol, which is often a deal-breaker for many use cases. It usually just adds complexity for cases where a same-process Realm is sufficient. It's also very important that values can be immediately shared. Other communications require data to be serialized before it's sent back and forth.
 
 __The primary goal of this proposal is to provide a proper mechanism to control the execution of a program, providing a new global object, a new set of intrinsics, no access to objects cross-realms, a separate module graph and synchronous communication between both realms__.
 
