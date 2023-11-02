@@ -448,7 +448,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<li>is the initial value of the *"ShadowRealm"* property of the global object.</li>
 			<li>is not intended to be called as a function and will throw an exception when called in that manner.</li>
 			<li>creates and initializes a new ShadowRealm object when called as a constructor.</li>
-			<li>is designed to be subclassable. It may be used as the value in an `extends` clause of a class definition. Subclass constructors that intend to inherit the specified `ShadowRealm` behaviour must include a `super` call to the `ShadowRealm` constructor to create and initialize the subclass instance with the internal state necessary to support the `ShadowRealm.prototype` built-in methods.</li>
+			<li>may be used as the value in an `extends` clause of a class definition. Subclass constructors that intend to inherit the specified ShadowRealm behaviour must include a `super` call to the ShadowRealm constructor to create and initialize a subclass instance with the internal state necessary to support the `ShadowRealm.prototype` built-in methods.</li>
 		</ul>
 
 		<emu-clause id="sec-shadowrealm">
