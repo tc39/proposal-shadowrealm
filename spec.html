@@ -388,7 +388,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Assert: _exports_ is a module namespace exotic object.
 				1. Let _f_ be the active function object.
 				1. Let _string_ be _f_.[[ExportNameString]].
-				1. Assert: Type(_string_) is String.
+				1. Assert: _string_ is a String.
 				1. Let _hasOwn_ be ? HasOwnProperty(_exports_, _string_).
 				1. If _hasOwn_ is *false*, throw a *TypeError* exception.
 				1. Let _value_ be ? Get(_exports_, _string_).
@@ -416,7 +416,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				<dd>...</dd>
 			</dl>
 			<emu-alg>
-				1. If Type(_value_) is Object, then
+				1. If _value_ is an Object, then
 					1. If IsCallable(_value_) is *false*, throw a *TypeError* exception.
 					1. Return ? WrappedFunctionCreate(_callerRealm_, _value_).
 				1. Return _value_.
@@ -505,7 +505,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<emu-alg>
 				1. Let _O_ be the *this* value.
 				1. Perform ? ValidateShadowRealmObject(_O_).
-				1. If Type(_sourceText_) is not String, throw a *TypeError* exception.
+				1. If _sourceText_ is not a String, throw a *TypeError* exception.
 				1. Let _callerRealm_ be the current Realm Record.
 				1. Let _evalRealm_ be _O_.[[ShadowRealm]].
 				1. Return ? PerformShadowRealmEval(_sourceText_, _callerRealm_, _evalRealm_).
@@ -523,7 +523,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Let _O_ be the *this* value.
 				1. Perform ? ValidateShadowRealmObject(_O_).
 				1. Let _specifierString_ be ? ToString(_specifier_).
-				1. If Type(_exportName_) is not String, throw a *TypeError* exception.
+				1. If _exportName_ is not a String, throw a *TypeError* exception.
 				1. Let _callerRealm_ be the current Realm Record.
 				1. Let _evalContext_ be _O_.[[ExecutionContext]].
 				1. Return ? ShadowRealmImportValue(_specifierString_, _exportName_, _callerRealm_, _evalContext_).
