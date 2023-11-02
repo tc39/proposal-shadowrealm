@@ -237,7 +237,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				<dd>...</dd>
 			</dl>
 			<emu-alg>
-				1. If _argCount_ is *undefined*, set _argCount_ to 0.
+				1. If _argCount_ is not present, set _argCount_ to 0.
 				1. Let _L_ be 0.
 				1. Let _targetHasLength_ be ? HasOwnProperty(_Target_, *"length"*).
 				1. If _targetHasLength_ is *true*, then
@@ -254,7 +254,10 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Perform SetFunctionLength(_F_, _L_).
 				1. Let _targetName_ be ? Get(_Target_, *"name"*).
 				1. If _targetName_ is not a String, set _targetName_ to the empty String.
-				1. Perform SetFunctionName(_F_, _targetName_, _prefix_).
+				1. If _prefix_ is present, then
+					1. Perform SetFunctionName(_F_, _targetName_, _prefix_).
+				1. Else,
+					1. Perform SetFunctionName(_F_, _targetName_).
 			</emu-alg>
 
 			<emu-note type=editor>
