@@ -374,7 +374,8 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Let _runningContext_ be the running execution context.
 				1. If _runningContext_ is not already suspended, suspend _runningContext_.
 				1. Push _evalContext_ onto the execution context stack; _evalContext_ is now the running execution context.
-				1. Perform HostImportModuleDynamically(*null*, _specifierString_, _innerCapability_).
+				1. Let _referrer_ be the Realm component of _evalContext_.
+				1. Perform HostLoadImportedModule(_referrer_, _specifierString_, ~empty~, _innerCapability_).
 				1. Suspend _evalContext_ and remove it from the execution context stack.
 				1. Resume the context that is now on the top of the execution context stack as the running execution context.
 				1. Let _steps_ be the algorithm steps defined in <emu-xref href="#sec-export-getter-functions" title></emu-xref>.
