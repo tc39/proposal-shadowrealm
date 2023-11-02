@@ -97,7 +97,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			[[Call]] (
 				_thisArgument_: an ECMAScript language value,
 				_argumentsList_: a List of ECMAScript language values,
-			)
+			): either a normal completion containing either a primitive value or a wrapped function exotic object, or a throw completion
 		</h1>
 		<dl class="header">
 			<dt>for</dt>
@@ -123,7 +123,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			CreateTypeErrorCopy (
 				_realmRecord_: a Realm Record,
 				_originalError_: an ECMAScript language value
-			): A TypeError object
+			): a *TypeError* object
 		</h1>
 		<dl class="header">
 		</dl>
@@ -143,7 +143,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				_F_: a wrapped function exotic object,
 				_thisArgument_: an ECMAScript language value,
 				_argumentsList_: a List of ECMAScript language values,
-			)
+			): either a normal completion containing either a primitive value or a wrapped function exotic object, or a throw completion
 		</h1>
 		<dl class="header">
 			<dt>description</dt>
@@ -173,7 +173,7 @@ location: https://tc39.es/proposal-shadowrealm/
 		<h1>
 			PrepareForWrappedFunctionCall (
 				_F_: a wrapped function exotic object,
-			)
+			): an execution context
 		</h1>
 		<dl class="header">
 			<dt>description</dt>
@@ -204,7 +204,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				WrappedFunctionCreate (
 					_callerRealm_: a Realm Record,
 					_Target_: a function object,
-				)
+				): either a normal completion containing a wrapped function exotic object, or a throw completion
 			</h1>
 			<dl class="header">
 				<dt>description</dt>
@@ -217,7 +217,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Set _wrapped_.[[Call]] as described in <emu-xref href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist"></emu-xref>.
 				1. Set _wrapped_.[[WrappedTargetFunction]] to _Target_.
 				1. Set _wrapped_.[[Realm]] to _callerRealm_.
-				1. Let _result_ be CopyNameAndLength(_wrapped_, _Target_).
+				1. Let _result_ be Completion(CopyNameAndLength(_wrapped_, _Target_)).
 				1. If _result_ is an abrupt completion, throw a *TypeError* exception.
 				1. Return _wrapped_.
 			</emu-alg>
@@ -230,7 +230,7 @@ location: https://tc39.es/proposal-shadowrealm/
 					_Target_: a function object,
 					optional _prefix_: a String,
 					optional _argCount_: a Number,
-				)
+				): either a normal completion containing ~unused~ or a throw completion
 			</h1>
 			<dl class="header">
 				<dt>description</dt>
@@ -302,7 +302,7 @@ location: https://tc39.es/proposal-shadowrealm/
 					_sourceText_: a String,
 					_callerRealm_: a Realm Record,
 					_evalRealm_: a Realm Record,
-				)
+				): either a normal completion containing either a primitive value or a wrapped function exotic object, or a throw completion
 			</h1>
 			<dl class="header">
 				<dt>description</dt>
@@ -362,7 +362,7 @@ location: https://tc39.es/proposal-shadowrealm/
 					_exportNameString_: a String,
 					_callerRealm_: a Realm Record,
 					_evalContext_: an execution context,
-				)
+				): an ECMAScript language value
 			</h1>
 			<dl class="header">
 				<dt>description</dt>
@@ -420,7 +420,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				GetWrappedValue (
 					_callerRealm_: a Realm Record,
 					_value_: an ECMAScript language value,
-				)
+				): either a normal completion containing either a primitive value or an wrapped function exotic object, or a throw completion
 			</h1>
 			<dl class="header">
 				<dt>description</dt>
@@ -438,7 +438,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<h1>
 				ValidateShadowRealmObject (
 					_O_: an ECMAScript value,
-				)
+				): either a normal completion containing ~unused~ or a throw completion
 			</h1>
 			<dl class="header">
 				<dt>description</dt>
@@ -447,6 +447,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<emu-alg>
 				1. Perform ? RequireInternalSlot(_O_, [[ShadowRealm]]).
 				1. Perform ? RequireInternalSlot(_O_, [[ExecutionContext]]).
+				1. Return ~unused~.
 			</emu-alg>
 		</emu-clause>
 	</emu-clause>
@@ -537,7 +538,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. If _exportName_ is not a String, throw a *TypeError* exception.
 				1. Let _callerRealm_ be the current Realm Record.
 				1. Let _evalContext_ be _O_.[[ExecutionContext]].
-				1. Return ? ShadowRealmImportValue(_specifierString_, _exportName_, _callerRealm_, _evalContext_).
+				1. Return ShadowRealmImportValue(_specifierString_, _exportName_, _callerRealm_, _evalContext_).
 			</emu-alg>
 
 			<emu-note type=editor>
@@ -581,15 +582,21 @@ location: https://tc39.es/proposal-shadowrealm/
 
 	<emu-clause id="sec-shadowrealm-host-operations">
 		<h1>Host operations</h1>
-		<emu-clause id="sec-host-initialize-shadow-shadowrealm" aoid="HostInitializeShadowRealm">
-			<h1>Runtime Semantics: HostInitializeShadowRealm ( _realm_ )</h1>
-			<p>
-				HostInitializeShadowRealm is an implementation-defined abstract
-				operation used to inform the host of any newly created realms from
-				the ShadowRealm constructor. Its return value is not used, though it may
-				throw an exception. The idea of this hook is to initialize host
-				data structures related to the ShadowRealm, e.g., for module loading.
-			</p>
+		<emu-clause id="sec-hostinitializeshadowrealm" type="host-defined abstract operation">
+			<h1>
+				HostInitializeShadowRealm (
+					_realm_: a Realm Record,
+				): either a normal completion containing ~unused~ or a throw completion
+			</h1>
+			<dl class="header">
+				<dt>description</dt>
+				<dd>
+					It is used to inform the host of any newly created realms from the
+					ShadowRealm constructor.
+					The idea of this hook is to initialize host data structures related
+					to the ShadowRealm, e.g., for module loading.
+				</dd>
+			</dl>
 			<p>
 				The host may use this hook to add properties to the ShadowRealm's global
 				object. Those properties must be configurable.
