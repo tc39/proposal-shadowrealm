@@ -377,34 +377,42 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Perform HostImportModuleDynamically(*null*, _specifierString_, _innerCapability_).
 				1. Suspend _evalContext_ and remove it from the execution context stack.
 				1. Resume the context that is now on the top of the execution context stack as the running execution context.
-				1. Let _steps_ be the steps of an ExportGetter function as described below.
+				1. Let _steps_ be the algorithm steps defined in <emu-xref href="#sec-export-getter-functions" title></emu-xref>.
 				1. Let _onFulfilled_ be CreateBuiltinFunction(_steps_, 1, *""*, « [[ExportNameString]] », _callerRealm_).
 				1. Set _onFulfilled_.[[ExportNameString]] to _exportNameString_.
-				1. Let _errorSteps_ be the steps of an ImportValueError function as described below.
+				1. Let _errorSteps_ be the algorithm steps defined in <emu-xref href="#sec-import-value-error-functions" title></emu-xref>.
 				1. Let _onRejected_ be CreateBuiltinFunction(_errorSteps_, 1, *""*, «», _callerRealm_).
 				1. Let _promiseCapability_ be ! NewPromiseCapability(%Promise%).
 				1. Return PerformPromiseThen(_innerCapability_.[[Promise]], _onFulfilled_, _onRejected_, _promiseCapability_).
 			</emu-alg>
 
-			<p>An ExportGetter function is an anonymous built-in function with a [[ExportNameString]] internal slot. When an ExportGetter function is called with argument _exports_, it performs the following steps:</p>
-			<emu-alg>
-				1. Assert: _exports_ is a module namespace exotic object.
-				1. Let _f_ be the active function object.
-				1. Let _string_ be _f_.[[ExportNameString]].
-				1. Assert: _string_ is a String.
-				1. Let _hasOwn_ be ? HasOwnProperty(_exports_, _string_).
-				1. If _hasOwn_ is *false*, throw a *TypeError* exception.
-				1. Let _value_ be ? Get(_exports_, _string_).
-				1. Let _realm_ be _f_.[[Realm]].
-				1. Return ? GetWrappedValue(_realm_, _value_).
-			</emu-alg>
+			<emu-clause id="sec-export-getter-functions">
+				<h1>ExportGetter functions</h1>
+				<p>An ExportGetter function is an anonymous built-in function that has an [[ExportNameString]] internal slot.</p>
+				<p>When an ExportGetter function is called with argument _exports_, it performs the following steps:</p>
+				<emu-alg>
+					1. Assert: _exports_ is a module namespace exotic object.
+					1. Let _f_ be the active function object.
+					1. Let _string_ be _f_.[[ExportNameString]].
+					1. Assert: _string_ is a String.
+					1. Let _hasOwn_ be ? HasOwnProperty(_exports_, _string_).
+					1. If _hasOwn_ is *false*, throw a *TypeError* exception.
+					1. Let _value_ be ? Get(_exports_, _string_).
+					1. Let _realm_ be _f_.[[Realm]].
+					1. Return ? GetWrappedValue(_realm_, _value_).
+				</emu-alg>
+			</emu-clause>
 
-			<p>An ImportValueError function is an anonymous built-in function. When an ImportValueError function is called with argument _error_, it performs the following steps:</p>
-			<emu-alg>
-				1. Let _realmRecord_ be the function's associated Realm Record.
-				1. Let _copiedError_ be CreateTypeErrorCopy(_realmRecord_, _error_).
-				1. Return ThrowCompletion(_copiedError_).
-			</emu-alg>
+			<emu-clause id="sec-import-value-error-functions">
+				<h1>ImportValueError functions</h1>
+				<p>An ImportValueError function is an anonymous built-in function.</p>
+				<p>When an ImportValueError function is called with argument _error_, it performs the following steps:</p>
+				<emu-alg>
+					1. Let _realmRecord_ be the function's associated Realm Record.
+					1. Let _copiedError_ be CreateTypeErrorCopy(_realmRecord_, _error_).
+					1. Return ThrowCompletion(_copiedError_).
+				</emu-alg>
+			</emu-clause>
 		</emu-clause>
 
 		<emu-clause id="sec-getwrappedvalue" type="abstract operation">
