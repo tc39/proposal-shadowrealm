@@ -242,10 +242,10 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Let _targetHasLength_ be ? HasOwnProperty(_Target_, *"length"*).
 				1. If _targetHasLength_ is *true*, then
 					1. Let _targetLen_ be ? Get(_Target_, *"length"*).
-					1. If Type(_targetLen_) is Number, then
-						1. If _targetLen_ is *+&infin;*<sub>𝔽</sub>, then
-							1. Set _L_ to +&infin;.
-						1. Else if _targetLen_ is *-&infin;*<sub>𝔽</sub>, then
+					1. If _targetLen_ is a Number, then
+						1. If _targetLen_ is *+∞*<sub>𝔽</sub>, then
+							1. Set _L_ to +∞.
+						1. Else if _targetLen_ is *-∞*<sub>𝔽</sub>, then
 							1. Set _L_ to 0.
 						1. Else,
 							1. Let _targetLenAsInt_ be ! ToIntegerOrInfinity(_targetLen_).
@@ -253,7 +253,7 @@ location: https://tc39.es/proposal-shadowrealm/
 							1. Set _L_ to max(_targetLenAsInt_ - _argCount_, 0).
 				1. Perform SetFunctionLength(_F_, _L_).
 				1. Let _targetName_ be ? Get(_Target_, *"name"*).
-				1. If Type(_targetName_) is not String, set _targetName_ to the empty String.
+				1. If _targetName_ is not a String, set _targetName_ to the empty String.
 				1. Perform SetFunctionName(_F_, _targetName_, _prefix_).
 			</emu-alg>
 
@@ -263,7 +263,7 @@ location: https://tc39.es/proposal-shadowrealm/
 
 			<emu-clause id="sec-function.prototype.bind">
 				<h1>Function.prototype.bind ( _thisArg_, ..._args_ )</h1>
-				<p>When the `bind` method is called with argument _thisArg_ and zero or more _args_, it performs the following steps:</p>
+				<p>This method performs the following steps when called:</p>
 				<emu-alg>
 					1. Let _Target_ be the *this* value.
 					1. If IsCallable(_Target_) is *false*, throw a *TypeError* exception.
@@ -274,9 +274,11 @@ location: https://tc39.es/proposal-shadowrealm/
 					1. <del>Let _targetHasLength_ be ? HasOwnProperty(_Target_, *"length"*).</del>
 					1. <del>If _targetHasLength_ is *true*, then</del>
 						1. <del>Let _targetLen_ be ? Get(_Target_, *"length"*).</del>
-						1. <del>If Type(_targetLen_) is Number, then</del>
-							1. <del>If _targetLen_ is *+&infin;*<sub>𝔽</sub>, set _L_ to +&infin;.</del>
-							1. <del>Else if _targetLen_ is *-&infin;*<sub>𝔽</sub>, set _L_ to 0.</del>
+						1. <del>If _targetLen_ is a Number, then</del>
+							1. <del>If _targetLen_ is *+∞*<sub>𝔽</sub>, then</del>
+								1. <del>Set _L_ to +∞.</del>
+							1. <del>Else if _targetLen_ is *-∞*<sub>𝔽</sub>, then</del>
+								1. <del>Set _L_ to 0.</del>
 							1. <del>Else,</del>
 								1. <del>Let _targetLenAsInt_ be ! ToIntegerOrInfinity(_targetLen_).</del>
 								1. <del>Assert: _targetLenAsInt_ is finite.</del>
@@ -284,7 +286,7 @@ location: https://tc39.es/proposal-shadowrealm/
 								1. <del>Set _L_ to max(_targetLenAsInt_ - _argCount_, 0).</del>
 					1. <del>Perform SetFunctionLength(_F_, _L_).</del>
 					1. <del>Let _targetName_ be ? Get(_Target_, *"name"*).</del>
-					1. <del>If Type(_targetName_) is not String, set _targetName_ to the empty String.</del>
+					1. <del>If _targetName_ is not a String, set _targetName_ to the empty String.</del>
 					1. <del>Perform SetFunctionName(_F_, _targetName_, *"bound"*).</del>
 					1. Return _F_.
 				</emu-alg>
