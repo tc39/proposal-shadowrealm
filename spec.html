@@ -2,9 +2,6 @@
 <html lang="en-GB-oxendict">
 <head>
 <meta charset="utf8">
-<link href="ecmarkup.css" rel="stylesheet">
-<script src="ecmarkup.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/solarized-light.min.css">
 </head>
 
 <body>
@@ -246,8 +243,10 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. If _targetHasLength_ is *true*, then
 					1. Let _targetLen_ be ? Get(_Target_, *"length"*).
 					1. If Type(_targetLen_) is Number, then
-						1. If _targetLen_ is *+&infin;*<sub>𝔽</sub>, set _L_ to +&infin;.
-						1. Else if _targetLen_ is *-&infin;*<sub>𝔽</sub>, set _L_ to 0.
+						1. If _targetLen_ is *+&infin;*<sub>𝔽</sub>, then
+							1. Set _L_ to +&infin;.
+						1. Else if _targetLen_ is *-&infin;*<sub>𝔽</sub>, then
+							1. Set _L_ to 0.
 						1. Else,
 							1. Let _targetLenAsInt_ be ! ToIntegerOrInfinity(_targetLen_).
 							1. Assert: _targetLenAsInt_ is finite.

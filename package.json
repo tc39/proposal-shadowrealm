@@ -30,6 +30,6 @@
   },
   "devDependencies": {
     "@tc39/ecma262-biblio": "=2.1.2336",
-    "ecmarkup": "^15.0.0"
+    "ecmarkup": "^18.0.0"
   }
 }
