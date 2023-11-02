@@ -221,7 +221,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Set _wrapped_.[[WrappedTargetFunction]] to _Target_.
 				1. Set _wrapped_.[[Realm]] to _callerRealm_.
 				1. Let _result_ be CopyNameAndLength(_wrapped_, _Target_).
-				1. If _result_ is an Abrupt Completion, throw a *TypeError* exception.
+				1. If _result_ is an abrupt completion, throw a *TypeError* exception.
 				1. Return _wrapped_.
 			</emu-alg>
 		</emu-clause>
@@ -406,7 +406,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<h1>
 				GetWrappedValue (
 					_callerRealm_: a Realm Record,
-					_value_: an ECMAScript value,
+					_value_: an ECMAScript language value,
 				)
 			</h1>
 			<dl class="header">
@@ -489,19 +489,19 @@ location: https://tc39.es/proposal-shadowrealm/
 		<h1>Properties of the ShadowRealm Prototype Object</h1>
 		<p>The ShadowRealm prototype object:</p>
 		<ul>
-			<li>has a [[Prototype]] internal slot whose value is <dfn>%Object.prototype%</dfn>.</li>
-			<li>is %ShadowRealm.prototype%.</li>
+			<li>has a [[Prototype]] internal slot whose value is %Object.prototype%.</li>
+			<li>is <dfn>%ShadowRealm.prototype%</dfn>.</li>
 			<li>is an ordinary object.</li>
-			<li>does not have a [[ShadowRealm]] or any other of the internal slots that are specific to _Realm_ instance objects.</li>
+			<li>does not have a [[ShadowRealm]] or any other of the internal slots that are specific to ShadowRealm instance objects.</li>
 		</ul>
 
 		<emu-clause id="sec-shadowrealm.prototype.evaluate">
 			<h1>ShadowRealm.prototype.evaluate ( _sourceText_ )</h1>
 
-			<p>Synchronously execute a top-level script. The _sourceText_ is interpreted as a Script and evaluated with this bound to the shadowrealm's global object.</p>
+			<p>Synchronously execute a top-level script. The _sourceText_ is interpreted as a Script and evaluated with this bound to the ShadowRealm's global object.</p>
 
 			<emu-alg>
-				1. Let _O_ be *this* value.
+				1. Let _O_ be the *this* value.
 				1. Perform ? ValidateShadowRealmObject(_O_).
 				1. If Type(_sourceText_) is not String, throw a *TypeError* exception.
 				1. Let _callerRealm_ be the current Realm Record.
@@ -518,7 +518,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<h1>ShadowRealm.prototype.importValue ( _specifier_, _exportName_ )</h1>
 			<p>The following steps are performed:</p>
 			<emu-alg>
-				1. Let _O_ be *this* value.
+				1. Let _O_ be the *this* value.
 				1. Perform ? ValidateShadowRealmObject(_O_).
 				1. Let _specifierString_ be ? ToString(_specifier_).
 				1. If Type(_exportName_) is not String, throw a *TypeError* exception.
@@ -541,7 +541,7 @@ location: https://tc39.es/proposal-shadowrealm/
 
 	<emu-clause id="sec-properties-of-shadowrealm-instances">
 		<h1>Properties of ShadowRealm Instances</h1>
-		<p>ShadowRealm instances are ordinary objects that inherit properties from the ShadowRealm prototype object (the intrinsic, %ShadowRealm.prototype%). ShadowRealm instances are initially created with the internal slots described in <emu-xref href="#table-internal-slots-of-shadowrealm-instances"></emu-xref>.</p>
+		<p>ShadowRealm instances are ordinary objects that inherit properties from the ShadowRealm prototype object (the intrinsic %ShadowRealm.prototype%). ShadowRealm instances are initially created with the internal slots described in <emu-xref href="#table-internal-slots-of-shadowrealm-instances"></emu-xref>.</p>
 
 		<emu-table id="table-internal-slots-of-shadowrealm-instances" caption="Internal Slots of ShadowRealm Instances">
 			<table>
@@ -588,12 +588,12 @@ location: https://tc39.es/proposal-shadowrealm/
 					interfaces are included. The Web Platform and Web-like
 					environments may decide to include `EventTarget`,
 					`atob`, `TextEncoder`, `URL`, etc. while at the same time not
-					including `HTMLElement`, `console`, `localStorage`, `fetch`, etc..
+					including `HTMLElement`, `console`, `localStorage`, `fetch`, etc.
 				</p>
 			</emu-note>
 			<emu-note type=editor>
 				<p>
-					The ShadowRealm constructor (<emu-xref href="#sec-shadowrealm"></emu-xref>
+					The ShadowRealm constructor (<emu-xref href="#sec-shadowrealm"></emu-xref>)
 					creates a new global object as an ordinary object. This
 					means all properties from the global object are deletable.
 				</p>
