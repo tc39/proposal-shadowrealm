@@ -353,6 +353,14 @@ function Menu() {
   this._pinnedIds = {};
   this.loadPinEntries();
 
+  // unpin all button
+  document
+    .querySelector('#menu-pins .unpin-all')
+    .addEventListener('click', this.unpinAll.bind(this));
+
+  // individual unpinning buttons
+  this.$pinList.addEventListener('click', this.pinListClick.bind(this));
+
   // toggle menu
   this.$toggle.addEventListener('click', this.toggle.bind(this));
 
@@ -402,8 +410,8 @@ Menu.prototype.documentKeydown = function (e) {
   e.stopPropagation();
   if (e.keyCode === 80) {
     this.togglePinEntry();
-  } else if (e.keyCode > 48 && e.keyCode < 58) {
-    this.selectPin(e.keyCode - 49);
+  } else if (e.keyCode >= 48 && e.keyCode < 58) {
+    this.selectPin((e.keyCode - 9) % 10);
   }
 };
 
@@ -565,6 +573,7 @@ Menu.prototype.addPinEntry = function (id) {
     return;
   }
 
+  let text;
   if (entry.type === 'clause') {
     let prefix;
     if (entry.number) {
@@ -573,10 +582,13 @@ Menu.prototype.addPinEntry = function (id) {
       prefix = '';
     }
     // prettier-ignore
-    this.$pinList.innerHTML += `<li><a href="${makeLinkToId(entry.id)}">${prefix}${entry.titleHTML}</a></li>`;
+    text = `${prefix}${entry.titleHTML}`;
   } else {
-    this.$pinList.innerHTML += `<li><a href="${makeLinkToId(entry.id)}">${getKey(entry)}</a></li>`;
+    text = getKey(entry);
   }
+
+  let link = `<a href="${makeLinkToId(entry.id)}">${text}</a>`;
+  this.$pinList.innerHTML += `<li data-section-id="${id}">${link}<button class="unpin">\u{2716}</button></li>`;
 
   if (Object.keys(this._pinnedIds).length === 0) {
     this.showPins();
@@ -586,7 +598,7 @@ Menu.prototype.addPinEntry = function (id) {
 };
 
 Menu.prototype.removePinEntry = function (id) {
-  let item = this.$pinList.querySelector(`a[href="${makeLinkToId(id)}"]`).parentNode;
+  let item = this.$pinList.querySelector(`li[data-section-id="${id}"]`);
   this.$pinList.removeChild(item);
   delete this._pinnedIds[id];
   if (Object.keys(this._pinnedIds).length === 0) {
@@ -594,6 +606,21 @@ Menu.prototype.removePinEntry = function (id) {
   }
 
   this.persistPinEntries();
+};
+
+Menu.prototype.unpinAll = function () {
+  for (let id of Object.keys(this._pinnedIds)) {
+    this.removePinEntry(id);
+  }
+};
+
+Menu.prototype.pinListClick = function (event) {
+  if (event?.target?.classList.contains('unpin')) {
+    let id = event.target.parentNode.dataset.sectionId;
+    if (id) {
+      this.removePinEntry(id);
+    }
+  }
 };
 
 Menu.prototype.persistPinEntries = function () {
@@ -1528,7 +1555,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 let sdoMap = JSON.parse(`{}`);
-let biblio = JSON.parse(`{"refsByClause":{"sec-well-known-intrinsic-objects":["_ref_0","_ref_8"],"sec-wrapped-function-exotic-objects":["_ref_1","_ref_9","_ref_10","_ref_11","_ref_12"],"sec-wrappedfunctioncreate":["_ref_2","_ref_3","_ref_24","_ref_25"],"sec-shadowrealmimportvalue":["_ref_4","_ref_5"],"sec-properties-of-shadowrealm-instances":["_ref_6","_ref_40"],"sec-hostinitializeshadowrealm":["_ref_7"],"sec-wrapped-function-exotic-objects-call-thisargument-argumentslist":["_ref_13","_ref_14","_ref_15","_ref_16"],"sec-ordinary-wrapped-function-call":["_ref_17","_ref_18","_ref_19","_ref_20","_ref_21","_ref_22"],"sec-prepare-for-wrapped-function-call":["_ref_23"],"sec-function.prototype.bind":["_ref_26"],"sec-performshadowrealmeval":["_ref_27","_ref_28","_ref_29"],"sec-export-getter-functions":["_ref_30"],"sec-import-value-error-functions":["_ref_31"],"sec-getwrappedvalue":["_ref_32","_ref_33"],"sec-shadowrealm":["_ref_34"],"sec-shadowrealm.prototype":["_ref_35"],"sec-shadowrealm.prototype.evaluate":["_ref_36","_ref_37"],"sec-shadowrealm.prototype.importvalue":["_ref_38","_ref_39"]},"entries":[{"type":"table","id":"table-7","number":1,"caption":"Table 1: Well-known Intrinsic Objects"},{"type":"clause","id":"sec-well-known-intrinsic-objects","titleHTML":"Well-known intrinsic objects","number":"1"},{"type":"term","term":"wrapped function exotic object","id":"wrapped-function-exotic-object","referencingIds":["_ref_9","_ref_10","_ref_11","_ref_13","_ref_14","_ref_17","_ref_18","_ref_23","_ref_24","_ref_27","_ref_32"]},{"type":"table","id":"table-internal-slots-of-wrapped-function-exotic-objects","number":2,"caption":"Table 2: Internal Slots of Wrapped Function Exotic Objects","referencingIds":["_ref_1","_ref_2"]},{"type":"clause","id":"sec-wrapped-function-exotic-objects-call-thisargument-argumentslist","title":"[[Call]] ( thisArgument, argumentsList )","titleHTML":"<var class=\\"field\\">[[Call]]</var> ( <var>thisArgument</var>, <var>argumentsList</var> )","number":"2.1","referencingIds":["_ref_3"]},{"type":"op","aoid":"CreateTypeErrorCopy","refId":"sec-create-type-error-copy"},{"type":"clause","id":"sec-create-type-error-copy","title":"CreateTypeErrorCopy ( realmRecord, originalError )","titleHTML":"CreateTypeErrorCopy ( <var>realmRecord</var>, <var>originalError</var> )","number":"2.2","referencingIds":["_ref_22","_ref_28","_ref_31"]},{"type":"op","aoid":"OrdinaryWrappedFunctionCall","refId":"sec-ordinary-wrapped-function-call"},{"type":"clause","id":"sec-ordinary-wrapped-function-call","title":"OrdinaryWrappedFunctionCall ( F, thisArgument, argumentsList )","titleHTML":"OrdinaryWrappedFunctionCall ( <var>F</var>, <var>thisArgument</var>, <var>argumentsList</var> )","number":"2.3","referencingIds":["_ref_16"]},{"type":"op","aoid":"PrepareForWrappedFunctionCall","refId":"sec-prepare-for-wrapped-function-call"},{"type":"clause","id":"sec-prepare-for-wrapped-function-call","title":"PrepareForWrappedFunctionCall ( F )","titleHTML":"PrepareForWrappedFunctionCall ( <var>F</var> )","number":"2.4","referencingIds":["_ref_15"]},{"type":"clause","id":"sec-wrapped-function-exotic-objects","titleHTML":"Wrapped Function Exotic Objects","number":"2"},{"type":"op","aoid":"WrappedFunctionCreate","refId":"sec-wrappedfunctioncreate"},{"type":"clause","id":"sec-wrappedfunctioncreate","title":"WrappedFunctionCreate ( callerRealm, Target )","titleHTML":"WrappedFunctionCreate ( <var>callerRealm</var>, <var>Target</var> )","number":"3.1.1","referencingIds":["_ref_12","_ref_33"]},{"type":"clause","id":"sec-function.prototype.bind","title":"Function.prototype.bind ( thisArg, ...args )","titleHTML":"Function.prototype.bind ( <var>thisArg</var>, ...<var>args</var> )","number":"3.1.2.1"},{"type":"op","aoid":"CopyNameAndLength","refId":"sec-copynameandlength"},{"type":"clause","id":"sec-copynameandlength","title":"CopyNameAndLength ( F, Target [ , prefix [ , argCount ] ] )","titleHTML":"CopyNameAndLength ( <var>F</var>, <var>Target</var> [ , <var>prefix</var> [ , <var>argCount</var> ] ] )","number":"3.1.2","referencingIds":["_ref_25","_ref_26"]},{"type":"op","aoid":"PerformShadowRealmEval","refId":"sec-performshadowrealmeval"},{"type":"clause","id":"sec-performshadowrealmeval","title":"PerformShadowRealmEval ( sourceText, callerRealm, evalRealm )","titleHTML":"PerformShadowRealmEval ( <var>sourceText</var>, <var>callerRealm</var>, <var>evalRealm</var> )","number":"3.1.3","referencingIds":["_ref_37"]},{"type":"clause","id":"sec-export-getter-functions","titleHTML":"ExportGetter functions","number":"3.1.4.1","referencingIds":["_ref_4"]},{"type":"clause","id":"sec-import-value-error-functions","titleHTML":"ImportValueError functions","number":"3.1.4.2","referencingIds":["_ref_5"]},{"type":"op","aoid":"ShadowRealmImportValue","refId":"sec-shadowrealmimportvalue"},{"type":"clause","id":"sec-shadowrealmimportvalue","title":"ShadowRealmImportValue ( specifierString, exportNameString, callerRealm, evalContext )","titleHTML":"ShadowRealmImportValue ( <var>specifierString</var>, <var>exportNameString</var>, <var>callerRealm</var>, <var>evalContext</var> )","number":"3.1.4","referencingIds":["_ref_39"]},{"type":"op","aoid":"GetWrappedValue","refId":"sec-getwrappedvalue"},{"type":"clause","id":"sec-getwrappedvalue","title":"GetWrappedValue ( callerRealm, value )","titleHTML":"GetWrappedValue ( <var>callerRealm</var>, <var>value</var> )","number":"3.1.5","referencingIds":["_ref_19","_ref_20","_ref_21","_ref_29","_ref_30"]},{"type":"op","aoid":"ValidateShadowRealmObject","refId":"sec-validateshadowrealmobject"},{"type":"clause","id":"sec-validateshadowrealmobject","title":"ValidateShadowRealmObject ( O )","titleHTML":"ValidateShadowRealmObject ( <var>O</var> )","number":"3.1.6","referencingIds":["_ref_36","_ref_38"]},{"type":"clause","id":"sec-shadowrealm-abstracts","titleHTML":"ShadowRealm Abstract Operations","number":"3.1"},{"type":"term","term":"%ShadowRealm%","refId":"sec-shadowrealm-constructor"},{"type":"clause","id":"sec-shadowrealm","titleHTML":"ShadowRealm ( )","number":"3.2.1","referencingIds":["_ref_7"]},{"type":"clause","id":"sec-shadowrealm-constructor","titleHTML":"The ShadowRealm Constructor","number":"3.2","referencingIds":["_ref_0","_ref_8"]},{"type":"clause","id":"sec-shadowrealm.prototype","titleHTML":"ShadowRealm.prototype","number":"3.3.1"},{"type":"clause","id":"sec-properties-of-the-shadowRealm-constructor","titleHTML":"Properties of the ShadowRealm Constructor","number":"3.3"},{"type":"term","term":"%ShadowRealm.prototype%","refId":"sec-properties-of-the-shadowrealm-prototype-object"},{"type":"clause","id":"sec-shadowrealm.prototype.evaluate","title":"ShadowRealm.prototype.evaluate ( sourceText )","titleHTML":"ShadowRealm.prototype.evaluate ( <var>sourceText</var> )","number":"3.4.1"},{"type":"clause","id":"sec-shadowrealm.prototype.importvalue","title":"ShadowRealm.prototype.importValue ( specifier, exportName )","titleHTML":"ShadowRealm.prototype.importValue ( <var>specifier</var>, <var>exportName</var> )","number":"3.4.2"},{"type":"clause","id":"sec-shadowrealm.prototype-@@tostringtag","titleHTML":"ShadowRealm.prototype [ @@toStringTag ]","number":"3.4.3"},{"type":"clause","id":"sec-properties-of-the-shadowrealm-prototype-object","titleHTML":"Properties of the ShadowRealm Prototype Object","number":"3.4","referencingIds":["_ref_35","_ref_40"]},{"type":"table","id":"table-internal-slots-of-shadowrealm-instances","number":3,"caption":"Table 3: Internal Slots of ShadowRealm Instances","referencingIds":["_ref_6"]},{"type":"clause","id":"sec-properties-of-shadowrealm-instances","titleHTML":"Properties of ShadowRealm Instances","number":"3.5"},{"type":"op","aoid":"HostInitializeShadowRealm","refId":"sec-hostinitializeshadowrealm"},{"type":"clause","id":"sec-hostinitializeshadowrealm","title":"HostInitializeShadowRealm ( realm )","titleHTML":"HostInitializeShadowRealm ( <var>realm</var> )","number":"3.6.1","referencingIds":["_ref_34"]},{"type":"clause","id":"sec-shadowrealm-host-operations","titleHTML":"Host operations","number":"3.6"},{"type":"clause","id":"sec-shadowrealm-objects","titleHTML":"ShadowRealm Objects","number":"3"}]}`);
+let biblio = JSON.parse(`{"refsByClause":{"sec-well-known-intrinsic-objects":["_ref_0","_ref_8"],"sec-wrapped-function-exotic-objects":["_ref_1","_ref_9","_ref_10","_ref_11","_ref_12"],"sec-wrappedfunctioncreate":["_ref_2","_ref_3","_ref_24","_ref_25"],"sec-shadowrealmimportvalue":["_ref_4","_ref_5"],"sec-properties-of-shadowrealm-instances":["_ref_6","_ref_40"],"sec-hostinitializeshadowrealm":["_ref_7"],"sec-wrapped-function-exotic-objects-call-thisargument-argumentslist":["_ref_13","_ref_14","_ref_15","_ref_16"],"sec-ordinary-wrapped-function-call":["_ref_17","_ref_18","_ref_19","_ref_20","_ref_21","_ref_22"],"sec-prepare-for-wrapped-function-call":["_ref_23"],"sec-function.prototype.bind":["_ref_26"],"sec-performshadowrealmeval":["_ref_27","_ref_28","_ref_29"],"sec-export-getter-functions":["_ref_30"],"sec-import-value-error-functions":["_ref_31"],"sec-getwrappedvalue":["_ref_32","_ref_33"],"sec-shadowrealm":["_ref_34"],"sec-shadowrealm.prototype":["_ref_35"],"sec-shadowrealm.prototype.evaluate":["_ref_36","_ref_37"],"sec-shadowrealm.prototype.importvalue":["_ref_38","_ref_39"]},"entries":[{"type":"table","id":"table-7","number":1,"caption":"Table 1: Well-Known Intrinsic Objects"},{"type":"clause","id":"sec-well-known-intrinsic-objects","titleHTML":"Well-Known intrinsic objects","number":"1"},{"type":"term","term":"wrapped function exotic object","id":"wrapped-function-exotic-object","referencingIds":["_ref_9","_ref_10","_ref_11","_ref_13","_ref_14","_ref_17","_ref_18","_ref_23","_ref_24","_ref_27","_ref_32"]},{"type":"table","id":"table-internal-slots-of-wrapped-function-exotic-objects","number":2,"caption":"Table 2: Internal Slots of Wrapped Function Exotic Objects","referencingIds":["_ref_1","_ref_2"]},{"type":"clause","id":"sec-wrapped-function-exotic-objects-call-thisargument-argumentslist","title":"[[Call]] ( thisArgument, argumentsList )","titleHTML":"<var class=\\"field\\">[[Call]]</var> ( <var>thisArgument</var>, <var>argumentsList</var> )","number":"2.1","referencingIds":["_ref_3"]},{"type":"op","aoid":"CreateTypeErrorCopy","refId":"sec-create-type-error-copy"},{"type":"clause","id":"sec-create-type-error-copy","title":"CreateTypeErrorCopy ( realmRecord, originalError )","titleHTML":"CreateTypeErrorCopy ( <var>realmRecord</var>, <var>originalError</var> )","number":"2.2","referencingIds":["_ref_22","_ref_28","_ref_31"]},{"type":"op","aoid":"OrdinaryWrappedFunctionCall","refId":"sec-ordinary-wrapped-function-call"},{"type":"clause","id":"sec-ordinary-wrapped-function-call","title":"OrdinaryWrappedFunctionCall ( F, thisArgument, argumentsList )","titleHTML":"OrdinaryWrappedFunctionCall ( <var>F</var>, <var>thisArgument</var>, <var>argumentsList</var> )","number":"2.3","referencingIds":["_ref_16"]},{"type":"op","aoid":"PrepareForWrappedFunctionCall","refId":"sec-prepare-for-wrapped-function-call"},{"type":"clause","id":"sec-prepare-for-wrapped-function-call","title":"PrepareForWrappedFunctionCall ( F )","titleHTML":"PrepareForWrappedFunctionCall ( <var>F</var> )","number":"2.4","referencingIds":["_ref_15"]},{"type":"clause","id":"sec-wrapped-function-exotic-objects","titleHTML":"Wrapped Function Exotic Objects","number":"2"},{"type":"op","aoid":"WrappedFunctionCreate","refId":"sec-wrappedfunctioncreate"},{"type":"clause","id":"sec-wrappedfunctioncreate","title":"WrappedFunctionCreate ( callerRealm, Target )","titleHTML":"WrappedFunctionCreate ( <var>callerRealm</var>, <var>Target</var> )","number":"3.1.1","referencingIds":["_ref_12","_ref_33"]},{"type":"clause","id":"sec-function.prototype.bind","title":"Function.prototype.bind ( thisArg, ...args )","titleHTML":"Function.prototype.bind ( <var>thisArg</var>, ...<var>args</var> )","number":"3.1.2.1"},{"type":"op","aoid":"CopyNameAndLength","refId":"sec-copynameandlength"},{"type":"clause","id":"sec-copynameandlength","title":"CopyNameAndLength ( F, Target [ , prefix [ , argCount ] ] )","titleHTML":"CopyNameAndLength ( <var>F</var>, <var>Target</var> [ , <var>prefix</var> [ , <var>argCount</var> ] ] )","number":"3.1.2","referencingIds":["_ref_25","_ref_26"]},{"type":"op","aoid":"PerformShadowRealmEval","refId":"sec-performshadowrealmeval"},{"type":"clause","id":"sec-performshadowrealmeval","title":"PerformShadowRealmEval ( sourceText, callerRealm, evalRealm )","titleHTML":"PerformShadowRealmEval ( <var>sourceText</var>, <var>callerRealm</var>, <var>evalRealm</var> )","number":"3.1.3","referencingIds":["_ref_37"]},{"type":"clause","id":"sec-export-getter-functions","titleHTML":"ExportGetter functions","number":"3.1.4.1","referencingIds":["_ref_4"]},{"type":"clause","id":"sec-import-value-error-functions","titleHTML":"ImportValueError functions","number":"3.1.4.2","referencingIds":["_ref_5"]},{"type":"op","aoid":"ShadowRealmImportValue","refId":"sec-shadowrealmimportvalue"},{"type":"clause","id":"sec-shadowrealmimportvalue","title":"ShadowRealmImportValue ( specifierString, exportNameString, callerRealm, evalContext )","titleHTML":"ShadowRealmImportValue ( <var>specifierString</var>, <var>exportNameString</var>, <var>callerRealm</var>, <var>evalContext</var> )","number":"3.1.4","referencingIds":["_ref_39"]},{"type":"op","aoid":"GetWrappedValue","refId":"sec-getwrappedvalue"},{"type":"clause","id":"sec-getwrappedvalue","title":"GetWrappedValue ( callerRealm, value )","titleHTML":"GetWrappedValue ( <var>callerRealm</var>, <var>value</var> )","number":"3.1.5","referencingIds":["_ref_19","_ref_20","_ref_21","_ref_29","_ref_30"]},{"type":"op","aoid":"ValidateShadowRealmObject","refId":"sec-validateshadowrealmobject"},{"type":"clause","id":"sec-validateshadowrealmobject","title":"ValidateShadowRealmObject ( O )","titleHTML":"ValidateShadowRealmObject ( <var>O</var> )","number":"3.1.6","referencingIds":["_ref_36","_ref_38"]},{"type":"clause","id":"sec-shadowrealm-abstracts","titleHTML":"ShadowRealm Abstract Operations","number":"3.1"},{"type":"term","term":"%ShadowRealm%","refId":"sec-shadowrealm-constructor"},{"type":"clause","id":"sec-shadowrealm","titleHTML":"ShadowRealm ( )","number":"3.2.1","referencingIds":["_ref_7"]},{"type":"clause","id":"sec-shadowrealm-constructor","titleHTML":"The ShadowRealm Constructor","number":"3.2","referencingIds":["_ref_0","_ref_8"]},{"type":"clause","id":"sec-shadowrealm.prototype","titleHTML":"ShadowRealm.prototype","number":"3.3.1"},{"type":"clause","id":"sec-properties-of-the-shadowRealm-constructor","titleHTML":"Properties of the ShadowRealm Constructor","number":"3.3"},{"type":"term","term":"%ShadowRealm.prototype%","refId":"sec-properties-of-the-shadowrealm-prototype-object"},{"type":"clause","id":"sec-shadowrealm.prototype.evaluate","title":"ShadowRealm.prototype.evaluate ( sourceText )","titleHTML":"ShadowRealm.prototype.evaluate ( <var>sourceText</var> )","number":"3.4.1"},{"type":"clause","id":"sec-shadowrealm.prototype.importvalue","title":"ShadowRealm.prototype.importValue ( specifier, exportName )","titleHTML":"ShadowRealm.prototype.importValue ( <var>specifier</var>, <var>exportName</var> )","number":"3.4.2"},{"type":"clause","id":"sec-shadowrealm.prototype-@@tostringtag","titleHTML":"ShadowRealm.prototype [ @@toStringTag ]","number":"3.4.3"},{"type":"clause","id":"sec-properties-of-the-shadowrealm-prototype-object","titleHTML":"Properties of the ShadowRealm Prototype Object","number":"3.4","referencingIds":["_ref_35","_ref_40"]},{"type":"table","id":"table-internal-slots-of-shadowrealm-instances","number":3,"caption":"Table 3: Internal Slots of ShadowRealm Instances","referencingIds":["_ref_6"]},{"type":"clause","id":"sec-properties-of-shadowrealm-instances","titleHTML":"Properties of ShadowRealm Instances","number":"3.5"},{"type":"op","aoid":"HostInitializeShadowRealm","refId":"sec-hostinitializeshadowrealm"},{"type":"clause","id":"sec-hostinitializeshadowrealm","title":"HostInitializeShadowRealm ( realm )","titleHTML":"HostInitializeShadowRealm ( <var>realm</var> )","number":"3.6.1","referencingIds":["_ref_34"]},{"type":"clause","id":"sec-shadowrealm-host-operations","titleHTML":"Host operations","number":"3.6"},{"type":"clause","id":"sec-shadowrealm-objects","titleHTML":"ShadowRealm Objects","number":"3"}]}`);
 ;let usesMultipage = false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.0.1/styles/base16/solarized-light.min.css"><style>/* IBM Plex fonts (Latin subset) have been downloaded from Google Fonts and modified to add support back in for the `zero` substitution (slashed zeroes) */
 
 /* https://fonts.googleapis.com/css2?family=IBM%20Plex%20Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap */
@@ -2425,26 +2452,68 @@ tr.del > td {
   display: block;
 }
 
+#menu-pins .unpin-all {
+  border: none;
+  background: #ccc;
+  border-radius: 4px;
+  height: 18px;
+  font-size: 12px;
+  margin: 0 5px 0 10px;
+  font-family: IBM Plex Sans;
+}
+#menu-pins .unpin-all:hover {
+  background: #ddd;
+}
+
 #menu-pins-list {
   margin: 0;
   padding: 0;
   counter-reset: pins-counter;
 }
 
+#menu-pins-list > li {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin: 3px 1px;
+  border-radius: 4px;
+}
+
+#menu-pins-list > li > a {
+  flex-grow: 1;
+  align-self: center;
+}
+
+#menu-pins-list > li:before,
+#menu-pins-list > li > .unpin {
+  flex-shrink: 0;
+  flex-grow: 0;
+  text-align: center;
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: none;
+  border: none;
+}
+#menu-pins-list > li:before,
+#menu-pins-list > li > .unpin:hover {
+  background: #ccc;
+}
+
+#menu-pins-list > li > .unpin,
+#menu-pins .unpin-all {
+  cursor: pointer;
+}
+#menu-pins-list > li > .unpin:hover,
+#menu-pins .unpin-all:hover {
+  color: #bb1212;
+}
+
 #menu-pins-list > li:before {
   content: counter(pins-counter);
   counter-increment: pins-counter;
-  display: inline-block;
-  width: 25px;
-  text-align: center;
-  border: 1px solid #bbb;
-  padding: 2px;
-  margin: 4px;
-  box-sizing: border-box;
-  line-height: 1em;
-  background-color: #ccc;
-  border-radius: 4px;
+  font-size: 16px;
 }
+
 #menu-toc > ol {
   padding: 0;
   flex-grow: 1;
@@ -2541,7 +2610,6 @@ tr.del > td {
   flex-grow: 0;
   flex-shrink: 0;
   font-size: 80%;
-  cursor: row-resize;
   user-select: none;
 }
 
@@ -2816,12 +2884,16 @@ li.menu-search-result-term:before {
   flex-direction: column;
 }
 
+#references-pane > .menu-pane-header {
+  cursor: row-resize;
+}
+
 #references-pane-container.active {
   display: flex;
 }
 
 #references-pane-close:after {
-  content: '✖';
+  content: '\2716';
   float: right;
   cursor: pointer;
 }
@@ -2906,15 +2978,17 @@ li.menu-search-result-term:before {
   <li><span>Toggle "can call user code" annotations</span><code>u</code></li>
 
   <li><span>Jump to search box</span><code>/</code></li>
+  <li><span>Toggle pinning of the current clause</span><code>p</code></li>
+  <li><span>Jump to <i>n</i>th pin</span><code>1-9</code></li>
 </ul></div><div id="menu-toggle"><svg xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%; stroke:currentColor" viewBox="0 0 120 120">
       <title>Menu</title>
       <path stroke-width="10" stroke-linecap="round" d="M30,60 h60  M30,30 m0,5 h60  M30,90 m0,-5 h60"></path>
-    </svg></div><div id="menu-spacer" class="menu-spacer"></div><div id="menu"><div id="menu-search"><input type="text" id="menu-search-box" placeholder="Search..."><div id="menu-search-results" class="inactive"></div></div><div id="menu-pins"><div class="menu-pane-header">Pins</div><ul id="menu-pins-list"></ul></div><div class="menu-pane-header">Table of Contents</div><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-well-known-intrinsic-objects" title="Well-known intrinsic objects"><span class="secnum">1</span> Well-known intrinsic objects</a></li><li><span class="item-toggle">+</span><a href="#sec-wrapped-function-exotic-objects" title="Wrapped Function Exotic Objects"><span class="secnum">2</span> Wrapped Function Exotic Objects</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist" title="[[Call]] ( thisArgument, argumentsList )"><span class="secnum">2.1</span> <var class="field">[[Call]]</var> ( <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-create-type-error-copy" title="CreateTypeErrorCopy ( realmRecord, originalError )"><span class="secnum">2.2</span> CreateTypeErrorCopy ( <var>realmRecord</var>, <var>originalError</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-ordinary-wrapped-function-call" title="OrdinaryWrappedFunctionCall ( F, thisArgument, argumentsList )"><span class="secnum">2.3</span> OrdinaryWrappedFunctionCall ( <var>F</var>, <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-prepare-for-wrapped-function-call" title="PrepareForWrappedFunctionCall ( F )"><span class="secnum">2.4</span> PrepareForWrappedFunctionCall ( <var>F</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-objects" title="ShadowRealm Objects"><span class="secnum">3</span> ShadowRealm Objects</a><ol class="toc"><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-abstracts" title="ShadowRealm Abstract Operations"><span class="secnum">3.1</span> ShadowRealm Abstract Operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrappedfunctioncreate" title="WrappedFunctionCreate ( callerRealm, Target )"><span class="secnum">3.1.1</span> WrappedFunctionCreate ( <var>callerRealm</var>, <var>Target</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-copynameandlength" title="CopyNameAndLength ( F, Target [ , prefix [ , argCount ] ] )"><span class="secnum">3.1.2</span> CopyNameAndLength ( <var>F</var>, <var>Target</var> [ , <var>prefix</var> [ , <var>argCount</var> ] ] )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-function.prototype.bind" title="Function.prototype.bind ( thisArg, ...args )"><span class="secnum">3.1.2.1</span> Function.prototype.bind ( <var>thisArg</var>, ...<var>args</var> )</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-performshadowrealmeval" title="PerformShadowRealmEval ( sourceText, callerRealm, evalRealm )"><span class="secnum">3.1.3</span> PerformShadowRealmEval ( <var>sourceText</var>, <var>callerRealm</var>, <var>evalRealm</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealmimportvalue" title="ShadowRealmImportValue ( specifierString, exportNameString, callerRealm, evalContext )"><span class="secnum">3.1.4</span> ShadowRealmImportValue ( <var>specifierString</var>, <var>exportNameString</var>, <var>callerRealm</var>, <var>evalContext</var> )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-export-getter-functions" title="ExportGetter functions"><span class="secnum">3.1.4.1</span> ExportGetter functions</a></li><li><span class="item-toggle-none"></span><a href="#sec-import-value-error-functions" title="ImportValueError functions"><span class="secnum">3.1.4.2</span> ImportValueError functions</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-getwrappedvalue" title="GetWrappedValue ( callerRealm, value )"><span class="secnum">3.1.5</span> GetWrappedValue ( <var>callerRealm</var>, <var>value</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-validateshadowrealmobject" title="ValidateShadowRealmObject ( O )"><span class="secnum">3.1.6</span> ValidateShadowRealmObject ( <var>O</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-constructor" title="The ShadowRealm Constructor"><span class="secnum">3.2</span> The ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm" title="ShadowRealm ( )"><span class="secnum">3.2.1</span> ShadowRealm ( )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowRealm-constructor" title="Properties of the ShadowRealm Constructor"><span class="secnum">3.3</span> Properties of the ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype" title="ShadowRealm.prototype"><span class="secnum">3.3.1</span> ShadowRealm.prototype</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowrealm-prototype-object" title="Properties of the ShadowRealm Prototype Object"><span class="secnum">3.4</span> Properties of the ShadowRealm Prototype Object</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.evaluate" title="ShadowRealm.prototype.evaluate ( sourceText )"><span class="secnum">3.4.1</span> ShadowRealm.prototype.evaluate ( <var>sourceText</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.importvalue" title="ShadowRealm.prototype.importValue ( specifier, exportName )"><span class="secnum">3.4.2</span> ShadowRealm.prototype.importValue ( <var>specifier</var>, <var>exportName</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype-@@tostringtag" title="ShadowRealm.prototype [ @@toStringTag ]"><span class="secnum">3.4.3</span> ShadowRealm.prototype [ @@toStringTag ]</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-properties-of-shadowrealm-instances" title="Properties of ShadowRealm Instances"><span class="secnum">3.5</span> Properties of ShadowRealm Instances</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-host-operations" title="Host operations"><span class="secnum">3.6</span> Host operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-hostinitializeshadowrealm" title="HostInitializeShadowRealm ( realm )"><span class="secnum">3.6.1</span> HostInitializeShadowRealm ( <var>realm</var> )</a></li></ol></li></ol></li></ol></div></div><div id="spec-container"><h1 class="version">Stage 3 Draft / November 2, 2023</h1><h1 class="title">ShadowRealm API</h1>
+    </svg></div><div id="menu-spacer" class="menu-spacer"></div><div id="menu"><div id="menu-search"><input type="text" id="menu-search-box" placeholder="Search..."><div id="menu-search-results" class="inactive"></div></div><div id="menu-pins"><div class="menu-pane-header">Pins<button class="unpin-all">clear</button></div><ul id="menu-pins-list"></ul></div><div class="menu-pane-header">Table of Contents</div><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-well-known-intrinsic-objects" title="Well-Known intrinsic objects"><span class="secnum">1</span> Well-Known intrinsic objects</a></li><li><span class="item-toggle">+</span><a href="#sec-wrapped-function-exotic-objects" title="Wrapped Function Exotic Objects"><span class="secnum">2</span> Wrapped Function Exotic Objects</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist" title="[[Call]] ( thisArgument, argumentsList )"><span class="secnum">2.1</span> <var class="field">[[Call]]</var> ( <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-create-type-error-copy" title="CreateTypeErrorCopy ( realmRecord, originalError )"><span class="secnum">2.2</span> CreateTypeErrorCopy ( <var>realmRecord</var>, <var>originalError</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-ordinary-wrapped-function-call" title="OrdinaryWrappedFunctionCall ( F, thisArgument, argumentsList )"><span class="secnum">2.3</span> OrdinaryWrappedFunctionCall ( <var>F</var>, <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-prepare-for-wrapped-function-call" title="PrepareForWrappedFunctionCall ( F )"><span class="secnum">2.4</span> PrepareForWrappedFunctionCall ( <var>F</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-objects" title="ShadowRealm Objects"><span class="secnum">3</span> ShadowRealm Objects</a><ol class="toc"><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-abstracts" title="ShadowRealm Abstract Operations"><span class="secnum">3.1</span> ShadowRealm Abstract Operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrappedfunctioncreate" title="WrappedFunctionCreate ( callerRealm, Target )"><span class="secnum">3.1.1</span> WrappedFunctionCreate ( <var>callerRealm</var>, <var>Target</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-copynameandlength" title="CopyNameAndLength ( F, Target [ , prefix [ , argCount ] ] )"><span class="secnum">3.1.2</span> CopyNameAndLength ( <var>F</var>, <var>Target</var> [ , <var>prefix</var> [ , <var>argCount</var> ] ] )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-function.prototype.bind" title="Function.prototype.bind ( thisArg, ...args )"><span class="secnum">3.1.2.1</span> Function.prototype.bind ( <var>thisArg</var>, ...<var>args</var> )</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-performshadowrealmeval" title="PerformShadowRealmEval ( sourceText, callerRealm, evalRealm )"><span class="secnum">3.1.3</span> PerformShadowRealmEval ( <var>sourceText</var>, <var>callerRealm</var>, <var>evalRealm</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealmimportvalue" title="ShadowRealmImportValue ( specifierString, exportNameString, callerRealm, evalContext )"><span class="secnum">3.1.4</span> ShadowRealmImportValue ( <var>specifierString</var>, <var>exportNameString</var>, <var>callerRealm</var>, <var>evalContext</var> )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-export-getter-functions" title="ExportGetter functions"><span class="secnum">3.1.4.1</span> ExportGetter functions</a></li><li><span class="item-toggle-none"></span><a href="#sec-import-value-error-functions" title="ImportValueError functions"><span class="secnum">3.1.4.2</span> ImportValueError functions</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-getwrappedvalue" title="GetWrappedValue ( callerRealm, value )"><span class="secnum">3.1.5</span> GetWrappedValue ( <var>callerRealm</var>, <var>value</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-validateshadowrealmobject" title="ValidateShadowRealmObject ( O )"><span class="secnum">3.1.6</span> ValidateShadowRealmObject ( <var>O</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-constructor" title="The ShadowRealm Constructor"><span class="secnum">3.2</span> The ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm" title="ShadowRealm ( )"><span class="secnum">3.2.1</span> ShadowRealm ( )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowRealm-constructor" title="Properties of the ShadowRealm Constructor"><span class="secnum">3.3</span> Properties of the ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype" title="ShadowRealm.prototype"><span class="secnum">3.3.1</span> ShadowRealm.prototype</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowrealm-prototype-object" title="Properties of the ShadowRealm Prototype Object"><span class="secnum">3.4</span> Properties of the ShadowRealm Prototype Object</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.evaluate" title="ShadowRealm.prototype.evaluate ( sourceText )"><span class="secnum">3.4.1</span> ShadowRealm.prototype.evaluate ( <var>sourceText</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.importvalue" title="ShadowRealm.prototype.importValue ( specifier, exportName )"><span class="secnum">3.4.2</span> ShadowRealm.prototype.importValue ( <var>specifier</var>, <var>exportName</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype-@@tostringtag" title="ShadowRealm.prototype [ @@toStringTag ]"><span class="secnum">3.4.3</span> ShadowRealm.prototype [ @@toStringTag ]</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-properties-of-shadowrealm-instances" title="Properties of ShadowRealm Instances"><span class="secnum">3.5</span> Properties of ShadowRealm Instances</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-host-operations" title="Host operations"><span class="secnum">3.6</span> Host operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-hostinitializeshadowrealm" title="HostInitializeShadowRealm ( realm )"><span class="secnum">3.6.1</span> HostInitializeShadowRealm ( <var>realm</var> )</a></li></ol></li></ol></li></ol></div></div><div id="spec-container"><h1 class="version">Stage 3 Draft / January 18, 2024</h1><h1 class="title">ShadowRealm API</h1>
 
 
 <emu-clause id="sec-well-known-intrinsic-objects">
-	<h1><span class="secnum">1</span> Well-known intrinsic objects</h1>
-	<emu-table id="table-7" caption="Well-known Intrinsic Objects"><figure><figcaption>Table 1: Well-known Intrinsic Objects</figcaption>
+	<h1><span class="secnum">1</span> Well-Known intrinsic objects</h1>
+	<emu-table id="table-7" caption="Well-Known Intrinsic Objects"><figure><figcaption>Table 1: Well-Known Intrinsic Objects</figcaption>
 		<table>
 			<tbody>
 				<tr>
