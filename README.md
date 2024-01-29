@@ -4,7 +4,7 @@
 
 - [Explainer](explainer.md).
 - [HTML Rendered Spec](https://tc39.es/proposal-shadowrealm/).
-- Currently at [Stage 3](https://tc39.es/process-document/).
+- Currently at [Stage 2](https://tc39.es/process-document/).
 - [Code of Conduct](https://tc39.es/code-of-conduct/)
 
 ### <a name='Champions'></a>Champions
