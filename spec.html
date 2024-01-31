@@ -479,7 +479,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Set the Realm of _context_ to _realmRec_.
 				1. Set the ScriptOrModule of _context_ to *null*.
 				1. Set _O_.[[ExecutionContext]] to _context_.
-				1. Perform ? HostInitializeShadowRealm(_O_.[[ShadowRealm]]).
+				1. Perform ? HostInitializeShadowRealm(_O_.[[ShadowRealm]], _O_.[[ExecutionContext]]).
 				1. Return _O_.
 			</emu-alg>
 		</emu-clause>
@@ -587,6 +587,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<h1>
 				HostInitializeShadowRealm (
 					_realm_: a Realm Record,
+					_context_: an execution context,
 				): either a normal completion containing ~unused~ or a throw completion
 			</h1>
 			<dl class="header">
