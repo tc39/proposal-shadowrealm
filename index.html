@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.code === 'Escape') {
         sdoBox.deactivate();
       }
-    })
+    }),
   );
 });
 
@@ -97,11 +97,11 @@ function Search(menu) {
 
   this.$searchBox.addEventListener(
     'keydown',
-    debounce(this.searchBoxKeydown.bind(this), { stopPropagation: true })
+    debounce(this.searchBoxKeydown.bind(this), { stopPropagation: true }),
   );
   this.$searchBox.addEventListener(
     'keyup',
-    debounce(this.searchBoxKeyup.bind(this), { stopPropagation: true })
+    debounce(this.searchBoxKeyup.bind(this), { stopPropagation: true }),
   );
 
   // Perform an initial search if the box is not empty.
@@ -301,7 +301,6 @@ Search.prototype.displayResults = function (results) {
       }
 
       if (text) {
-        // prettier-ignore
         html += `<li class=menu-search-result-${cssClass}><a href="${makeLinkToId(id)}">${text}</a></li>`;
       }
     });
@@ -483,7 +482,7 @@ function findActiveClause(root, path) {
     let marginTop = Math.max(
       0,
       parseInt(clauseStyles['margin-top']),
-      parseInt(getComputedStyle($header)['margin-top'])
+      parseInt(getComputedStyle($header)['margin-top']),
     );
     let marginBottom = Math.max(0, parseInt(clauseStyles['margin-bottom']));
     let crossesMidpoint =
@@ -581,7 +580,6 @@ Menu.prototype.addPinEntry = function (id) {
     } else {
       prefix = '';
     }
-    // prettier-ignore
     text = `${prefix}${entry.titleHTML}`;
   } else {
     text = getKey(entry);
@@ -928,7 +926,6 @@ let referencePane = {
       e.parentNode.replaceChild(document.createTextNode(e.textContent), e);
     });
 
-    // prettier-ignore
     this.$headerText.innerHTML = `Syntax-Directed Operations for<br><a href="${makeLinkToId(alternativeId)}" class="menu-pane-header-production"><emu-nt>${parentName}</emu-nt> ${colons.outerHTML} </a>`;
     this.$headerText.querySelector('a').append(rhs);
     this.showSDOsBody(sdos, alternativeId);
@@ -1201,7 +1198,7 @@ function init() {
     'mouseover',
     debounce(e => {
       Toolbox.activateIfMouseOver(e);
-    })
+    }),
   );
   document.addEventListener(
     'keydown',
@@ -1212,7 +1209,7 @@ function init() {
         }
         document.getElementById('shortcuts-help').classList.remove('active');
       }
-    })
+    }),
   );
 }
 
@@ -1367,7 +1364,7 @@ window.addEventListener('beforeunload', () => {
 // https://w3c.github.io/csswg-drafts/css-counter-styles/
 
 const lowerLetters = Array.from({ length: 26 }, (_, i) =>
-  String.fromCharCode('a'.charCodeAt(0) + i)
+  String.fromCharCode('a'.charCodeAt(0) + i),
 );
 // Implement the lower-alpha 'alphabetic' algorithm,
 // adjusting for indexing from 0 rather than 1.
@@ -1438,7 +1435,7 @@ const counterByDepth = [];
 function addStepNumberText(
   ol,
   depth = 0,
-  special = [...ol.classList].some(c => c.startsWith('nested-'))
+  special = [...ol.classList].some(c => c.startsWith('nested-')),
 ) {
   let counter = !special && counterByDepth[depth];
   if (!counter) {
@@ -1657,7 +1654,9 @@ body {
   word-wrap: break-word;
   font-size: 18px;
   line-height: 1.5;
-  font-family: IBM Plex Serif, serif;
+  font-family:
+    IBM Plex Serif,
+    serif;
   font-variant-numeric: slashed-zero;
   padding: 0;
   margin: 0;
@@ -1666,6 +1665,8 @@ body {
 
 #spec-container {
   padding: 0 20px;
+  max-width: 80rem;
+  margin: 0 auto;
   flex-grow: 1;
   flex-basis: 66%;
   box-sizing: border-box;
@@ -1711,7 +1712,9 @@ span.e-user-code::before {
   line-height: normal;
   vertical-align: middle;
   text-transform: uppercase;
-  font-family: IBM Plex Sans, sans-serif;
+  font-family:
+    IBM Plex Sans,
+    sans-serif;
   font-weight: 900;
   font-size: x-small;
 }
@@ -1734,7 +1737,10 @@ span.e-user-code::before {
 
 code {
   font-weight: bold;
-  font-family: Comic Code, IBM Plex Mono, monospace;
+  font-family:
+    Comic Code,
+    IBM Plex Mono,
+    monospace;
   white-space: pre;
 }
 
@@ -1799,7 +1805,9 @@ var.referenced6 {
 }
 
 emu-const {
-  font-family: IBM Plex Sans, sans-serif;
+  font-family:
+    IBM Plex Sans,
+    sans-serif;
   font-variant: small-caps;
   text-transform: uppercase;
 }
@@ -1868,6 +1876,7 @@ emu-note {
   border-left: 5px solid #52e052;
   background: #e9fbe9;
   padding: 10px 10px 10px 0;
+  overflow-x: auto;
 }
 
 emu-note > span.note {
@@ -1998,7 +2007,9 @@ emu-rhs emu-nt {
 
 emu-t {
   display: inline-block;
-  font-family: IBM Plex Mono, monospace;
+  font-family:
+    IBM Plex Mono,
+    monospace;
   font-weight: bold;
   white-space: nowrap;
   text-indent: 0;
@@ -2033,7 +2044,9 @@ emu-mods {
 emu-params,
 emu-opt {
   margin-right: 1ex;
-  font-family: IBM Plex Mono, monospace;
+  font-family:
+    IBM Plex Mono,
+    monospace;
 }
 
 emu-params,
@@ -2047,7 +2060,9 @@ emu-opt {
 
 emu-gprose {
   font-size: 0.9em;
-  font-family: IBM Plex Sans, sans-serif;
+  font-family:
+    IBM Plex Sans,
+    sans-serif;
 }
 
 emu-production emu-gprose {
@@ -2271,7 +2286,8 @@ emu-annex emu-annex emu-annex emu-annex emu-annex emu-annex {
 /* Figures and tables */
 figure {
   display: block;
-  margin: 1em 0 3em 0;
+  overflow-x: auto;
+  margin: 1.5em 0;
 }
 figure object {
   display: block;
@@ -2334,7 +2350,7 @@ table.lightweight-table th {
     background-color: rgba(249, 241, 172, 1);
   }
   100% {
-    background-color: rgba(249, 241, 172, 0)
+    background-color: rgba(249, 241, 172, 0);
   }
 }
 #spec-container :target:not(emu-annex, emu-clause, emu-intro, emu-note, body) {
@@ -2980,10 +2996,10 @@ li.menu-search-result-term:before {
   <li><span>Jump to search box</span><code>/</code></li>
   <li><span>Toggle pinning of the current clause</span><code>p</code></li>
   <li><span>Jump to <i>n</i>th pin</span><code>1-9</code></li>
-</ul></div><div id="menu-toggle"><svg xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%; stroke:currentColor" viewBox="0 0 120 120">
+</ul></div><div id="menu-toggle"><svg xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%; stroke:currentColor" viewBox="0 0 120 120" width="54" height="54">
       <title>Menu</title>
       <path stroke-width="10" stroke-linecap="round" d="M30,60 h60  M30,30 m0,5 h60  M30,90 m0,-5 h60"></path>
-    </svg></div><div id="menu-spacer" class="menu-spacer"></div><div id="menu"><div id="menu-search"><input type="text" id="menu-search-box" placeholder="Search..."><div id="menu-search-results" class="inactive"></div></div><div id="menu-pins"><div class="menu-pane-header">Pins<button class="unpin-all">clear</button></div><ul id="menu-pins-list"></ul></div><div class="menu-pane-header">Table of Contents</div><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-well-known-intrinsic-objects" title="Well-Known intrinsic objects"><span class="secnum">1</span> Well-Known intrinsic objects</a></li><li><span class="item-toggle">+</span><a href="#sec-wrapped-function-exotic-objects" title="Wrapped Function Exotic Objects"><span class="secnum">2</span> Wrapped Function Exotic Objects</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist" title="[[Call]] ( thisArgument, argumentsList )"><span class="secnum">2.1</span> <var class="field">[[Call]]</var> ( <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-create-type-error-copy" title="CreateTypeErrorCopy ( realmRecord, originalError )"><span class="secnum">2.2</span> CreateTypeErrorCopy ( <var>realmRecord</var>, <var>originalError</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-ordinary-wrapped-function-call" title="OrdinaryWrappedFunctionCall ( F, thisArgument, argumentsList )"><span class="secnum">2.3</span> OrdinaryWrappedFunctionCall ( <var>F</var>, <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-prepare-for-wrapped-function-call" title="PrepareForWrappedFunctionCall ( F )"><span class="secnum">2.4</span> PrepareForWrappedFunctionCall ( <var>F</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-objects" title="ShadowRealm Objects"><span class="secnum">3</span> ShadowRealm Objects</a><ol class="toc"><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-abstracts" title="ShadowRealm Abstract Operations"><span class="secnum">3.1</span> ShadowRealm Abstract Operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrappedfunctioncreate" title="WrappedFunctionCreate ( callerRealm, Target )"><span class="secnum">3.1.1</span> WrappedFunctionCreate ( <var>callerRealm</var>, <var>Target</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-copynameandlength" title="CopyNameAndLength ( F, Target [ , prefix [ , argCount ] ] )"><span class="secnum">3.1.2</span> CopyNameAndLength ( <var>F</var>, <var>Target</var> [ , <var>prefix</var> [ , <var>argCount</var> ] ] )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-function.prototype.bind" title="Function.prototype.bind ( thisArg, ...args )"><span class="secnum">3.1.2.1</span> Function.prototype.bind ( <var>thisArg</var>, ...<var>args</var> )</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-performshadowrealmeval" title="PerformShadowRealmEval ( sourceText, callerRealm, evalRealm )"><span class="secnum">3.1.3</span> PerformShadowRealmEval ( <var>sourceText</var>, <var>callerRealm</var>, <var>evalRealm</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealmimportvalue" title="ShadowRealmImportValue ( specifierString, exportNameString, callerRealm, evalContext )"><span class="secnum">3.1.4</span> ShadowRealmImportValue ( <var>specifierString</var>, <var>exportNameString</var>, <var>callerRealm</var>, <var>evalContext</var> )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-export-getter-functions" title="ExportGetter functions"><span class="secnum">3.1.4.1</span> ExportGetter functions</a></li><li><span class="item-toggle-none"></span><a href="#sec-import-value-error-functions" title="ImportValueError functions"><span class="secnum">3.1.4.2</span> ImportValueError functions</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-getwrappedvalue" title="GetWrappedValue ( callerRealm, value )"><span class="secnum">3.1.5</span> GetWrappedValue ( <var>callerRealm</var>, <var>value</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-validateshadowrealmobject" title="ValidateShadowRealmObject ( O )"><span class="secnum">3.1.6</span> ValidateShadowRealmObject ( <var>O</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-constructor" title="The ShadowRealm Constructor"><span class="secnum">3.2</span> The ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm" title="ShadowRealm ( )"><span class="secnum">3.2.1</span> ShadowRealm ( )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowRealm-constructor" title="Properties of the ShadowRealm Constructor"><span class="secnum">3.3</span> Properties of the ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype" title="ShadowRealm.prototype"><span class="secnum">3.3.1</span> ShadowRealm.prototype</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowrealm-prototype-object" title="Properties of the ShadowRealm Prototype Object"><span class="secnum">3.4</span> Properties of the ShadowRealm Prototype Object</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.evaluate" title="ShadowRealm.prototype.evaluate ( sourceText )"><span class="secnum">3.4.1</span> ShadowRealm.prototype.evaluate ( <var>sourceText</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.importvalue" title="ShadowRealm.prototype.importValue ( specifier, exportName )"><span class="secnum">3.4.2</span> ShadowRealm.prototype.importValue ( <var>specifier</var>, <var>exportName</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype-@@tostringtag" title="ShadowRealm.prototype [ @@toStringTag ]"><span class="secnum">3.4.3</span> ShadowRealm.prototype [ @@toStringTag ]</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-properties-of-shadowrealm-instances" title="Properties of ShadowRealm Instances"><span class="secnum">3.5</span> Properties of ShadowRealm Instances</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-host-operations" title="Host operations"><span class="secnum">3.6</span> Host operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-hostinitializeshadowrealm" title="HostInitializeShadowRealm ( realm )"><span class="secnum">3.6.1</span> HostInitializeShadowRealm ( <var>realm</var> )</a></li></ol></li></ol></li></ol></div></div><div id="spec-container"><h1 class="version">Stage 3 Draft / January 29, 2024</h1><h1 class="title">ShadowRealm API</h1>
+    </svg></div><div id="menu-spacer" class="menu-spacer"></div><div id="menu"><div id="menu-search"><input type="text" id="menu-search-box" placeholder="Search..."><div id="menu-search-results" class="inactive"></div></div><div id="menu-pins"><div class="menu-pane-header">Pins<button class="unpin-all">clear</button></div><ul id="menu-pins-list"></ul></div><div class="menu-pane-header">Table of Contents</div><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-well-known-intrinsic-objects" title="Well-Known intrinsic objects"><span class="secnum">1</span> Well-Known intrinsic objects</a></li><li><span class="item-toggle">+</span><a href="#sec-wrapped-function-exotic-objects" title="Wrapped Function Exotic Objects"><span class="secnum">2</span> Wrapped Function Exotic Objects</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist" title="[[Call]] ( thisArgument, argumentsList )"><span class="secnum">2.1</span> <var class="field">[[Call]]</var> ( <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-create-type-error-copy" title="CreateTypeErrorCopy ( realmRecord, originalError )"><span class="secnum">2.2</span> CreateTypeErrorCopy ( <var>realmRecord</var>, <var>originalError</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-ordinary-wrapped-function-call" title="OrdinaryWrappedFunctionCall ( F, thisArgument, argumentsList )"><span class="secnum">2.3</span> OrdinaryWrappedFunctionCall ( <var>F</var>, <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-prepare-for-wrapped-function-call" title="PrepareForWrappedFunctionCall ( F )"><span class="secnum">2.4</span> PrepareForWrappedFunctionCall ( <var>F</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-objects" title="ShadowRealm Objects"><span class="secnum">3</span> ShadowRealm Objects</a><ol class="toc"><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-abstracts" title="ShadowRealm Abstract Operations"><span class="secnum">3.1</span> ShadowRealm Abstract Operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrappedfunctioncreate" title="WrappedFunctionCreate ( callerRealm, Target )"><span class="secnum">3.1.1</span> WrappedFunctionCreate ( <var>callerRealm</var>, <var>Target</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-copynameandlength" title="CopyNameAndLength ( F, Target [ , prefix [ , argCount ] ] )"><span class="secnum">3.1.2</span> CopyNameAndLength ( <var>F</var>, <var>Target</var> [ , <var>prefix</var> [ , <var>argCount</var> ] ] )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-function.prototype.bind" title="Function.prototype.bind ( thisArg, ...args )"><span class="secnum">3.1.2.1</span> Function.prototype.bind ( <var>thisArg</var>, ...<var>args</var> )</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-performshadowrealmeval" title="PerformShadowRealmEval ( sourceText, callerRealm, evalRealm )"><span class="secnum">3.1.3</span> PerformShadowRealmEval ( <var>sourceText</var>, <var>callerRealm</var>, <var>evalRealm</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealmimportvalue" title="ShadowRealmImportValue ( specifierString, exportNameString, callerRealm, evalContext )"><span class="secnum">3.1.4</span> ShadowRealmImportValue ( <var>specifierString</var>, <var>exportNameString</var>, <var>callerRealm</var>, <var>evalContext</var> )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-export-getter-functions" title="ExportGetter functions"><span class="secnum">3.1.4.1</span> ExportGetter functions</a></li><li><span class="item-toggle-none"></span><a href="#sec-import-value-error-functions" title="ImportValueError functions"><span class="secnum">3.1.4.2</span> ImportValueError functions</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-getwrappedvalue" title="GetWrappedValue ( callerRealm, value )"><span class="secnum">3.1.5</span> GetWrappedValue ( <var>callerRealm</var>, <var>value</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-validateshadowrealmobject" title="ValidateShadowRealmObject ( O )"><span class="secnum">3.1.6</span> ValidateShadowRealmObject ( <var>O</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-constructor" title="The ShadowRealm Constructor"><span class="secnum">3.2</span> The ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm" title="ShadowRealm ( )"><span class="secnum">3.2.1</span> ShadowRealm ( )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowRealm-constructor" title="Properties of the ShadowRealm Constructor"><span class="secnum">3.3</span> Properties of the ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype" title="ShadowRealm.prototype"><span class="secnum">3.3.1</span> ShadowRealm.prototype</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowrealm-prototype-object" title="Properties of the ShadowRealm Prototype Object"><span class="secnum">3.4</span> Properties of the ShadowRealm Prototype Object</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.evaluate" title="ShadowRealm.prototype.evaluate ( sourceText )"><span class="secnum">3.4.1</span> ShadowRealm.prototype.evaluate ( <var>sourceText</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.importvalue" title="ShadowRealm.prototype.importValue ( specifier, exportName )"><span class="secnum">3.4.2</span> ShadowRealm.prototype.importValue ( <var>specifier</var>, <var>exportName</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype-@@tostringtag" title="ShadowRealm.prototype [ @@toStringTag ]"><span class="secnum">3.4.3</span> ShadowRealm.prototype [ @@toStringTag ]</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-properties-of-shadowrealm-instances" title="Properties of ShadowRealm Instances"><span class="secnum">3.5</span> Properties of ShadowRealm Instances</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-host-operations" title="Host operations"><span class="secnum">3.6</span> Host operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-hostinitializeshadowrealm" title="HostInitializeShadowRealm ( realm )"><span class="secnum">3.6.1</span> HostInitializeShadowRealm ( <var>realm</var> )</a></li></ol></li></ol></li></ol></div></div><div id="spec-container"><h1 class="version">Stage 3 Draft / February 7, 2024</h1><h1 class="title">ShadowRealm API</h1>
 
 
 <emu-clause id="sec-well-known-intrinsic-objects">
