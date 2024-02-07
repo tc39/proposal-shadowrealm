@@ -211,3 +211,21 @@ Implementation Complexity vs. Use Case Justification: Implementing Web Workers i
 #### Conclusion
 
 Web Workers could be considered in the future for inclusion in ShadowRealms with strict controls on their use and communication to prevent leaks and maintain isolation. The decision should be driven by demonstrated needs for background processing within the isolated environment.
+
+### performance API
+
+#### Use Cases and Functionality
+
+Purpose: The Performance API offers insights into the performance and memory usage of web applications. These insights are crucial for developers aiming to optimize their applications for better efficiency and user experience.
+
+#### Confidentiality and Isolation
+
+Specific Concerns: While performance insights are valuable, certain methods like `measureUserAgentSpecificMemory` provide highly detailed information, including bytes used, breakdown by type (e.g., DOM, JS), and attribution to specific URLs and containers. Such detailed information could potentially leak sensitive data about the execution environment and the resources it uses, undermining the isolation intended with ShadowRealm.
+
+#### Considerations
+
+Risk vs. Benefit: The detailed memory usage data, especially URLs and container attributions, might not be necessary for performance optimization within the isolated environment of ShadowRealm. The risk of exposing sensitive information may outweigh the benefits of having such detailed insights available.
+
+#### Conclusion
+
+Recommendation: To maintain the confidentiality and isolation integrity of ShadowRealm, it is recommended to exclude it and work on limitting access to specific Performance API methods like `measureUserAgentSpecificMemory` that provide highly detailed environmental and resource-related information. The focus should instead be on offering essential performance insights that align with the use cases of ShadowRealm without risking unnecessary information disclosure.
