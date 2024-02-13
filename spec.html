@@ -109,13 +109,8 @@ location: https://tc39.es/proposal-shadowrealm/
 			1. Assert: _calleeContext_ is now the running execution context.
 			1. Let _result_ be Completion(OrdinaryWrappedFunctionCall(_F_, _thisArgument_, _argumentsList_)).
 			1. Remove _calleeContext_ from the execution context stack and restore _callerContext_ as the running execution context.
-			1. If _result_.[[Type]] is ~return~, return _result_.[[Value]].
-			1. ReturnIfAbrupt(_result_).
-			1. Return *undefined*.
+			1. Return ? _result_.
 		</emu-alg>
-		<emu-note type=editor>
-			In the case of an abrupt ~throw~ completion, the type of error to be created should match the type of the abrupt throw completion record. This could be revisited when merging into the main specification. Additionally, in the case of a ~break~ or ~continue~ completion, since those are not supported, a TypeError is expected.
-		</emu-note>
 		<p>
 			If an execution in a ShadowRealm _R1_ oblivious of host or implementation-defined APIs can observe the identity of an object _O1_, a host or implementation-defined API must not allow an execution in any other realm than _R1_ to also observe the identity of _O1_. Similarly if an execution in a realm _R2_ can observe the identity of an object _O2_, a host or implementation-defined API must not allow execution in any other realm than _R2_ that is a ShadowRealm to also observe the identity of _O2_.
 		</p>
@@ -168,7 +163,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Append _wrappedValue_ to _wrappedArgs_.
 			1. Let _wrappedThisArgument_ be ? GetWrappedValue(_targetRealm_, _thisArgument_).
 			1. Let _result_ be Completion(Call(_target_, _wrappedThisArgument_, _wrappedArgs_)).
-			1. If _result_.[[Type]] is ~normal~ or _result_.[[Type]] is ~return~, then
+			1. If _result_.[[Type]] is ~normal~, then
 				1. Return ? GetWrappedValue(_callerRealm_, _result_.[[Value]]).
 			1. Else,
 				1. Let _copiedError_ be CreateTypeErrorCopy(_callerRealm_, _result_.[[Value]]).
