@@ -311,7 +311,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				<dd>...</dd>
 			</dl>
 			<emu-alg>
-				1. Perform ? HostEnsureCanCompileStrings(_evalRealm_).
+				1. Perform ? HostEnsureCanCompileStrings(_evalRealm_, « », _sourceText_, *false*).
 				1. Perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
 					1. Let _script_ be ParseText(StringToCodePoints(_sourceText_), |Script|).
 					1. If _script_ is a List of errors, throw a *SyntaxError* exception.
