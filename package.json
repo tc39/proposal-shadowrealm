@@ -29,7 +29,7 @@
     "watch": "npm run build -- --watch"
   },
   "devDependencies": {
-    "@tc39/ecma262-biblio": "=2.1.2687",
+    "@tc39/ecma262-biblio": "=2.1.2719",
     "ecmarkup": "^18.0.0"
   }
 }

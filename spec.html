@@ -320,7 +320,7 @@ location: https://tc39.es/proposal-shadowrealm/
 					1. If _body_ Contains |NewTarget| is *true*, throw a *SyntaxError* exception.
 					1. If _body_ Contains |SuperProperty| is *true*, throw a *SyntaxError* exception.
 					1. If _body_ Contains |SuperCall| is *true*, throw a *SyntaxError* exception.
-				1. Let _strictEval_ be IsStrict of _script_.
+				1. Let _strictEval_ be ScriptIsStrict of _script_.
 				1. Let _runningContext_ be the running execution context.
 				1. Let _lexEnv_ be NewDeclarativeEnvironment(_evalRealm_.[[GlobalEnv]]).
 				1. Let _varEnv_ be _evalRealm_.[[GlobalEnv]].
