@@ -857,7 +857,9 @@ let referencePane = {
     this.$tableContainer.appendChild(this.$table);
     this.$pane.appendChild(this.$tableContainer);
 
-    menu.$specContainer.appendChild(this.$container);
+    if (menu != null) {
+      menu.$specContainer.appendChild(this.$container);
+    }
   },
 
   activate() {
@@ -1192,6 +1194,9 @@ function doShortcut(e) {
 }
 
 function init() {
+  if (document.getElementById('menu') == null) {
+    return;
+  }
   menu = new Menu();
   let $container = document.getElementById('spec-container');
   $container.addEventListener(
@@ -1871,6 +1876,7 @@ emu-eqn div:first-child {
 emu-note {
   margin: 1em 0;
   display: flex;
+  gap: 1em;
   flex-direction: row;
   color: inherit;
   border-left: 5px solid #52e052;
@@ -1880,8 +1886,7 @@ emu-note {
 }
 
 emu-note > span.note {
-  flex-basis: 100px;
-  min-width: 100px;
+  white-space: nowrap;
   flex-grow: 0;
   flex-shrink: 1;
   text-transform: uppercase;
@@ -2923,12 +2928,6 @@ li.menu-search-result-term:before {
   padding-right: 5px;
 }
 
-@media print {
-  #menu-toggle {
-    display: none;
-  }
-}
-
 [normative-optional],
 [deprecated],
 [legacy] {
@@ -2986,7 +2985,230 @@ li.menu-search-result-term:before {
   background-color: #eee;
   box-shadow: inset 0 -1px 0 #ccc;
 }
-</style></head>
+</style><style>@media print {
+body {
+  font-family: Arial;
+  font-size: 10pt;
+  background: #fff;
+  color: #000;
+}
+
+.title {
+  font-family: Verdana;
+}
+
+p {
+  text-align: justify;
+  text-rendering: optimizeLegibility;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  orphans: 2;
+  widows: 2;
+}
+
+h1 {
+  text-wrap: balance;
+  line-height: 1.4;
+}
+
+emu-note p,
+emu-table td p {
+  text-align: left;
+  hyphens: manual;
+  overflow: hidden;
+}
+
+emu-table td,
+emu-table th {
+  overflow-wrap: break-word;
+}
+
+emu-table table {
+  table-layout: auto;
+  width: 100%;
+}
+
+emu-figure img {
+  max-width: 100%;
+  height: auto;
+}
+
+#spec-container {
+  max-width: none;
+}
+
+#toc a[href] {
+  background: #fff;
+  padding-right: 0.5em;
+}
+#toc a[href]::after {
+  content: /* leader(dotted) */ target-counter(attr(href), page);
+  float: right;
+  padding-left: 0.5em;
+  background: #fff;
+}
+/* NOTE: hacks because Paged.js doesn't support leader() in content directives */
+#toc ol {
+  overflow-x: hidden;
+}
+#toc ol li:before {
+  float: left;
+  width: 0;
+  white-space: nowrap;
+  content: '. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . '
+    '. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . '
+    '. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .';
+}
+
+/* skip the Introduction since it's before the first emu-clause (and therefore doesn't have a proper page number) */
+#toc > ol > li:first-child {
+  display: none;
+}
+
+#toc,
+#spec-container > emu-intro,
+#spec-container > emu-annex {
+  break-before: recto;
+  break-after: always;
+}
+
+/* according to Ecma guidelines, we're actually not supposed to break before every clause (only the first), but Paged.js fails if we do that */
+/* so instead, just break before any of the clauses that have sub-clauses */
+#spec-container > emu-clause:has(emu-clause:not([example])) {
+  break-before: always;
+}
+
+#spec-container > emu-clause:first-of-type {
+  break-before: recto;
+}
+
+emu-note,
+emu-note p,
+emu-table tr,
+emu-table th,
+emu-table td,
+emu-alg li,
+pre,
+h1 {
+  break-inside: avoid;
+}
+
+emu-table thead,
+h1,
+figcaption,
+emu-alg > ol > li:first-child {
+  break-after: avoid;
+}
+
+emu-grammar + emu-alg,
+figcaption + emu-table,
+figcaption + span[id] + emu-table,
+emu-alg > ol > li:last-child {
+  break-before: avoid;
+}
+
+a[data-print-href]::after {
+  content: ' <' attr(href) '>';
+  color: initial;
+}
+
+emu-table thead {
+  display: table-header-group;
+}
+emu-table tfoot {
+  display: table-footer-group;
+}
+
+@page {
+  size: A4;
+}
+
+@page {
+  @top-center {
+    content: url(data:image/png;base64,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);
+  }
+}
+@page :first {
+  @top-center {
+    content: none;
+  }
+}
+
+:root {
+  --page-number-style: decimal;
+}
+
+#toc {
+  page: toc;
+}
+@page toc {
+  --page-number-style: lower-roman;
+}
+emu-intro {
+  page: intro;
+}
+@page intro {
+  --page-number-style: lower-roman;
+}
+
+#toc {
+  counter-reset: page 1;
+}
+#spec-container > emu-clause:first-of-type {
+  counter-reset: page 1;
+}
+
+@page :left {
+  @bottom-left {
+    content: counter(page, var(--page-number-style));
+  }
+}
+@page :right {
+  @bottom-right {
+    content: counter(page, var(--page-number-style));
+  }
+}
+
+@page :first {
+  @bottom-left {
+    content: '';
+  }
+  @bottom-right {
+    content: '';
+  }
+}
+
+}</style><style>
+    @media print {
+      @page :left {
+        @bottom-right {
+          content: '© Ecma International 2024';
+        }
+      }
+      @page :right {
+        @bottom-left {
+          content: '© Ecma International 2024';
+        }
+      }
+      @page :first {
+        @bottom-left {
+          content: '';
+        }
+        @bottom-right {
+          content: '';
+        }
+      }
+      @page :blank {
+        @bottom-left {
+          content: '';
+        }
+        @bottom-right {
+          content: '';
+        }
+      }
+    }
+    </style></head>
 
 <body><div id="shortcuts-help">
 <ul>
@@ -2999,7 +3221,7 @@ li.menu-search-result-term:before {
 </ul></div><div id="menu-toggle"><svg xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%; stroke:currentColor" viewBox="0 0 120 120" width="54" height="54">
       <title>Menu</title>
       <path stroke-width="10" stroke-linecap="round" d="M30,60 h60  M30,30 m0,5 h60  M30,90 m0,-5 h60"></path>
-    </svg></div><div id="menu-spacer" class="menu-spacer"></div><div id="menu"><div id="menu-search"><input type="text" id="menu-search-box" placeholder="Search..."><div id="menu-search-results" class="inactive"></div></div><div id="menu-pins"><div class="menu-pane-header">Pins<button class="unpin-all">clear</button></div><ul id="menu-pins-list"></ul></div><div class="menu-pane-header">Table of Contents</div><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-well-known-intrinsic-objects" title="Well-Known intrinsic objects"><span class="secnum">1</span> Well-Known intrinsic objects</a></li><li><span class="item-toggle">+</span><a href="#sec-wrapped-function-exotic-objects" title="Wrapped Function Exotic Objects"><span class="secnum">2</span> Wrapped Function Exotic Objects</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist" title="[[Call]] ( thisArgument, argumentsList )"><span class="secnum">2.1</span> <var class="field">[[Call]]</var> ( <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-create-type-error-copy" title="CreateTypeErrorCopy ( realmRecord, originalError )"><span class="secnum">2.2</span> CreateTypeErrorCopy ( <var>realmRecord</var>, <var>originalError</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-ordinary-wrapped-function-call" title="OrdinaryWrappedFunctionCall ( F, thisArgument, argumentsList )"><span class="secnum">2.3</span> OrdinaryWrappedFunctionCall ( <var>F</var>, <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-prepare-for-wrapped-function-call" title="PrepareForWrappedFunctionCall ( F )"><span class="secnum">2.4</span> PrepareForWrappedFunctionCall ( <var>F</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-objects" title="ShadowRealm Objects"><span class="secnum">3</span> ShadowRealm Objects</a><ol class="toc"><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-abstracts" title="ShadowRealm Abstract Operations"><span class="secnum">3.1</span> ShadowRealm Abstract Operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrappedfunctioncreate" title="WrappedFunctionCreate ( callerRealm, Target )"><span class="secnum">3.1.1</span> WrappedFunctionCreate ( <var>callerRealm</var>, <var>Target</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-copynameandlength" title="CopyNameAndLength ( F, Target [ , prefix [ , argCount ] ] )"><span class="secnum">3.1.2</span> CopyNameAndLength ( <var>F</var>, <var>Target</var> [ , <var>prefix</var> [ , <var>argCount</var> ] ] )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-function.prototype.bind" title="Function.prototype.bind ( thisArg, ...args )"><span class="secnum">3.1.2.1</span> Function.prototype.bind ( <var>thisArg</var>, ...<var>args</var> )</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-performshadowrealmeval" title="PerformShadowRealmEval ( sourceText, callerRealm, evalRealm )"><span class="secnum">3.1.3</span> PerformShadowRealmEval ( <var>sourceText</var>, <var>callerRealm</var>, <var>evalRealm</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealmimportvalue" title="ShadowRealmImportValue ( specifierString, exportNameString, callerRealm, evalContext )"><span class="secnum">3.1.4</span> ShadowRealmImportValue ( <var>specifierString</var>, <var>exportNameString</var>, <var>callerRealm</var>, <var>evalContext</var> )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-export-getter-functions" title="ExportGetter functions"><span class="secnum">3.1.4.1</span> ExportGetter functions</a></li><li><span class="item-toggle-none"></span><a href="#sec-import-value-error-functions" title="ImportValueError functions"><span class="secnum">3.1.4.2</span> ImportValueError functions</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-getwrappedvalue" title="GetWrappedValue ( callerRealm, value )"><span class="secnum">3.1.5</span> GetWrappedValue ( <var>callerRealm</var>, <var>value</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-validateshadowrealmobject" title="ValidateShadowRealmObject ( O )"><span class="secnum">3.1.6</span> ValidateShadowRealmObject ( <var>O</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-constructor" title="The ShadowRealm Constructor"><span class="secnum">3.2</span> The ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm" title="ShadowRealm ( )"><span class="secnum">3.2.1</span> ShadowRealm ( )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowRealm-constructor" title="Properties of the ShadowRealm Constructor"><span class="secnum">3.3</span> Properties of the ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype" title="ShadowRealm.prototype"><span class="secnum">3.3.1</span> ShadowRealm.prototype</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowrealm-prototype-object" title="Properties of the ShadowRealm Prototype Object"><span class="secnum">3.4</span> Properties of the ShadowRealm Prototype Object</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.evaluate" title="ShadowRealm.prototype.evaluate ( sourceText )"><span class="secnum">3.4.1</span> ShadowRealm.prototype.evaluate ( <var>sourceText</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.importvalue" title="ShadowRealm.prototype.importValue ( specifier, exportName )"><span class="secnum">3.4.2</span> ShadowRealm.prototype.importValue ( <var>specifier</var>, <var>exportName</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype-@@tostringtag" title="ShadowRealm.prototype [ @@toStringTag ]"><span class="secnum">3.4.3</span> ShadowRealm.prototype [ @@toStringTag ]</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-properties-of-shadowrealm-instances" title="Properties of ShadowRealm Instances"><span class="secnum">3.5</span> Properties of ShadowRealm Instances</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-host-operations" title="Host operations"><span class="secnum">3.6</span> Host operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-hostinitializeshadowrealm" title="HostInitializeShadowRealm ( realm )"><span class="secnum">3.6.1</span> HostInitializeShadowRealm ( <var>realm</var> )</a></li></ol></li></ol></li></ol></div></div><div id="spec-container"><h1 class="version">Stage 3 Draft / February 16, 2024</h1><h1 class="title">ShadowRealm API</h1>
+    </svg></div><div id="menu-spacer" class="menu-spacer"></div><div id="menu"><div id="menu-search"><input type="text" id="menu-search-box" placeholder="Search..."><div id="menu-search-results" class="inactive"></div></div><div id="menu-pins"><div class="menu-pane-header">Pins<button class="unpin-all">clear</button></div><ul id="menu-pins-list"></ul></div><div class="menu-pane-header">Table of Contents</div><div id="menu-toc"><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-well-known-intrinsic-objects" title="Well-Known intrinsic objects"><span class="secnum">1</span> Well-Known intrinsic objects</a></li><li><span class="item-toggle">+</span><a href="#sec-wrapped-function-exotic-objects" title="Wrapped Function Exotic Objects"><span class="secnum">2</span> Wrapped Function Exotic Objects</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrapped-function-exotic-objects-call-thisargument-argumentslist" title="[[Call]] ( thisArgument, argumentsList )"><span class="secnum">2.1</span> <var class="field">[[Call]]</var> ( <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-create-type-error-copy" title="CreateTypeErrorCopy ( realmRecord, originalError )"><span class="secnum">2.2</span> CreateTypeErrorCopy ( <var>realmRecord</var>, <var>originalError</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-ordinary-wrapped-function-call" title="OrdinaryWrappedFunctionCall ( F, thisArgument, argumentsList )"><span class="secnum">2.3</span> OrdinaryWrappedFunctionCall ( <var>F</var>, <var>thisArgument</var>, <var>argumentsList</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-prepare-for-wrapped-function-call" title="PrepareForWrappedFunctionCall ( F )"><span class="secnum">2.4</span> PrepareForWrappedFunctionCall ( <var>F</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-objects" title="ShadowRealm Objects"><span class="secnum">3</span> ShadowRealm Objects</a><ol class="toc"><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-abstracts" title="ShadowRealm Abstract Operations"><span class="secnum">3.1</span> ShadowRealm Abstract Operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-wrappedfunctioncreate" title="WrappedFunctionCreate ( callerRealm, Target )"><span class="secnum">3.1.1</span> WrappedFunctionCreate ( <var>callerRealm</var>, <var>Target</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-copynameandlength" title="CopyNameAndLength ( F, Target [ , prefix [ , argCount ] ] )"><span class="secnum">3.1.2</span> CopyNameAndLength ( <var>F</var>, <var>Target</var> [ , <var>prefix</var> [ , <var>argCount</var> ] ] )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-function.prototype.bind" title="Function.prototype.bind ( thisArg, ...args )"><span class="secnum">3.1.2.1</span> Function.prototype.bind ( <var>thisArg</var>, ...<var>args</var> )</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-performshadowrealmeval" title="PerformShadowRealmEval ( sourceText, callerRealm, evalRealm )"><span class="secnum">3.1.3</span> PerformShadowRealmEval ( <var>sourceText</var>, <var>callerRealm</var>, <var>evalRealm</var> )</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealmimportvalue" title="ShadowRealmImportValue ( specifierString, exportNameString, callerRealm, evalContext )"><span class="secnum">3.1.4</span> ShadowRealmImportValue ( <var>specifierString</var>, <var>exportNameString</var>, <var>callerRealm</var>, <var>evalContext</var> )</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-export-getter-functions" title="ExportGetter functions"><span class="secnum">3.1.4.1</span> ExportGetter functions</a></li><li><span class="item-toggle-none"></span><a href="#sec-import-value-error-functions" title="ImportValueError functions"><span class="secnum">3.1.4.2</span> ImportValueError functions</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-getwrappedvalue" title="GetWrappedValue ( callerRealm, value )"><span class="secnum">3.1.5</span> GetWrappedValue ( <var>callerRealm</var>, <var>value</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-validateshadowrealmobject" title="ValidateShadowRealmObject ( O )"><span class="secnum">3.1.6</span> ValidateShadowRealmObject ( <var>O</var> )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-constructor" title="The ShadowRealm Constructor"><span class="secnum">3.2</span> The ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm" title="ShadowRealm ( )"><span class="secnum">3.2.1</span> ShadowRealm ( )</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowRealm-constructor" title="Properties of the ShadowRealm Constructor"><span class="secnum">3.3</span> Properties of the ShadowRealm Constructor</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype" title="ShadowRealm.prototype"><span class="secnum">3.3.1</span> ShadowRealm.prototype</a></li></ol></li><li><span class="item-toggle">+</span><a href="#sec-properties-of-the-shadowrealm-prototype-object" title="Properties of the ShadowRealm Prototype Object"><span class="secnum">3.4</span> Properties of the ShadowRealm Prototype Object</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.evaluate" title="ShadowRealm.prototype.evaluate ( sourceText )"><span class="secnum">3.4.1</span> ShadowRealm.prototype.evaluate ( <var>sourceText</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype.importvalue" title="ShadowRealm.prototype.importValue ( specifier, exportName )"><span class="secnum">3.4.2</span> ShadowRealm.prototype.importValue ( <var>specifier</var>, <var>exportName</var> )</a></li><li><span class="item-toggle-none"></span><a href="#sec-shadowrealm.prototype-@@tostringtag" title="ShadowRealm.prototype [ @@toStringTag ]"><span class="secnum">3.4.3</span> ShadowRealm.prototype [ @@toStringTag ]</a></li></ol></li><li><span class="item-toggle-none"></span><a href="#sec-properties-of-shadowrealm-instances" title="Properties of ShadowRealm Instances"><span class="secnum">3.5</span> Properties of ShadowRealm Instances</a></li><li><span class="item-toggle">+</span><a href="#sec-shadowrealm-host-operations" title="Host operations"><span class="secnum">3.6</span> Host operations</a><ol class="toc"><li><span class="item-toggle-none"></span><a href="#sec-hostinitializeshadowrealm" title="HostInitializeShadowRealm ( realm )"><span class="secnum">3.6.1</span> HostInitializeShadowRealm ( <var>realm</var> )</a></li></ol></li></ol></li></ol></div></div><div id="spec-container"><h1 class="version">Stage 3 Draft / April 19, 2024</h1><h1 class="title">ShadowRealm API</h1>
 
 
 <emu-clause id="sec-well-known-intrinsic-objects">
@@ -3145,7 +3367,7 @@ li.menu-search-result-term:before {
 		<emu-clause id="sec-performshadowrealmeval" type="abstract operation" aoid="PerformShadowRealmEval">
 			<h1><span class="secnum">3.1.3</span> PerformShadowRealmEval ( <var>sourceText</var>, <var>callerRealm</var>, <var>evalRealm</var> )</h1>
 			<p>The abstract operation PerformShadowRealmEval takes arguments <var>sourceText</var> (a String), <var>callerRealm</var> (a <emu-xref href="#realm-record"><a href="https://tc39.es/ecma262/#realm-record">Realm Record</a></emu-xref>), and <var>evalRealm</var> (a <emu-xref href="#realm-record"><a href="https://tc39.es/ecma262/#realm-record">Realm Record</a></emu-xref>) and returns either a <emu-xref href="#sec-completion-record-specification-type"><a href="https://tc39.es/ecma262/#sec-completion-record-specification-type">normal completion containing</a></emu-xref> either a primitive value or a <emu-xref href="#wrapped-function-exotic-object" id="_ref_27"><a href="#wrapped-function-exotic-object">wrapped function exotic object</a></emu-xref>, or a <emu-xref href="#sec-completion-record-specification-type"><a href="https://tc39.es/ecma262/#sec-completion-record-specification-type">throw completion</a></emu-xref>. ... It performs the following steps when called:</p>
-			<emu-alg><ol><li>Perform ?&nbsp;<emu-xref aoid="HostEnsureCanCompileStrings"><a href="https://tc39.es/ecma262/#sec-hostensurecancompilestrings">HostEnsureCanCompileStrings</a></emu-xref>(<var>evalRealm</var>, «&nbsp;», <var>sourceText</var>, <emu-val>false</emu-val>).</li><li>Perform the following substeps in an <emu-xref href="#implementation-defined"><a href="https://tc39.es/ecma262/#implementation-defined">implementation-defined</a></emu-xref> order, possibly interleaving parsing and error detection:<ol><li>Let <var>script</var> be <emu-xref aoid="ParseText"><a href="https://tc39.es/ecma262/#sec-parsetext">ParseText</a></emu-xref>(<emu-xref aoid="StringToCodePoints"><a href="https://tc39.es/ecma262/#sec-stringtocodepoints">StringToCodePoints</a></emu-xref>(<var>sourceText</var>), <emu-nt><a href="https://tc39.es/ecma262/#prod-Script">Script</a></emu-nt>).</li><li>If <var>script</var> is a <emu-xref href="#sec-list-and-record-specification-type"><a href="https://tc39.es/ecma262/#sec-list-and-record-specification-type">List</a></emu-xref> of errors, throw a <emu-val>SyntaxError</emu-val> exception.</li><li>If <var>script</var> <emu-xref aoid="Contains"><a href="https://tc39.es/ecma262/#sec-static-semantics-contains">Contains</a></emu-xref> <emu-nt><a href="https://tc39.es/ecma262/#prod-ScriptBody">ScriptBody</a></emu-nt> is <emu-val>false</emu-val>, return <emu-val>undefined</emu-val>.</li><li>Let <var>body</var> be the <emu-nt><a href="https://tc39.es/ecma262/#prod-ScriptBody">ScriptBody</a></emu-nt> of <var>script</var>.</li><li>If <var>body</var> <emu-xref aoid="Contains"><a href="https://tc39.es/ecma262/#sec-static-semantics-contains">Contains</a></emu-xref> <emu-nt><a href="https://tc39.es/ecma262/#prod-NewTarget">NewTarget</a></emu-nt> is <emu-val>true</emu-val>, throw a <emu-val>SyntaxError</emu-val> exception.</li><li>If <var>body</var> <emu-xref aoid="Contains"><a href="https://tc39.es/ecma262/#sec-static-semantics-contains">Contains</a></emu-xref> <emu-nt><a href="https://tc39.es/ecma262/#prod-SuperProperty">SuperProperty</a></emu-nt> is <emu-val>true</emu-val>, throw a <emu-val>SyntaxError</emu-val> exception.</li><li>If <var>body</var> <emu-xref aoid="Contains"><a href="https://tc39.es/ecma262/#sec-static-semantics-contains">Contains</a></emu-xref> <emu-nt><a href="https://tc39.es/ecma262/#prod-SuperCall">SuperCall</a></emu-nt> is <emu-val>true</emu-val>, throw a <emu-val>SyntaxError</emu-val> exception.</li></ol></li><li>Let <var>strictEval</var> be <emu-xref aoid="IsStrict"><a href="https://tc39.es/ecma262/#sec-static-semantics-isstrict">IsStrict</a></emu-xref> of <var>script</var>.</li><li>Let <var>runningContext</var> be the <emu-xref href="#running-execution-context"><a href="https://tc39.es/ecma262/#running-execution-context">running execution context</a></emu-xref>.</li><li>Let <var>lexEnv</var> be <emu-xref aoid="NewDeclarativeEnvironment"><a href="https://tc39.es/ecma262/#sec-newdeclarativeenvironment">NewDeclarativeEnvironment</a></emu-xref>(<var>evalRealm</var>.<var class="field">[[GlobalEnv]]</var>).</li><li>Let <var>varEnv</var> be <var>evalRealm</var>.<var class="field">[[GlobalEnv]]</var>.</li><li>If <var>strictEval</var> is <emu-val>true</emu-val>, set <var>varEnv</var> to <var>lexEnv</var>.</li><li>If <var>runningContext</var> is not already suspended, suspend <var>runningContext</var>.</li><li>Let <var>evalContext</var> be a new <emu-xref href="#ecmascript-code-execution-context"><a href="https://tc39.es/ecma262/#ecmascript-code-execution-context">ECMAScript code execution context</a></emu-xref>.</li><li>Set <var>evalContext</var>'s Function to <emu-val>null</emu-val>.</li><li>Set <var>evalContext</var>'s <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> to <var>evalRealm</var>.</li><li>Set <var>evalContext</var>'s ScriptOrModule to <emu-val>null</emu-val>.</li><li>Set <var>evalContext</var>'s VariableEnvironment to <var>varEnv</var>.</li><li>Set <var>evalContext</var>'s LexicalEnvironment to <var>lexEnv</var>.</li><li>Set <var>evalContext</var>'s PrivateEnvironment to <emu-val>null</emu-val>.</li><li>Push <var>evalContext</var> onto the <emu-xref href="#execution-context-stack"><a href="https://tc39.es/ecma262/#execution-context-stack">execution context stack</a></emu-xref>; <var>evalContext</var> is now the <emu-xref href="#running-execution-context"><a href="https://tc39.es/ecma262/#running-execution-context">running execution context</a></emu-xref>.</li><li>Let <var>result</var> be <emu-xref aoid="Completion"><a href="https://tc39.es/ecma262/#sec-completion-ao">Completion</a></emu-xref>(<emu-xref aoid="EvalDeclarationInstantiation"><a href="https://tc39.es/ecma262/#sec-evaldeclarationinstantiation">EvalDeclarationInstantiation</a></emu-xref>(<var>body</var>, <var>varEnv</var>, <var>lexEnv</var>, <emu-val>null</emu-val>, <var>strictEval</var>)).</li><li>If <var>result</var>.<var class="field">[[Type]]</var> is <emu-const>normal</emu-const>, then<ol><li>Set <var>result</var> to <emu-xref aoid="Completion"><a href="https://tc39.es/ecma262/#sec-completion-ao">Completion</a></emu-xref>(<emu-xref aoid="Evaluation"><a href="https://tc39.es/ecma262/#sec-evaluation">Evaluation</a></emu-xref> of <var>body</var>).</li></ol></li><li>If <var>result</var>.<var class="field">[[Type]]</var> is <emu-const>normal</emu-const> and <var>result</var>.<var class="field">[[Value]]</var> is <emu-const>empty</emu-const>, then<ol><li>Set <var>result</var> to <emu-xref aoid="NormalCompletion"><a href="https://tc39.es/ecma262/#sec-normalcompletion">NormalCompletion</a></emu-xref>(<emu-val>undefined</emu-val>).</li></ol></li><li>Suspend <var>evalContext</var> and remove it from the <emu-xref href="#execution-context-stack"><a href="https://tc39.es/ecma262/#execution-context-stack">execution context stack</a></emu-xref>.</li><li>Resume the context that is now on the top of the <emu-xref href="#execution-context-stack"><a href="https://tc39.es/ecma262/#execution-context-stack">execution context stack</a></emu-xref> as the <emu-xref href="#running-execution-context"><a href="https://tc39.es/ecma262/#running-execution-context">running execution context</a></emu-xref>.</li><li>If <var>result</var>.<var class="field">[[Type]]</var> is not <emu-const>normal</emu-const>, then<ol><li>Let <var>copiedError</var> be <emu-xref aoid="CreateTypeErrorCopy" id="_ref_28"><a href="#sec-create-type-error-copy">CreateTypeErrorCopy</a></emu-xref>(<var>callerRealm</var>, <var>result</var>.<var class="field">[[Value]]</var>).</li><li>Return <emu-xref aoid="ThrowCompletion"><a href="https://tc39.es/ecma262/#sec-throwcompletion">ThrowCompletion</a></emu-xref>(<var>copiedError</var>).</li></ol></li><li>Return ?&nbsp;<emu-xref aoid="GetWrappedValue" id="_ref_29"><a href="#sec-getwrappedvalue">GetWrappedValue</a></emu-xref>(<var>callerRealm</var>, <var>result</var>.<var class="field">[[Value]]</var>).</li></ol></emu-alg>
+			<emu-alg><ol><li>Perform ?&nbsp;<emu-xref aoid="HostEnsureCanCompileStrings"><a href="https://tc39.es/ecma262/#sec-hostensurecancompilestrings">HostEnsureCanCompileStrings</a></emu-xref>(<var>evalRealm</var>, «&nbsp;», <var>sourceText</var>, <emu-val>false</emu-val>).</li><li>Perform the following substeps in an <emu-xref href="#implementation-defined"><a href="https://tc39.es/ecma262/#implementation-defined">implementation-defined</a></emu-xref> order, possibly interleaving parsing and error detection:<ol><li>Let <var>script</var> be <emu-xref aoid="ParseText"><a href="https://tc39.es/ecma262/#sec-parsetext">ParseText</a></emu-xref>(<emu-xref aoid="StringToCodePoints"><a href="https://tc39.es/ecma262/#sec-stringtocodepoints">StringToCodePoints</a></emu-xref>(<var>sourceText</var>), <emu-nt><a href="https://tc39.es/ecma262/#prod-Script">Script</a></emu-nt>).</li><li>If <var>script</var> is a <emu-xref href="#sec-list-and-record-specification-type"><a href="https://tc39.es/ecma262/#sec-list-and-record-specification-type">List</a></emu-xref> of errors, throw a <emu-val>SyntaxError</emu-val> exception.</li><li>If <var>script</var> <emu-xref aoid="Contains"><a href="https://tc39.es/ecma262/#sec-static-semantics-contains">Contains</a></emu-xref> <emu-nt><a href="https://tc39.es/ecma262/#prod-ScriptBody">ScriptBody</a></emu-nt> is <emu-val>false</emu-val>, return <emu-val>undefined</emu-val>.</li><li>Let <var>body</var> be the <emu-nt><a href="https://tc39.es/ecma262/#prod-ScriptBody">ScriptBody</a></emu-nt> of <var>script</var>.</li><li>If <var>body</var> <emu-xref aoid="Contains"><a href="https://tc39.es/ecma262/#sec-static-semantics-contains">Contains</a></emu-xref> <emu-nt><a href="https://tc39.es/ecma262/#prod-NewTarget">NewTarget</a></emu-nt> is <emu-val>true</emu-val>, throw a <emu-val>SyntaxError</emu-val> exception.</li><li>If <var>body</var> <emu-xref aoid="Contains"><a href="https://tc39.es/ecma262/#sec-static-semantics-contains">Contains</a></emu-xref> <emu-nt><a href="https://tc39.es/ecma262/#prod-SuperProperty">SuperProperty</a></emu-nt> is <emu-val>true</emu-val>, throw a <emu-val>SyntaxError</emu-val> exception.</li><li>If <var>body</var> <emu-xref aoid="Contains"><a href="https://tc39.es/ecma262/#sec-static-semantics-contains">Contains</a></emu-xref> <emu-nt><a href="https://tc39.es/ecma262/#prod-SuperCall">SuperCall</a></emu-nt> is <emu-val>true</emu-val>, throw a <emu-val>SyntaxError</emu-val> exception.</li></ol></li><li>Let <var>strictEval</var> be <emu-xref aoid="ScriptIsStrict"><a href="https://tc39.es/ecma262/#sec-scriptisstrict">ScriptIsStrict</a></emu-xref> of <var>script</var>.</li><li>Let <var>runningContext</var> be the <emu-xref href="#running-execution-context"><a href="https://tc39.es/ecma262/#running-execution-context">running execution context</a></emu-xref>.</li><li>Let <var>lexEnv</var> be <emu-xref aoid="NewDeclarativeEnvironment"><a href="https://tc39.es/ecma262/#sec-newdeclarativeenvironment">NewDeclarativeEnvironment</a></emu-xref>(<var>evalRealm</var>.<var class="field">[[GlobalEnv]]</var>).</li><li>Let <var>varEnv</var> be <var>evalRealm</var>.<var class="field">[[GlobalEnv]]</var>.</li><li>If <var>strictEval</var> is <emu-val>true</emu-val>, set <var>varEnv</var> to <var>lexEnv</var>.</li><li>If <var>runningContext</var> is not already suspended, suspend <var>runningContext</var>.</li><li>Let <var>evalContext</var> be a new <emu-xref href="#ecmascript-code-execution-context"><a href="https://tc39.es/ecma262/#ecmascript-code-execution-context">ECMAScript code execution context</a></emu-xref>.</li><li>Set <var>evalContext</var>'s Function to <emu-val>null</emu-val>.</li><li>Set <var>evalContext</var>'s <emu-xref href="#realm"><a href="https://tc39.es/ecma262/#realm">Realm</a></emu-xref> to <var>evalRealm</var>.</li><li>Set <var>evalContext</var>'s ScriptOrModule to <emu-val>null</emu-val>.</li><li>Set <var>evalContext</var>'s VariableEnvironment to <var>varEnv</var>.</li><li>Set <var>evalContext</var>'s LexicalEnvironment to <var>lexEnv</var>.</li><li>Set <var>evalContext</var>'s PrivateEnvironment to <emu-val>null</emu-val>.</li><li>Push <var>evalContext</var> onto the <emu-xref href="#execution-context-stack"><a href="https://tc39.es/ecma262/#execution-context-stack">execution context stack</a></emu-xref>; <var>evalContext</var> is now the <emu-xref href="#running-execution-context"><a href="https://tc39.es/ecma262/#running-execution-context">running execution context</a></emu-xref>.</li><li>Let <var>result</var> be <emu-xref aoid="Completion"><a href="https://tc39.es/ecma262/#sec-completion-ao">Completion</a></emu-xref>(<emu-xref aoid="EvalDeclarationInstantiation"><a href="https://tc39.es/ecma262/#sec-evaldeclarationinstantiation">EvalDeclarationInstantiation</a></emu-xref>(<var>body</var>, <var>varEnv</var>, <var>lexEnv</var>, <emu-val>null</emu-val>, <var>strictEval</var>)).</li><li>If <var>result</var>.<var class="field">[[Type]]</var> is <emu-const>normal</emu-const>, then<ol><li>Set <var>result</var> to <emu-xref aoid="Completion"><a href="https://tc39.es/ecma262/#sec-completion-ao">Completion</a></emu-xref>(<emu-xref aoid="Evaluation"><a href="https://tc39.es/ecma262/#sec-evaluation">Evaluation</a></emu-xref> of <var>body</var>).</li></ol></li><li>If <var>result</var>.<var class="field">[[Type]]</var> is <emu-const>normal</emu-const> and <var>result</var>.<var class="field">[[Value]]</var> is <emu-const>empty</emu-const>, then<ol><li>Set <var>result</var> to <emu-xref aoid="NormalCompletion"><a href="https://tc39.es/ecma262/#sec-normalcompletion">NormalCompletion</a></emu-xref>(<emu-val>undefined</emu-val>).</li></ol></li><li>Suspend <var>evalContext</var> and remove it from the <emu-xref href="#execution-context-stack"><a href="https://tc39.es/ecma262/#execution-context-stack">execution context stack</a></emu-xref>.</li><li>Resume the context that is now on the top of the <emu-xref href="#execution-context-stack"><a href="https://tc39.es/ecma262/#execution-context-stack">execution context stack</a></emu-xref> as the <emu-xref href="#running-execution-context"><a href="https://tc39.es/ecma262/#running-execution-context">running execution context</a></emu-xref>.</li><li>If <var>result</var>.<var class="field">[[Type]]</var> is not <emu-const>normal</emu-const>, then<ol><li>Let <var>copiedError</var> be <emu-xref aoid="CreateTypeErrorCopy" id="_ref_28"><a href="#sec-create-type-error-copy">CreateTypeErrorCopy</a></emu-xref>(<var>callerRealm</var>, <var>result</var>.<var class="field">[[Value]]</var>).</li><li>Return <emu-xref aoid="ThrowCompletion"><a href="https://tc39.es/ecma262/#sec-throwcompletion">ThrowCompletion</a></emu-xref>(<var>copiedError</var>).</li></ol></li><li>Return ?&nbsp;<emu-xref aoid="GetWrappedValue" id="_ref_29"><a href="#sec-getwrappedvalue">GetWrappedValue</a></emu-xref>(<var>callerRealm</var>, <var>result</var>.<var class="field">[[Value]]</var>).</li></ol></emu-alg>
 			<emu-note type="editor"><span class="note">Editor's Note</span><div class="note-contents">
 				In the case of an abrupt <emu-const>throw</emu-const> completion, the type of error to be created should match the type of the abrupt <emu-xref href="#sec-completion-record-specification-type"><a href="https://tc39.es/ecma262/#sec-completion-record-specification-type">throw completion</a></emu-xref> record. This could be revisited when merging into the main specification. Additionally, in the case of a <emu-const>break</emu-const> or <emu-const>continue</emu-const> completion, since those are not supported, a TypeError is expected. There should be no <emu-const>return</emu-const> completion because this is a top level script evaluation, in which case a return <emu-nt><a href="https://tc39.es/ecma262/#prod-Statement">Statement</a></emu-nt> must result in a parsing error.
 			</div></emu-note>
