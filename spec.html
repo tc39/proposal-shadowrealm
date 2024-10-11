@@ -472,18 +472,24 @@ location: https://tc39.es/proposal-shadowrealm/
 			<emu-alg>
 				1. If NewTarget is *undefined*, throw a *TypeError* exception.
 				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, *"%ShadowRealm.prototype%"*, « [[ShadowRealm]], [[ExecutionContext]] »).
-				1. Let _realmRec_ be CreateRealm().
-				1. Set _O_.[[ShadowRealm]] to _realmRec_.
-				1. Let _context_ be a new execution context.
-				1. Set the Function of _context_ to *null*.
-				1. Set the Realm of _context_ to _realmRec_.
-				1. Set the ScriptOrModule of _context_ to *null*.
+				1. Perform ? InitializeHostDefinedRealm(). The customizations for creating the global object are to return ? InitializeShadowRealm().
+				1. Let _context_ be the running JavaScript execution context.
 				1. Set _O_.[[ExecutionContext]] to _context_.
-				1. Perform SetRealmGlobalObject(_realmRec_, *undefined*, *undefined*).
-				1. Perform ? SetDefaultGlobalBindings(_O_.[[ShadowRealm]]).
-				1. Perform ? HostInitializeShadowRealm(_O_.[[ShadowRealm]]).
+				1. Let _realmRec_ be the Realm of _context_.
+				1. Set _O_.[[ShadowRealm]] to _realmRec_.
 				1. Return _O_.
 			</emu-alg>
+
+			<emu-clause id="sec-initializeshadowrealm" type="abstract operation">
+				<h1>InitializeShadowRealm ( ): either a normal completion containing an Object or a throw completion</h1>
+				<dl class="header">
+				</dl>
+				<emu-alg>
+					1. Let _context_ be the running JavaScript execution context.
+					1. Let _realm_ be the Realm of _context_.
+					1. Return ? HostInitializeShadowRealm(_realm_, _context_).
+				</emu-alg>
+			</emu-clause>
 		</emu-clause>
 	</emu-clause>
 
@@ -589,7 +595,8 @@ location: https://tc39.es/proposal-shadowrealm/
 			<h1>
 				HostInitializeShadowRealm (
 					_realm_: a Realm Record,
-				): either a normal completion containing ~unused~ or a throw completion
+					_context_: an execution context,
+				): either a normal completion containing an Object or a throw completion
 			</h1>
 			<dl class="header">
 				<dt>description</dt>
@@ -600,6 +607,10 @@ location: https://tc39.es/proposal-shadowrealm/
 					to the ShadowRealm, e.g., for module loading.
 				</dd>
 			</dl>
+			<p>The default implementation of HostInitializeShadowRealm performs the following steps when called:</p>
+			<emu-alg>
+				1. Return NormalCompletion(OrdinaryObjectCreate(_realm_.[[Intrinsics]].[[%Object.prototype%]])).
+			</emu-alg>
 			<p>
 				The host may use this hook to add properties to the ShadowRealm's global
 				object. Those properties must be configurable.
@@ -614,11 +625,9 @@ location: https://tc39.es/proposal-shadowrealm/
 					including `HTMLElement`, `localStorage`, `fetch`, etc.
 				</p>
 			</emu-note>
-			<emu-note type=editor>
+			<emu-note>
 				<p>
-					The ShadowRealm constructor (<emu-xref href="#sec-shadowrealm"></emu-xref>)
-					creates a new global object as an ordinary object. This
-					means all properties from the global object are deletable.
+					The host is expected to create global object whose properties are all deletable.
 				</p>
 			</emu-note>
 		</emu-clause>
