@@ -472,7 +472,7 @@ location: https://tc39.es/proposal-shadowrealm/
 			<emu-alg>
 				1. If NewTarget is *undefined*, throw a *TypeError* exception.
 				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, *"%ShadowRealm.prototype%"*, « [[ShadowRealm]], [[ExecutionContext]] »).
-				1. Perform ? InitializeHostDefinedRealm(). The customizations for creating the global object are to return ? InitializeShadowRealm().
+				1. Perform ? InitializeHostDefinedRealm(). The customizations for creating the global object are to return ? InitializeShadowRealm(_O_).
 				1. Let _context_ be the running JavaScript execution context.
 				1. Set _O_.[[ExecutionContext]] to _context_.
 				1. Let _realmRec_ be the Realm of _context_.
@@ -481,13 +481,16 @@ location: https://tc39.es/proposal-shadowrealm/
 			</emu-alg>
 
 			<emu-clause id="sec-initializeshadowrealm" type="abstract operation">
-				<h1>InitializeShadowRealm ( ): either a normal completion containing an Object or a throw completion</h1>
+				<h1>
+					InitializeShadowRealm (
+						_O_: a ShadowRealm object
+					): either a normal completion containing an Object or a throw completion</h1>
 				<dl class="header">
 				</dl>
 				<emu-alg>
 					1. Let _context_ be the running JavaScript execution context.
 					1. Let _realm_ be the Realm of _context_.
-					1. Return ? HostInitializeShadowRealm(_realm_, _context_).
+					1. Return ? HostInitializeShadowRealm(_realm_, _context_, _O_).
 				</emu-alg>
 			</emu-clause>
 		</emu-clause>
@@ -596,6 +599,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				HostInitializeShadowRealm (
 					_realm_: a Realm Record,
 					_context_: an execution context,
+					_O_: a ShadowRealm object,
 				): either a normal completion containing an Object or a throw completion
 			</h1>
 			<dl class="header">
