@@ -472,16 +472,14 @@ location: https://tc39.es/proposal-shadowrealm/
 			<emu-alg>
 				1. If NewTarget is *undefined*, throw a *TypeError* exception.
 				1. Let _O_ be ? OrdinaryCreateFromConstructor(NewTarget, *"%ShadowRealm.prototype%"*, « [[ShadowRealm]], [[ExecutionContext]] »).
-				1. Let _realmRec_ be CreateRealm().
+				1. Let _callerContext_ be the running execution context.
+				1. Perform ? InitializeHostDefinedRealm().
+				1. Let _innerContext_ be the running execution context.
+				1. Remove _innerContext_ from the execution context stack and restore _callerContext_ as the running execution context.
+				1. Set _O_.[[ExecutionContext]] to _innerContext_.
+				1. Let _realmRec_ be the Realm of _innerContext_.
 				1. Set _O_.[[ShadowRealm]] to _realmRec_.
-				1. Let _context_ be a new execution context.
-				1. Set the Function of _context_ to *null*.
-				1. Set the Realm of _context_ to _realmRec_.
-				1. Set the ScriptOrModule of _context_ to *null*.
-				1. Set _O_.[[ExecutionContext]] to _context_.
-				1. Perform SetRealmGlobalObject(_realmRec_, *undefined*, *undefined*).
-				1. Perform ? SetDefaultGlobalBindings(_O_.[[ShadowRealm]]).
-				1. Perform ? HostInitializeShadowRealm(_O_.[[ShadowRealm]]).
+				1. Perform ? HostInitializeShadowRealm(_realmRec_).
 				1. Return _O_.
 			</emu-alg>
 		</emu-clause>
