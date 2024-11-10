@@ -57,7 +57,7 @@ See some examples [in the Explainer file](explainer.md).
 
 ## <a name='History'></a>History
 
-* we moved on from the exposed globalThis model to a lean isolated realms API (see #289 and #291)
+* we moved on from the exposed globalThis model to a lean isolated realms API (see https://github.com/tc39/proposal-shadowrealm/issues/289 and https://github.com/tc39/proposal-shadowrealm/issues/291)
 * we worked on this during ES2015 time frame, so never went through stages process ([ES6 Realm Objects proto-spec.pdf](https://github.com/tc39/proposal-shadowrealm/files/717415/ES6.Realm.Objects.proto-spec.pdf))
 * got punted to later (rightly so!)
 * goal of this proposal: resume work on this, reassert committee interest via advancing to stage 2
