@@ -497,6 +497,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Let _realmRec_ be the Realm of _innerContext_.
 				1. Set _O_.[[ShadowRealm]] to _realmRec_.
 				1. Perform ? HostInitializeShadowRealm(_realmRec_, _innerContext_, _O_).
+				1. Assert: _realmRec_.[[GlobalObject]] is an ordinary object.
 				1. Return _O_.
 			</emu-alg>
 		</emu-clause>
