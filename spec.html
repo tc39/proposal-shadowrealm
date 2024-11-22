@@ -627,13 +627,13 @@ location: https://tc39.es/proposal-shadowrealm/
 					including `HTMLElement`, `localStorage`, `fetch`, etc.
 				</p>
 			</emu-note>
-			<emu-note type=editor>
-				<p>
-					The ShadowRealm constructor (<emu-xref href="#sec-shadowrealm"></emu-xref>)
-					creates a new global object as an ordinary object. This
-					means all properties from the global object are deletable.
-				</p>
-			</emu-note>
+		</emu-clause>
+		<emu-clause id="sec-shadowrealm-host-requirements">
+			<h1>Requirements on host-defined global objects</h1>
+			<p>
+				If a host defines that a specific global object is to be used for a ShadowRealm, that
+				object must be an ordinary object.
+			</p>
 		</emu-clause>
 	</emu-clause>
 </emu-clause>
