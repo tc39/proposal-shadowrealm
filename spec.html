@@ -497,6 +497,7 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Let _realmRec_ be the Realm of _innerContext_.
 				1. Set _O_.[[ShadowRealm]] to _realmRec_.
 				1. Perform ? HostInitializeShadowRealm(_realmRec_, _innerContext_, _O_).
+				1. Assert: _realmRec_.[[GlobalObject]] is an ordinary object.
 				1. Return _O_.
 			</emu-alg>
 		</emu-clause>
@@ -612,10 +613,6 @@ location: https://tc39.es/proposal-shadowrealm/
 					to the ShadowRealm, e.g., for module loading.
 				</dd>
 			</dl>
-			<p>
-				The host may use this hook to add properties to the ShadowRealm's global
-				object. Those properties must be configurable.
-			</p>
 			<emu-note>
 				<p>
 					This specification does not recommend any specific addition.
@@ -626,13 +623,13 @@ location: https://tc39.es/proposal-shadowrealm/
 					including `HTMLElement`, `localStorage`, `fetch`, etc.
 				</p>
 			</emu-note>
-			<emu-note type=editor>
-				<p>
-					The ShadowRealm constructor (<emu-xref href="#sec-shadowrealm"></emu-xref>)
-					creates a new global object as an ordinary object. This
-					means all properties from the global object are deletable.
-				</p>
-			</emu-note>
+		</emu-clause>
+		<emu-clause id="sec-shadowrealm-host-requirements">
+			<h1>Requirements on host-defined global objects</h1>
+			<p>
+				If a host defines that a specific global object is to be used for a ShadowRealm, that
+				object must be an extensible ordinary object, and any properties on it must be configurable.
+			</p>
 		</emu-clause>
 	</emu-clause>
 </emu-clause>
