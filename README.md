@@ -4,7 +4,7 @@
 
 - [Explainer](explainer.md).
 - [HTML Rendered Spec](https://tc39.es/proposal-shadowrealm/).
-- Currently at [Stage 2](https://tc39.es/process-document/).
+- Currently at [Stage 2.7](https://tc39.es/process-document/).
 - [Code of Conduct](https://tc39.es/code-of-conduct/)
 
 ### <a name='Champions'></a>Champions
@@ -45,6 +45,13 @@ See some examples [in the Explainer file](explainer.md).
 
 ## <a name='Presentations'></a>Presentations
 
+* [TC39 Meeting, December 2024 - Stage 3 Request](http://ptomato.name/talks/tc39-2024-12/)
+* [TC39 Meeting, June 12th 2024 - Stage 2.7 Update](https://docs.google.com/presentation/d/1HxocWS0WfIZPanCAhsabSDOPx9LCjw6upMfMP9ogEqE)
+* [TC39 Meeting, February 7th 2024 - Move to Stage 2.7](https://docs.google.com/presentation/d/1fd5-VKtl0LxYitLHr_bJ82_xaLs1w5xSmD0dCdh2TvU)
+* [TC39 Meeting, September 7th 2023 - Move to Stage 2](https://docs.google.com/presentation/d/1WJd9g3df_ibVHK3LdoKX2FboDwYQBUBJNxuRAWOYYbM)
+* [TC39 Meeting, March 29th 2022 - Stage 3 Update](https://docs.google.com/presentation/d/1Juv36nUTfcvb_E2NUeAPGuToCCBWIX0NLObx_h5qDYU)
+* [TC39 Meeting, December 14th 2021 - Stage 3 Update](https://docs.google.com/presentation/d/12PM5c4_yUnqXHjvACh8HEN5oJwgei-0T0hX_hlqjfDU)
+* [TC39 Meeting, August 31st 2021 - Rename to ShadowRealm](https://docs.google.com/presentation/d/1Rb6YISQFKNQIANpLctcuk-GGM5InNfcdA0zuUCgb-fE)
 * [TC39 Meeting, July 12th 2021 - Stage 3 Request](https://docs.google.com/presentation/d/1MgrUnQH25gDVosKnH10n9n9msvrLkdaHI0taQgOWRcs)
 * [TC39 Meeting, May 25th 2021 - Stage 2 Update](https://docs.google.com/presentation/d/1c-7nsjAUkdWYie5n1NlEr7_FxMXHyXjRFzsReLTm8S8)
 * [TC39 Meeting, April 2021 - Introduction of Callable Boundary Reealms](https://docs.google.com/presentation/d/1VbfgfZgNCcWhPu-8JWd27hrL9jEfakWPSWPcJLa3SIw)
@@ -60,7 +67,6 @@ See some examples [in the Explainer file](explainer.md).
 * we moved on from the exposed globalThis model to a lean isolated realms API (see https://github.com/tc39/proposal-shadowrealm/issues/289 and https://github.com/tc39/proposal-shadowrealm/issues/291)
 * we worked on this during ES2015 time frame, so never went through stages process ([ES6 Realm Objects proto-spec.pdf](https://github.com/tc39/proposal-shadowrealm/files/717415/ES6.Realm.Objects.proto-spec.pdf))
 * got punted to later (rightly so!)
-* goal of this proposal: resume work on this, reassert committee interest via advancing to stage 2
 * original idea from @dherman: [What are Realms?](https://gist.github.com/dherman/7568885)
 
 ## <a name='Contributing'></a>Contributing
