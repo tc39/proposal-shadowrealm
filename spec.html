@@ -501,6 +501,9 @@ location: https://tc39.es/proposal-shadowrealm/
 				1. Return _O_.
 			</emu-alg>
 		</emu-clause>
+		<emu-note>
+			<p>The realm created in this algorithm is referred to as a <dfn>shadow realm</dfn>.</p>
+		</emu-note>
 	</emu-clause>
 
 	<emu-clause id="sec-properties-of-the-shadowRealm-constructor">
@@ -631,6 +634,37 @@ location: https://tc39.es/proposal-shadowrealm/
 				object must be an extensible ordinary object, and any properties on it must be configurable.
 			</p>
 		</emu-clause>
+	</emu-clause>
+</emu-clause>
+
+<emu-clause id="sec-amendments">
+	<h1>Amendments to the ECMAScript® 2025 Language Specification</h1>
+
+	<emu-note type="editor">
+		<p>
+			This section lists amendments which must be made to <a href="https://tc39.es/ecma262/">ECMA-262, the ECMAScript® 2025 Language Specification</a>.
+			Text to be added is marked <ins>like this</ins>, and text to be deleted is marked <del>like this</del>.
+		</p>
+	</emu-note>
+
+	<emu-clause id="sec-getactivescriptormodule" type="abstract operation">
+		<h1>GetActiveScriptOrModule ( ): a Script Record, a Module Record, or *null*</h1>
+		<dl class="header">
+			<dt>description</dt>
+			<dd>It is used to determine the running script or module, based on the running execution context.</dd>
+		</dl>
+
+		<emu-alg>
+			1. If the execution context stack is empty, return *null*.
+			1. Let _ec_ be the topmost execution context on the execution context stack whose ScriptOrModule component is not *null* <ins>or whose Realm is a shadow realm</ins>.
+			1. If no such execution context exists, return *null*. Otherwise, return _ec_'s ScriptOrModule.
+		</emu-alg>
+
+		<emu-note type="editor">
+			<p>
+				This adjustment will be obsoleted by <a href="https://github.com/tc39/ecma262/pull/3374">ECMA-262 PR 3374</a>.
+			</p>
+		</emu-note>
 	</emu-clause>
 </emu-clause>
 </body>
